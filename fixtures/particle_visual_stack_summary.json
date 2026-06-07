@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "matter_payload_id": "particle.render.optics_fixture",
+  "source_particle_count": 3,
+  "visual_sample_count": 3,
+  "flat_visible_count": 3,
+  "billboard_emitted_count": 3,
+  "mask_atlas_width_px": 128,
+  "mask_atlas_height_px": 128,
+  "mask_frame_count": 64,
+  "mask_nonzero_bytes": 18144,
+  "budget": {
+    "schema_id": "rusty.optics.particles.budget.billboard.v1",
+    "budget_id": "particle.budget.fixture",
+    "source_particles": 3,
+    "active_trails": 0,
+    "visible_instances": 3,
+    "disc_segments": 12,
+    "indices_per_instance": 36,
+    "total_indices": 108
+  }
+}

@@ -1,0 +1,16 @@
+[package]
+name = "rusty-optics-schema"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+rusty-optics-model = { path = "../rusty-optics-model" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[lints]
+workspace = true
+

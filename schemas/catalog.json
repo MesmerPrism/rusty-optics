@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "schemas": [
+    {
+      "schema_id": "rusty.optics.color.rgba.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.particles.visual.sample.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.particles.visual.frame.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.particles.appearance.profile.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.particles.mask.animated.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.particles.billboard.build.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.particles.budget.billboard.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.particles.projection.flat.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.particles.flat.frame.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    }
+  ]
+}

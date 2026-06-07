@@ -1,0 +1,19 @@
+[package]
+name = "rusty-optics-fixtures"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+rusty-matter-model = { path = "../../../rusty-matter/crates/rusty-matter-model", features = ["serde"] }
+rusty-matter-particles = { path = "../../../rusty-matter/crates/rusty-matter-particles", features = ["serde"] }
+rusty-optics-model = { path = "../rusty-optics-model", features = ["serde"] }
+rusty-optics-particles = { path = "../rusty-optics-particles", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[lints]
+workspace = true
+
