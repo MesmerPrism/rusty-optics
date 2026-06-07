@@ -35,4 +35,7 @@ cargo run -p rusty-optics-fixtures -- export-hand-mesh-browser-from-surface `
 ```
 
 This path can include a Matter-owned SDF particle simulation overlay for
-hardware-free smoke evidence and is intentionally not a committed fixture.
+hardware-free smoke evidence and is intentionally not a committed fixture. When
+that overlay is present, the local browser preview also receives the packed SDF
+grid so its `Live` and `Reset Particles` controls can seed a sphere distribution
+and show particles reacting to the SDF gradient in the browser.

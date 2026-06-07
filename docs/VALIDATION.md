@@ -50,3 +50,10 @@ The generated frame feeds the mesh wireframe, coordinate-map visual, dynamic
 collider visual, SDF slice, and optional SDF particle overlay from the same
 Matter surface and SDF grid. It remains outside `check_all.ps1` because the
 source surface is a local external artifact.
+
+When `--include-sdf-particles` is enabled, the local external frame also carries
+the packed Matter SDF grid used by the preview. The browser's `Live` toggle and
+`Reset Particles` button are preview-only controls: they reset particles into a
+sphere inside the SDF bounds and advance them against the sampled SDF gradient
+so SDF reaction can be inspected without adding renderer or legacy runtime
+dependencies.
