@@ -23,3 +23,15 @@ Regenerate and check the hand-mesh fixture with:
 ```powershell
 cargo run -p rusty-optics-fixtures -- export-hand-mesh-browser --check
 ```
+
+External Matter surface JSON can be converted into a local browser debug frame
+with:
+
+```powershell
+cargo run -p rusty-optics-fixtures -- export-hand-mesh-browser-from-surface `
+  --surface-json "<surface.json>" `
+  --output "local-artifacts\hand_mesh\hand_mesh_browser_debug_frame.json"
+```
+
+This path is for hardware-free smoke evidence and is intentionally not a
+committed fixture.

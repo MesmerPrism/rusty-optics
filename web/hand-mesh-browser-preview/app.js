@@ -15,7 +15,8 @@ let radius = 1;
 let view = { yaw: -0.28, pitch: -0.78, zoom: 1.0 };
 let drag = null;
 
-const frameUrl = "/fixtures/hand_mesh/hand_mesh_browser_debug_frame.json";
+const params = new URLSearchParams(window.location.search);
+const frameUrl = params.get("frame") || "/fixtures/hand_mesh/hand_mesh_browser_debug_frame.json";
 
 fetch(frameUrl)
   .then((response) => {

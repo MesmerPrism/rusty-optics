@@ -1,6 +1,10 @@
 use std::path::PathBuf;
 
-use crate::{error::FixtureError, hand_mesh::hand_mesh_browser_frame_json, summary::summary_json};
+use crate::{
+    error::FixtureError,
+    hand_mesh::{hand_mesh_browser_frame_json, hand_mesh_browser_frame_json_from_surface},
+    summary::summary_json,
+};
 
 /// Runs the fixture CLI.
 pub fn run(args: impl IntoIterator<Item = String>) -> Result<(), FixtureError> {
@@ -9,6 +13,7 @@ pub fn run(args: impl IntoIterator<Item = String>) -> Result<(), FixtureError> {
     match command.as_str() {
         "export" => export(args),
         "export-hand-mesh-browser" => export_hand_mesh_browser(args),
+        "export-hand-mesh-browser-from-surface" => export_hand_mesh_browser_from_surface(args),
         "validate" => validate(),
         _ => Err(FixtureError::InvalidArgument(command)),
     }
@@ -60,9 +65,91 @@ fn export_hand_mesh_browser(args: impl IntoIterator<Item = String>) -> Result<()
     write_or_check_json(output, json, check, "hand mesh browser frame")
 }
 
+fn export_hand_mesh_browser_from_surface(
+    args: impl IntoIterator<Item = String>,
+) -> Result<(), FixtureError> {
+    let mut check = false;
+    let mut output = PathBuf::from("local-artifacts/hand_mesh/hand_mesh_browser_debug_frame.json");
+    let mut surface_json: Option<PathBuf> = None;
+    let mut source_frame_id = "external.mesh_surface.frame.0001".to_owned();
+    let mut coordinate_count = 48_usize;
+    let mut sdf_voxel_size = 0.008_f32;
+    let mut args = args.into_iter();
+    while let Some(argument) = args.next() {
+        match argument.as_str() {
+            "--check" => check = true,
+            "--output" => {
+                let Some(path) = args.next() else {
+                    return Err(FixtureError::InvalidArgument(
+                        "--output requires a path".to_owned(),
+                    ));
+                };
+                output = PathBuf::from(path);
+            }
+            "--surface-json" => {
+                let Some(path) = args.next() else {
+                    return Err(FixtureError::InvalidArgument(
+                        "--surface-json requires a path".to_owned(),
+                    ));
+                };
+                surface_json = Some(PathBuf::from(path));
+            }
+            "--source-frame-id" => {
+                let Some(value) = args.next() else {
+                    return Err(FixtureError::InvalidArgument(
+                        "--source-frame-id requires a value".to_owned(),
+                    ));
+                };
+                source_frame_id = value;
+            }
+            "--coordinate-count" => {
+                let Some(value) = args.next() else {
+                    return Err(FixtureError::InvalidArgument(
+                        "--coordinate-count requires a value".to_owned(),
+                    ));
+                };
+                coordinate_count = parse_usize("--coordinate-count", &value)?;
+            }
+            "--sdf-voxel-size" => {
+                let Some(value) = args.next() else {
+                    return Err(FixtureError::InvalidArgument(
+                        "--sdf-voxel-size requires a value".to_owned(),
+                    ));
+                };
+                sdf_voxel_size = parse_f32("--sdf-voxel-size", &value)?;
+            }
+            _ => return Err(FixtureError::InvalidArgument(argument)),
+        }
+    }
+
+    let surface_json = surface_json
+        .ok_or_else(|| FixtureError::InvalidArgument("--surface-json is required".to_owned()))?;
+    let surface_text = std::fs::read_to_string(&surface_json)?;
+    let surface = serde_json::from_str(&surface_text)?;
+    let json = hand_mesh_browser_frame_json_from_surface(
+        surface,
+        &source_frame_id,
+        coordinate_count,
+        sdf_voxel_size,
+    )?;
+    write_or_check_json(output, json, check, "external hand mesh browser frame")
+}
+
 fn validate() -> Result<(), FixtureError> {
     export(["--check".to_owned()])?;
     export_hand_mesh_browser(["--check".to_owned()])
+}
+
+fn parse_usize(label: &str, value: &str) -> Result<usize, FixtureError> {
+    value
+        .parse::<usize>()
+        .map_err(|_| FixtureError::InvalidArgument(format!("{label} must be an unsigned integer")))
+}
+
+fn parse_f32(label: &str, value: &str) -> Result<f32, FixtureError> {
+    value
+        .parse::<f32>()
+        .map_err(|_| FixtureError::InvalidArgument(format!("{label} must be a number")))
 }
 
 fn write_or_check_json(

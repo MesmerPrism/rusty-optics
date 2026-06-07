@@ -7,3 +7,4 @@
 *.log
 *.tmp
 .hand-mesh-browser-preview.pid
+/local-artifacts/
