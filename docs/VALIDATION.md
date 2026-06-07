@@ -39,6 +39,7 @@ headset or renderer access:
 ```powershell
 cargo run -p rusty-optics-fixtures -- export-hand-mesh-browser-from-surface `
   --surface-json "<rusty-matter\local-artifacts\...\surface.json>" `
+  --include-sdf-particles `
   --output "local-artifacts\hand_mesh\hand_mesh_browser_debug_frame.json"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-HandMeshBrowserPreview.ps1 `
@@ -46,5 +47,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-HandMeshBrowse
 ```
 
 The generated frame feeds the mesh wireframe, coordinate-map visual, dynamic
-collider visual, and SDF slice from the same Matter surface. It remains outside
-`check_all.ps1` because the source surface is a local external artifact.
+collider visual, SDF slice, and optional SDF particle overlay from the same
+Matter surface and SDF grid. It remains outside `check_all.ps1` because the
+source surface is a local external artifact.

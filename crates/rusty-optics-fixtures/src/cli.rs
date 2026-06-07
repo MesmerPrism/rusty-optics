@@ -74,10 +74,14 @@ fn export_hand_mesh_browser_from_surface(
     let mut source_frame_id = "external.mesh_surface.frame.0001".to_owned();
     let mut coordinate_count = 48_usize;
     let mut sdf_voxel_size = 0.008_f32;
+    let mut include_sdf_particles = false;
+    let mut particle_count = 80_usize;
+    let mut particle_steps = 28_usize;
     let mut args = args.into_iter();
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--check" => check = true,
+            "--include-sdf-particles" => include_sdf_particles = true,
             "--output" => {
                 let Some(path) = args.next() else {
                     return Err(FixtureError::InvalidArgument(
@@ -118,6 +122,22 @@ fn export_hand_mesh_browser_from_surface(
                 };
                 sdf_voxel_size = parse_f32("--sdf-voxel-size", &value)?;
             }
+            "--particle-count" => {
+                let Some(value) = args.next() else {
+                    return Err(FixtureError::InvalidArgument(
+                        "--particle-count requires a value".to_owned(),
+                    ));
+                };
+                particle_count = parse_usize("--particle-count", &value)?;
+            }
+            "--particle-steps" => {
+                let Some(value) = args.next() else {
+                    return Err(FixtureError::InvalidArgument(
+                        "--particle-steps requires a value".to_owned(),
+                    ));
+                };
+                particle_steps = parse_usize("--particle-steps", &value)?;
+            }
             _ => return Err(FixtureError::InvalidArgument(argument)),
         }
     }
@@ -131,6 +151,9 @@ fn export_hand_mesh_browser_from_surface(
         &source_frame_id,
         coordinate_count,
         sdf_voxel_size,
+        include_sdf_particles,
+        particle_count,
+        particle_steps,
     )?;
     write_or_check_json(output, json, check, "external hand mesh browser frame")
 }

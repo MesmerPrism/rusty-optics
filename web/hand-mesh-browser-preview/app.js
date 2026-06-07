@@ -6,6 +6,7 @@ const controls = {
   coordinates: document.querySelector("#toggle-coordinates"),
   collider: document.querySelector("#toggle-collider"),
   sdf: document.querySelector("#toggle-sdf"),
+  particles: document.querySelector("#toggle-particles"),
   reset: document.querySelector("#reset-view"),
 };
 
@@ -36,7 +37,13 @@ fetch(frameUrl)
     draw();
   });
 
-for (const input of [controls.mesh, controls.coordinates, controls.collider, controls.sdf]) {
+for (const input of [
+  controls.mesh,
+  controls.coordinates,
+  controls.collider,
+  controls.sdf,
+  controls.particles,
+]) {
   input.addEventListener("change", draw);
 }
 
@@ -87,12 +94,16 @@ function fitFrame() {
 }
 
 function updateStats() {
-  stats.value = [
+  const items = [
     `${frame.mesh.vertices.length} vertices`,
     `${frame.mesh.triangles.length} triangles`,
     `${frame.coordinates.anchors.length} coordinates`,
     `${frame.sdf_slice.width}x${frame.sdf_slice.height} SDF`,
-  ].join("  ");
+    frame.particle_sdf_overlay
+      ? `${frame.particle_sdf_overlay.particles.samples.length} particles`
+      : null,
+  ];
+  stats.value = items.filter(Boolean).join("  ");
 }
 
 function draw() {
@@ -117,6 +128,9 @@ function draw() {
   if (controls.coordinates.checked) {
     drawLines(frame.coordinates.axes, 1.2);
     drawPoints(frame.coordinates.anchors);
+  }
+  if (controls.particles.checked && frame.particle_sdf_overlay) {
+    drawParticleOverlay(frame.particle_sdf_overlay);
   }
 }
 
@@ -166,6 +180,21 @@ function drawPoints(points) {
     ctx.beginPath();
     ctx.arc(projected.x, projected.y, size, 0, Math.PI * 2);
     ctx.fill();
+  }
+}
+
+function drawParticleOverlay(overlay) {
+  drawLines(overlay.trails, 1.1);
+  for (const sample of overlay.particles.samples) {
+    const projected = project(sample.position);
+    const radius = Math.max(2.8, sample.radius * screenScale() * 1.35);
+    ctx.fillStyle = rgba(sample.color);
+    ctx.beginPath();
+    ctx.arc(projected.x, projected.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(235, 250, 255, 0.82)";
+    ctx.lineWidth = Math.max(1, radius * 0.18);
+    ctx.stroke();
   }
 }
 

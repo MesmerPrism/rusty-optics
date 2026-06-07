@@ -4,10 +4,17 @@ use rusty_matter_mesh::{
     MeshSurfaceSampleConfig, TriangleMeshSurface,
 };
 use rusty_matter_model::{TriangleMeshSnapshot, Vec3};
+use rusty_matter_particles::{
+    ParticleFixedStepConfig, ParticleRenderPayload, ParticleSet, ParticleSimulationDiagnostics,
+    ParticleSimulator, ParticleState, SdfParticleInteractionConfig,
+};
 use rusty_matter_sdf::{build_sdf_from_mesh, MeshSdfSignMode, MeshToSdfConfig};
 use rusty_optics_mesh::{
     MeshBrowserDebugFrame, MeshColliderVisual, MeshCoordinateVisual, MeshDebugFrame, SdfSliceVisual,
 };
+use rusty_optics_model::{ColorRgba, PARTICLE_SDF_BROWSER_OVERLAY_SCHEMA_ID};
+use rusty_optics_particles::{to_half_open_frame01, ParticleVisualFrame};
+use serde::Serialize;
 
 use crate::error::FixtureError;
 
@@ -22,6 +29,9 @@ pub fn hand_mesh_browser_frame_json_from_surface(
     source_frame_id: &str,
     coordinate_count: usize,
     sdf_voxel_size: f32,
+    include_sdf_particles: bool,
+    particle_count: usize,
+    particle_steps: usize,
 ) -> Result<String, FixtureError> {
     if source_frame_id.trim().is_empty() {
         return Err(FixtureError::InvalidArgument(
@@ -38,6 +48,16 @@ pub fn hand_mesh_browser_frame_json_from_surface(
             "--sdf-voxel-size must be finite and positive".to_owned(),
         ));
     }
+    if include_sdf_particles && particle_count == 0 {
+        return Err(FixtureError::InvalidArgument(
+            "--particle-count must be non-zero".to_owned(),
+        ));
+    }
+    if include_sdf_particles && particle_steps == 0 {
+        return Err(FixtureError::InvalidArgument(
+            "--particle-steps must be non-zero".to_owned(),
+        ));
+    }
 
     surface
         .validate()
@@ -46,11 +66,43 @@ pub fn hand_mesh_browser_frame_json_from_surface(
     let scale = surface_scale(&surface)?;
     let ids = BrowserFrameIds::external(&id_token, source_frame_id);
     let config = BrowserFrameBuildConfig::external(scale, coordinate_count, sdf_voxel_size);
-    serialize_frame(&build_browser_frame_from_surface(&surface, ids, config)?)
+    let build = build_browser_frame_from_surface(&surface, ids, config)?;
+    let particle_overlay = if include_sdf_particles {
+        Some(build_sdf_particle_overlay(
+            &build,
+            scale,
+            particle_count,
+            particle_steps,
+        )?)
+    } else {
+        None
+    };
+    serialize_browser_payload(&build.frame, particle_overlay.as_ref())
 }
 
 fn serialize_frame(frame: &MeshBrowserDebugFrame) -> Result<String, FixtureError> {
     let mut json = serde_json::to_string_pretty(frame)?;
+    json.push('\n');
+    Ok(json)
+}
+
+fn serialize_browser_payload(
+    frame: &MeshBrowserDebugFrame,
+    particle_overlay: Option<&ParticleSdfBrowserOverlay>,
+) -> Result<String, FixtureError> {
+    let mut value = serde_json::to_value(frame)?;
+    if let Some(particle_overlay) = particle_overlay {
+        let Some(object) = value.as_object_mut() else {
+            return Err(FixtureError::Optics(
+                "browser frame must serialize as a JSON object".to_owned(),
+            ));
+        };
+        object.insert(
+            "particle_sdf_overlay".to_owned(),
+            serde_json::to_value(particle_overlay)?,
+        );
+    }
+    let mut json = serde_json::to_string_pretty(&value)?;
     json.push('\n');
     Ok(json)
 }
@@ -60,18 +112,26 @@ fn build_hand_mesh_browser_frame() -> Result<MeshBrowserDebugFrame, FixtureError
     hand_frame
         .validate()
         .map_err(|error| FixtureError::Matter(error.to_string()))?;
-    build_browser_frame_from_surface(
+    Ok(build_browser_frame_from_surface(
         hand_frame.surface(),
         BrowserFrameIds::synthetic_left(&hand_frame.frame_id),
         BrowserFrameBuildConfig::synthetic_left(),
-    )
+    )?
+    .frame)
+}
+
+#[derive(Clone, Debug)]
+struct BrowserFrameBuild {
+    frame: MeshBrowserDebugFrame,
+    coordinate_map: MeshCoordinateMap,
+    sdf: rusty_matter_sdf::PackedSdfGrid,
 }
 
 fn build_browser_frame_from_surface(
     surface: &TriangleMeshSurface,
     ids: BrowserFrameIds,
     config: BrowserFrameBuildConfig,
-) -> Result<MeshBrowserDebugFrame, FixtureError> {
+) -> Result<BrowserFrameBuild, FixtureError> {
     let mesh = MeshDebugFrame::from_surface(ids.mesh_frame_id.clone(), surface)
         .map_err(|error| FixtureError::Optics(error.to_string()))?;
     let coordinate_map = MeshCoordinateMap::from_surface(
@@ -133,7 +193,7 @@ fn build_browser_frame_from_surface(
     let sdf_slice = SdfSliceVisual::middle_z(ids.sdf_slice_visual_id.clone(), &sdf)
         .map_err(|error| FixtureError::Optics(error.to_string()))?;
 
-    MeshBrowserDebugFrame::new(
+    let frame = MeshBrowserDebugFrame::new(
         ids.browser_frame_id,
         ids.source_frame_id,
         mesh,
@@ -141,7 +201,206 @@ fn build_browser_frame_from_surface(
         collider_visual,
         sdf_slice,
     )
-    .map_err(|error| FixtureError::Optics(error.to_string()))
+    .map_err(|error| FixtureError::Optics(error.to_string()))?;
+    Ok(BrowserFrameBuild {
+        frame,
+        coordinate_map,
+        sdf,
+    })
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+struct ParticleSdfBrowserOverlay {
+    schema_id: String,
+    overlay_id: String,
+    source_surface_id: String,
+    source_sdf_grid_id: String,
+    initial_particle_count: usize,
+    final_particle_count: usize,
+    simulation_steps: usize,
+    diagnostics: ParticleSimulationDiagnostics,
+    particles: ParticleVisualFrame,
+    trails: Vec<ParticleTrailVisual>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+struct ParticleTrailVisual {
+    start: Vec3,
+    end: Vec3,
+    color: ColorRgba,
+}
+
+fn build_sdf_particle_overlay(
+    build: &BrowserFrameBuild,
+    scale: SurfaceScale,
+    particle_count: usize,
+    particle_steps: usize,
+) -> Result<ParticleSdfBrowserOverlay, FixtureError> {
+    let particle_radius = (scale.longest_axis * 0.012).clamp(0.0018, 0.0042);
+    let initial_set = seed_particles_from_coordinates(
+        &build.coordinate_map,
+        scale,
+        particle_count,
+        particle_radius,
+    )?;
+    let initial_positions = initial_set
+        .particles
+        .iter()
+        .map(|particle| particle.position)
+        .collect::<Vec<_>>();
+
+    let fixed_step = ParticleFixedStepConfig {
+        step_config_id: "particle.fixed_step.sdf_browser_overlay".to_owned(),
+        max_steps_per_frame: u32::try_from(particle_steps).unwrap_or(u32::MAX).max(1),
+        neighbor_radius: particle_radius * 4.0,
+        neighbor_repulsion_strength: 0.05,
+        ..ParticleFixedStepConfig::default()
+    };
+    let interaction = SdfParticleInteractionConfig {
+        interaction_id: "interaction.sdf_browser_overlay".to_owned(),
+        target_distance: particle_radius * 0.35,
+        strength: 18.0,
+        damping: 1.8,
+        max_speed: (scale.longest_axis * 1.4).clamp(0.05, 0.35),
+        ..SdfParticleInteractionConfig::default()
+    };
+    let mut simulator = ParticleSimulator::new(initial_set, fixed_step.clone(), interaction)
+        .map_err(|error| FixtureError::Matter(error.to_string()))?;
+    simulator.set_sdf(Some(build.sdf.clone()));
+    let diagnostics = run_particle_steps(&mut simulator, &fixed_step, particle_steps);
+    let render_payload = ParticleRenderPayload::from_particle_set(
+        "particle.render.sdf_browser_overlay",
+        simulator.particles(),
+    )
+    .map_err(|error| FixtureError::Matter(error.to_string()))?;
+    let mut particles = ParticleVisualFrame::from_matter_payload(
+        "particle.visual.frame.sdf_browser_overlay",
+        &render_payload,
+        ColorRgba::new(0.22, 0.92, 1.0, 0.88),
+    )
+    .map_err(|error| FixtureError::Optics(error.to_string()))?;
+    tune_particle_visuals(&mut particles, &render_payload, scale);
+    particles
+        .validate()
+        .map_err(|error| FixtureError::Optics(error.to_string()))?;
+
+    let trails = initial_positions
+        .into_iter()
+        .zip(particles.samples.iter())
+        .map(|(start, particle)| ParticleTrailVisual {
+            start,
+            end: particle.position,
+            color: ColorRgba::new(0.20, 0.82, 1.0, 0.42),
+        })
+        .collect::<Vec<_>>();
+
+    Ok(ParticleSdfBrowserOverlay {
+        schema_id: PARTICLE_SDF_BROWSER_OVERLAY_SCHEMA_ID.to_owned(),
+        overlay_id: "particle.sdf.browser_overlay.hand_mesh".to_owned(),
+        source_surface_id: build.frame.source_surface_id.clone(),
+        source_sdf_grid_id: build.sdf.grid_id.clone(),
+        initial_particle_count: particle_count,
+        final_particle_count: particles.samples.len(),
+        simulation_steps: particle_steps,
+        diagnostics,
+        particles,
+        trails,
+    })
+}
+
+fn seed_particles_from_coordinates(
+    coordinate_map: &MeshCoordinateMap,
+    scale: SurfaceScale,
+    particle_count: usize,
+    particle_radius: f32,
+) -> Result<ParticleSet, FixtureError> {
+    let frames = &coordinate_map.frames.frames;
+    if frames.is_empty() {
+        return Err(FixtureError::Matter(
+            "coordinate map must contain frames before particle seeding".to_owned(),
+        ));
+    }
+    let mut set = ParticleSet::with_capacity("particle.set.sdf_browser_overlay", particle_count);
+    for index in 0..particle_count {
+        let frame = &frames[index % frames.len()];
+        let tangent_x = signed_unit_hash(index, 17) * scale.longest_axis * 0.018;
+        let tangent_y = signed_unit_hash(index, 53) * scale.longest_axis * 0.018;
+        let normal_offset = (0.35 + unit_hash(index, 91) * 0.75) * scale.longest_axis * 0.040;
+        let position = frame.anchor
+            + frame.axis_x * tangent_x
+            + frame.axis_y * tangent_y
+            + frame.axis_z * normal_offset;
+        let mut particle = ParticleState::new(
+            format!("particle.sdf_browser.{index:04}"),
+            position,
+            particle_radius,
+        );
+        particle.velocity = frame.axis_z * (-(scale.longest_axis * 0.035));
+        particle.flags = 1;
+        set.push(particle);
+    }
+    set.validate()
+        .map_err(|error| FixtureError::Matter(error.to_string()))?;
+    Ok(set)
+}
+
+fn run_particle_steps(
+    simulator: &mut ParticleSimulator,
+    fixed_step: &ParticleFixedStepConfig,
+    particle_steps: usize,
+) -> ParticleSimulationDiagnostics {
+    let mut diagnostics = ParticleSimulationDiagnostics::new("diagnostics.sdf_browser_overlay", 0);
+    for _ in 0..particle_steps {
+        let step = simulator.step_frame(fixed_step.fixed_step_seconds * 1.001);
+        diagnostics.fixed_steps += step.fixed_steps;
+        diagnostics.dropped_steps += step.dropped_steps;
+        diagnostics.particle_count = step.particle_count;
+        diagnostics.sampled_particles += step.sampled_particles;
+        diagnostics.affected_particles += step.affected_particles;
+        diagnostics.rejected_particles += step.rejected_particles;
+        diagnostics.clamped_particles += step.clamped_particles;
+        diagnostics.neighbor_checks += step.neighbor_checks;
+        diagnostics.influence_samples += step.influence_samples;
+        diagnostics.impulses_applied += step.impulses_applied;
+        diagnostics.body_collisions += step.body_collisions;
+        diagnostics.max_speed = diagnostics.max_speed.max(step.max_speed);
+    }
+    diagnostics
+}
+
+fn tune_particle_visuals(
+    frame: &mut ParticleVisualFrame,
+    payload: &ParticleRenderPayload,
+    scale: SurfaceScale,
+) {
+    let speed_scale = (scale.longest_axis * 0.35).max(0.001);
+    for (index, sample) in frame.samples.iter_mut().enumerate() {
+        let speed = payload
+            .samples
+            .get(index)
+            .map_or(0.0, |matter_sample| matter_sample.speed);
+        let speed01 = (speed / speed_scale).clamp(0.0, 1.0);
+        let pulse = to_half_open_frame01(sample.position.x.abs() * 7.0 + index as f32 * 0.037);
+        sample.frame01 = pulse;
+        sample.rotation_radians = pulse * core::f32::consts::TAU;
+        sample.aux0 = speed;
+        sample.aux1 = speed01;
+        sample.color = ColorRgba::new(0.18 + 0.28 * speed01, 0.78, 1.0, 0.88);
+    }
+}
+
+fn unit_hash(index: usize, salt: u32) -> f32 {
+    let mut value = (index as u32).wrapping_mul(0x9E37_79B9) ^ salt;
+    value ^= value >> 16;
+    value = value.wrapping_mul(0x7FEB_352D);
+    value ^= value >> 15;
+    value = value.wrapping_mul(0x846C_A68B);
+    value ^= value >> 16;
+    (value & 0x00FF_FFFF) as f32 / 16_777_215.0
+}
+
+fn signed_unit_hash(index: usize, salt: u32) -> f32 {
+    unit_hash(index, salt) * 2.0 - 1.0
 }
 
 fn coordinate_sample_config(
