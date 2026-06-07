@@ -30,6 +30,12 @@ Start the static browser preview with:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-HandMeshBrowserPreview.ps1
 ```
 
+Build the Matter WebAssembly runtime package into Optics local artifacts with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Build-HandMeshBrowserMatterWasm.ps1
+```
+
 ## External Mesh Surface Browser Smoke
 
 When Matter has extracted `TriangleMeshSurface` JSON files from an external
@@ -65,12 +71,16 @@ animated surface-sequence JSON exported from a hand recording:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-HandMeshBrowserPreview.ps1 `
+  -BuildMatterWasm `
   -FramePath "local-artifacts\hand_mesh\hand_mesh_realtime_sequence.json"
 ```
 
 Animated sequence payloads contain mesh positions and topology only. The browser
 preview recomputes the mesh wireframe, collider shell, visible SDF slice, and
-particle SDF response from the current animation frame. Use `Pause` to freeze
-the hand pose and `Reset Particles` to seed 1000 particles into a larger random
-sphere around the hand before the live SDF force pulls them toward the current
-mesh surface.
+particle SDF response from the current animation frame through the Matter Wasm
+surface-distance runtime. Use `Pause` to freeze the hand pose and `Reset
+Particles` to seed 1000 particles into a larger random sphere around the hand
+before the live SDF force pulls them toward the current mesh surface. The
+metrics panel should report Matter Wasm BVH node counts and actual accelerated
+triangle tests; it should not report full particle-count x triangle-count
+brute-force work.

@@ -41,11 +41,13 @@ appearance, and render-budget summaries. Optics references Matter payload IDs
 and schema IDs without duplicating particle simulation truth.
 
 For meshes, Matter owns the triangle mesh surface, hand validation mesh wrapper,
-coordinate map, dynamic collider payloads, and SDF grid. Optics converts those
-validated Matter contracts into bounded debug visuals: mesh wireframes,
-coordinate anchors and axes, collider shell/contact markers, and sampled SDF
-slices. The browser preview consumes the same renderer-neutral debug frame that
-a later renderer adapter can consume.
+coordinate map, dynamic collider payloads, SDF grid, and accelerated
+surface-distance runtime. Optics converts those validated Matter contracts into
+bounded debug visuals: mesh wireframes, coordinate anchors and axes, collider
+shell/contact markers, and sampled SDF slices. The browser preview consumes the
+same renderer-neutral debug frame that a later renderer adapter can consume; for
+animated realtime hand-mesh previews it calls the Matter Wasm surface-distance
+runtime instead of owning triangle-distance math in browser code.
 
 ## Renderer Adapter Boundary
 
@@ -68,7 +70,8 @@ The implemented foundation slice is CPU/data-only:
 - mesh debug frames over Matter triangle surfaces;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over one shared
   source mesh surface;
-- static browser preview for generated mesh debug JSON;
+- browser preview for generated mesh debug JSON and Matter-Wasm-backed animated
+  hand-mesh SDF/particle smoke;
 - fixture and schema catalog checks;
 - dependency and namespace boundary scans.
 
@@ -103,4 +106,7 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
 - `rusty-optics-fixtures/src/main.rs`: dispatch-only fixture CLI.
 - `rusty-optics-fixtures/src/hand_mesh.rs`: deterministic hand-validation mesh
   debug fixture using Matter mesh, coordinate, collider, and SDF APIs.
+- `web/hand-mesh-browser-preview/realtime-sdf.js`: browser preview adapter for
+  animated Matter mesh sequences; it loads the Matter Wasm distance runtime and
+  keeps only visual/playback glue in Optics.
 - `rusty-optics-schema/src/main.rs`: dispatch-only schema catalog CLI.

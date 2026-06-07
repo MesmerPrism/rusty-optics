@@ -1,6 +1,7 @@
 param(
     [int]$Port = 8791,
-    [string]$FramePath = ""
+    [string]$FramePath = "",
+    [switch]$BuildMatterWasm
 )
 
 $ErrorActionPreference = "Stop"
@@ -23,6 +24,16 @@ function Invoke-Checked {
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 Push-Location $RepoRoot
 try {
+    if ($BuildMatterWasm) {
+        Invoke-Checked "Matter hand mesh Wasm build" "powershell" @(
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            (Join-Path $RepoRoot "tools\Build-HandMeshBrowserMatterWasm.ps1")
+        )
+    }
+
     Invoke-Checked "hand mesh browser fixture export" "cargo" @(
         "run",
         "-p",

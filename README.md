@@ -16,8 +16,9 @@ The first source slices focus on visual particles and mesh diagnostics:
 - mesh debug frames derived from Matter triangle mesh surfaces;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over that same
   source surface;
-- a static browser preview that renders the generated mesh debug JSON without
-  renderer backend imports.
+- a browser preview that renders generated mesh debug JSON and, for animated
+  hand-mesh sequences, drives realtime SDF/particle queries through the Matter
+  WebAssembly runtime without renderer backend imports.
 
 Optics does not own particle simulation, mesh/SDF truth, private visual-driver
 bindings, shader source, GPU uploads, OpenXR/Vulkan/WebGL/Makepad integrations,
@@ -40,6 +41,15 @@ http://127.0.0.1:8791/web/hand-mesh-browser-preview/
 
 The preview consumes `fixtures/hand_mesh/hand_mesh_browser_debug_frame.json`.
 That JSON is renderer-neutral and can also feed a later renderer adapter.
+
+For animated hand-mesh sequence previews, build the Matter Wasm runtime into
+Optics local artifacts before launching:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-HandMeshBrowserPreview.ps1 `
+  -BuildMatterWasm `
+  -FramePath "local-artifacts\hand_mesh\hand_mesh_realtime_sequence.json"
+```
 
 ## Validation
 

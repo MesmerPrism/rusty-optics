@@ -4,6 +4,21 @@ const RealtimeHandSdf = (() => {
   const meshLineColor = { r: 1.0, g: 0.63, b: 0.10, a: 1.0 };
   const colliderLineColor = { r: 0.98, g: 0.68, b: 0.24, a: 0.78 };
   const coordinateColor = { r: 0.2, g: 0.74, b: 1.0, a: 0.90 };
+  const DEFAULT_WASM_LEAF_TRIANGLE_COUNT = 8;
+  let matterWasm = null;
+  let matterWasmUrl = "";
+
+  async function initialize(options = {}) {
+    const nextUrl = options.matterWasmUrl || "/local-artifacts/matter_wasm/rusty_matter_handmesh_wasm.js";
+    if (matterWasm && nextUrl === matterWasmUrl) {
+      return matterWasm;
+    }
+    const module = await import(nextUrl);
+    await module.default();
+    matterWasm = module;
+    matterWasmUrl = nextUrl;
+    return matterWasm;
+  }
 
   function isSurfaceSequence(payload) {
     return payload?.schema_id === SURFACE_SEQUENCE_SCHEMA_ID && Array.isArray(payload.frames);
@@ -39,6 +54,7 @@ const RealtimeHandSdf = (() => {
       vertex_count: vertexCount,
       triangle_count: payload.triangles.length,
       triangles: payload.triangles,
+      triangle_buffer: flattenTriangles(payload.triangles),
       edge_pairs: edgePairs,
       frames: payload.frames,
       bounds_min: bounds.min,
@@ -56,12 +72,7 @@ const RealtimeHandSdf = (() => {
     const positions = source.positions;
     const boundsMin = source.bounds_min || boundsForPositions(positions).min;
     const boundsMax = source.bounds_max || boundsForPositions(positions).max;
-    const triangleCache = sequence.triangles.map((triangle) => ({
-      indices: triangle,
-      a: positions[triangle[0]],
-      b: positions[triangle[1]],
-      c: positions[triangle[2]],
-    }));
+    const distanceRuntime = buildMatterDistanceRuntime(sequence, positions, metrics);
     const edges = sequence.edge_pairs.map(([startIndex, endIndex]) => ({
       start: positions[startIndex],
       end: positions[endIndex],
@@ -78,13 +89,15 @@ const RealtimeHandSdf = (() => {
     const runtimeSurface = {
       positions,
       triangles: sequence.triangles,
-      triangle_cache: triangleCache,
+      distance_runtime: distanceRuntime.runtime,
+      distance_stats: distanceRuntime.stats,
       bounds_min: boundsMin,
       bounds_max: boundsMax,
       center: scale(add(boundsMin, boundsMax), 0.5),
       radius: Math.max(0.001, length(subtract(boundsMax, boundsMin)) * 0.5),
       sequence_center: sequence.center,
       sequence_cloud_radius: sequence.cloud_radius,
+      triangle_count: sequence.triangle_count,
     };
     const frame = {
       schema_id: "rusty.optics.mesh.browser.realtime_frame.v1",
@@ -154,9 +167,11 @@ const RealtimeHandSdf = (() => {
     const maxSpeed = surface.radius * 1.9;
     const substeps = Math.max(1, Math.ceil(deltaSeconds / (1 / 45)));
     const subDelta = deltaSeconds / substeps;
+    const triangleChecksBefore = metrics?.runtimeWasmTriangleTests || 0;
+    const nodeTestsBefore = metrics?.runtimeWasmNodeTests || 0;
     for (let substep = 0; substep < substeps; substep += 1) {
       for (const particle of particles) {
-        const sample = closestSurfaceSample(surface, particle.position);
+        const sample = closestSurfaceSample(surface, particle.position, metrics);
         const outward = sample.distance > 1.0e-7
           ? normalize(subtract(particle.position, sample.point))
           : sample.normal;
@@ -178,7 +193,7 @@ const RealtimeHandSdf = (() => {
     }
 
     for (const particle of particles) {
-      const sample = closestSurfaceSample(surface, particle.position);
+      const sample = closestSurfaceSample(surface, particle.position, metrics);
       const distance01 = clamp(sample.distance / Math.max(surface.radius * 0.22, 0.001), 0, 1);
       const speed01 = clamp(length(particle.velocity) / maxSpeed, 0, 1);
       particle.color = {
@@ -200,8 +215,9 @@ const RealtimeHandSdf = (() => {
     addMetric(metrics, "particleStepMs", nowMs() - startedAt);
     setMetric(metrics, "particleSubsteps", substeps);
     setMetric(metrics, "particleClosestSamples", sampleCount);
-    setMetric(metrics, "particleTriangleChecks", sampleCount * surface.triangle_cache.length);
-    setMetric(metrics, "runtimeTriangleCount", surface.triangle_cache.length);
+    setMetric(metrics, "particleTriangleChecks", (metrics?.runtimeWasmTriangleTests || 0) - triangleChecksBefore);
+    setMetric(metrics, "particleNodeTests", (metrics?.runtimeWasmNodeTests || 0) - nodeTestsBefore);
+    setMetric(metrics, "runtimeTriangleCount", surface.triangle_count);
   }
 
   function coordinateVisual(sequence, positions, boundsMin, boundsMax) {
@@ -248,6 +264,8 @@ const RealtimeHandSdf = (() => {
     const cells = [];
     let minDistance = Number.POSITIVE_INFINITY;
     let maxDistance = 0;
+    const triangleChecksBefore = metrics?.runtimeWasmTriangleTests || 0;
+    const nodeTestsBefore = metrics?.runtimeWasmNodeTests || 0;
     for (let y = 0; y < height; y += 1) {
       for (let x = 0; x < width; x += 1) {
         const point = {
@@ -255,7 +273,7 @@ const RealtimeHandSdf = (() => {
           y: min.y + (y + 0.5) * ((max.y - min.y) / height),
           z,
         };
-        const sample = closestSurfaceSample(surface, point);
+        const sample = closestSurfaceSample(surface, point, metrics);
         minDistance = Math.min(minDistance, sample.distance);
         maxDistance = Math.max(maxDistance, sample.distance);
         cells.push({
@@ -273,7 +291,8 @@ const RealtimeHandSdf = (() => {
     }
     addMetric(metrics, "runtimeSdfSliceMs", nowMs() - startedAt);
     setMetric(metrics, "runtimeSdfCells", cells.length);
-    setMetric(metrics, "runtimeSdfTriangleChecks", cells.length * surface.triangle_cache.length);
+    setMetric(metrics, "runtimeSdfTriangleChecks", (metrics?.runtimeWasmTriangleTests || 0) - triangleChecksBefore);
+    setMetric(metrics, "runtimeSdfNodeTests", (metrics?.runtimeWasmNodeTests || 0) - nodeTestsBefore);
     return {
       schema_id: "rusty.optics.sdf.slice.visual.v1",
       visual_id: `${surface.sequence_id || "runtime"}.sdf_slice`,
@@ -289,77 +308,64 @@ const RealtimeHandSdf = (() => {
     };
   }
 
-  function closestSurfaceSample(surface, point) {
-    let bestDistanceSquared = Number.POSITIVE_INFINITY;
-    let bestPoint = surface.triangle_cache[0]?.a || surface.center;
-    let bestNormal = { x: 0, y: 1, z: 0 };
-    for (const triangle of surface.triangle_cache) {
-      const closest = closestPointOnTriangle(point, triangle.a, triangle.b, triangle.c);
-      const delta = subtract(point, closest);
-      const distanceSquared = dot(delta, delta);
-      if (distanceSquared < bestDistanceSquared) {
-        bestDistanceSquared = distanceSquared;
-        bestPoint = closest;
-        bestNormal = triangleNormal(triangle.a, triangle.b, triangle.c);
-      }
+  function buildMatterDistanceRuntime(sequence, positions, metrics = null) {
+    if (!matterWasm?.HandMeshDistanceRuntime) {
+      throw new Error("Matter Wasm runtime is required for realtime hand-mesh SDF");
     }
+    const startedAt = nowMs();
+    const runtime = new matterWasm.HandMeshDistanceRuntime(
+      flattenPositions(positions),
+      sequence.triangle_buffer,
+      DEFAULT_WASM_LEAF_TRIANGLE_COUNT,
+    );
+    const stats = Array.from(runtime.stats());
+    addMetric(metrics, "runtimeWasmBuildMs", nowMs() - startedAt);
+    setMetric(metrics, "runtimeWasmVertexCount", stats[0] || positions.length);
+    setMetric(metrics, "runtimeWasmTriangleCount", stats[1] || sequence.triangle_count);
+    setMetric(metrics, "runtimeWasmNodeCount", stats[2] || 0);
+    setMetric(metrics, "runtimeWasmLeafCount", stats[3] || 0);
+    setMetric(metrics, "runtimeWasmMaxDepth", stats[4] || 0);
+    return { runtime, stats };
+  }
+
+  function closestSurfaceSample(surface, point, metrics = null) {
+    const result = surface.distance_runtime.sample(point.x, point.y, point.z);
+    if (!result.length || result[0] < 1) {
+      throw new Error("Matter Wasm surface-distance sample failed");
+    }
+    addMetric(metrics, "runtimeWasmNodeTests", result[9] || 0);
+    addMetric(metrics, "runtimeWasmLeafTests", result[10] || 0);
+    addMetric(metrics, "runtimeWasmTriangleTests", result[11] || 0);
     return {
-      point: bestPoint,
-      normal: bestNormal,
-      distance: Math.sqrt(bestDistanceSquared),
+      point: { x: result[1], y: result[2], z: result[3] },
+      normal: { x: result[4], y: result[5], z: result[6] },
+      distance: result[7],
+      triangle_index: result[8],
     };
   }
 
-  function closestPointOnTriangle(point, a, b, c) {
-    const ab = subtract(b, a);
-    const ac = subtract(c, a);
-    const ap = subtract(point, a);
-    const d1 = dot(ab, ap);
-    const d2 = dot(ac, ap);
-    if (d1 <= 0 && d2 <= 0) {
-      return a;
+  function flattenPositions(positions) {
+    const buffer = new Float32Array(positions.length * 3);
+    for (let index = 0; index < positions.length; index += 1) {
+      const position = positions[index];
+      const offset = index * 3;
+      buffer[offset] = position.x;
+      buffer[offset + 1] = position.y;
+      buffer[offset + 2] = position.z;
     }
-
-    const bp = subtract(point, b);
-    const d3 = dot(ab, bp);
-    const d4 = dot(ac, bp);
-    if (d3 >= 0 && d4 <= d3) {
-      return b;
-    }
-
-    const vc = d1 * d4 - d3 * d2;
-    if (vc <= 0 && d1 >= 0 && d3 <= 0) {
-      const v = d1 / (d1 - d3);
-      return add(a, scale(ab, v));
-    }
-
-    const cp = subtract(point, c);
-    const d5 = dot(ab, cp);
-    const d6 = dot(ac, cp);
-    if (d6 >= 0 && d5 <= d6) {
-      return c;
-    }
-
-    const vb = d5 * d2 - d1 * d6;
-    if (vb <= 0 && d2 >= 0 && d6 <= 0) {
-      const w = d2 / (d2 - d6);
-      return add(a, scale(ac, w));
-    }
-
-    const va = d3 * d6 - d5 * d4;
-    if (va <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0) {
-      const w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
-      return add(b, scale(subtract(c, b), w));
-    }
-
-    const denom = 1 / (va + vb + vc);
-    const v = vb * denom;
-    const w = vc * denom;
-    return add(a, add(scale(ab, v), scale(ac, w)));
+    return buffer;
   }
 
-  function triangleNormal(a, b, c) {
-    return normalize(cross(subtract(b, a), subtract(c, a)));
+  function flattenTriangles(triangles) {
+    const buffer = new Uint32Array(triangles.length * 3);
+    for (let index = 0; index < triangles.length; index += 1) {
+      const triangle = triangles[index];
+      const offset = index * 3;
+      buffer[offset] = triangle[0];
+      buffer[offset + 1] = triangle[1];
+      buffer[offset + 2] = triangle[2];
+    }
+    return buffer;
   }
 
   function uniqueEdgePairs(triangles) {
@@ -442,14 +448,6 @@ const RealtimeHandSdf = (() => {
     return left.x * right.x + left.y * right.y + left.z * right.z;
   }
 
-  function cross(left, right) {
-    return {
-      x: left.y * right.z - left.z * right.y,
-      y: left.z * right.x - left.x * right.z,
-      z: left.x * right.y - left.y * right.x,
-    };
-  }
-
   function clampVectorLength(vector, maxLength) {
     const vectorLength = length(vector);
     if (!Number.isFinite(vectorLength) || vectorLength <= maxLength) {
@@ -486,6 +484,7 @@ const RealtimeHandSdf = (() => {
 
   return {
     DEFAULT_PARTICLE_COUNT,
+    initialize,
     isSurfaceSequence,
     normalizeSurfaceSequence,
     buildRuntimeFrame,

@@ -32,6 +32,9 @@ runtime sockets, media stacks, or downstream app crates.
   frames, coordinate-map visuals, collider visuals, and SDF slice visuals.
 - Renderer adapters own GPU buffers, shaders, draw calls, texture uploads,
   swapchains, platform frame lifecycle, and backend imports.
+- Animated hand-mesh browser previews must call Matter runtime code through the
+  Matter Wasm package for mesh-distance/SDF/particle queries. Do not re-add
+  browser-owned brute-force triangle-distance simulation as the default path.
 - Downstream apps own private visual-driver mappings, exact runtime tuning,
   oscillator coupling, breath/control bindings, study defaults, and product
   profiles.

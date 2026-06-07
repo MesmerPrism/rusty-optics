@@ -50,6 +50,8 @@ window.__rustyPerf = perfReporter.state;
 
 const params = new URLSearchParams(window.location.search);
 const frameUrl = params.get("frame") || "/fixtures/hand_mesh/hand_mesh_browser_debug_frame.json";
+const matterWasmUrl =
+  params.get("matter_wasm") || "/local-artifacts/matter_wasm/rusty_matter_handmesh_wasm.js";
 
 fetch(frameUrl)
   .then((response) => {
@@ -58,7 +60,10 @@ fetch(frameUrl)
     }
     return response.json();
   })
-  .then((payload) => {
+  .then(async (payload) => {
+    if (RealtimeHandSdf.isSurfaceSequence(payload)) {
+      await RealtimeHandSdf.initialize({ matterWasmUrl });
+    }
     loadPayload(payload);
     fitFrame();
     initializeParticleControls();

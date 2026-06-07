@@ -99,10 +99,12 @@ window.HandMeshPerfMetrics = (() => {
         `  mesh+SDF rebuild: ${formatMs(avg.runtimeFrameBuildMs)} avg / ${formatMs(metrics.runtimeFrameBuildMs)} last`,
         `particle step/run: ${formatMs(avg.particleStepMs)} avg / ${formatMs(metrics.particleStepMs)} last  substeps ${metrics.particleSubsteps || 0}`,
         `SDF slice/rebuild: ${formatMs(avg.runtimeSdfSliceMs)} avg / ${formatMs(metrics.runtimeSdfSliceMs)} last  cells ${metrics.runtimeSdfCells || 0}`,
+        `Matter Wasm BVH: build ${formatMs(avg.runtimeWasmBuildMs)} avg / ${formatMs(metrics.runtimeWasmBuildMs)} last  nodes ${formatCount(metrics.runtimeWasmNodeCount || 0)} leaves ${formatCount(metrics.runtimeWasmLeafCount || 0)}`,
         `playback advance: ${formatCount(avg.playbackAdvancedFrames || 0)} avg / ${formatCount(metrics.playbackAdvancedFrames || 0)} last`,
         `draw sections: sdf ${formatMs(avg.drawSdfMs)} mesh ${formatMs(avg.drawMeshMs)} collider ${formatMs(avg.drawColliderMs)} coords ${formatMs(avg.drawCoordinatesMs)} particles ${formatMs(avg.drawParticlesMs)}`,
         `checks/frame: ${formatCount(avgTotalChecks)} avg / ${formatCount(totalChecks)} last`,
-        `  particles ${formatCount(metrics.particleTriangleChecks || 0)}  SDF ${formatCount(metrics.runtimeSdfTriangleChecks || 0)}  triangles ${metrics.runtimeTriangleCount || current.triangleCount || 0}`,
+        `  particles ${formatCount(metrics.particleTriangleChecks || 0)}  SDF ${formatCount(metrics.runtimeSdfTriangleChecks || 0)}  source triangles ${metrics.runtimeTriangleCount || current.triangleCount || 0}`,
+        `  BVH nodes visited particles ${formatCount(metrics.particleNodeTests || 0)}  SDF ${formatCount(metrics.runtimeSdfNodeTests || 0)}`,
         `draw counts: lines ${formatCount(metrics.drawLineSegments || 0)} points ${formatCount(metrics.drawPoints || 0)} particle marks ${formatCount(metrics.drawParticleMarkers || 0)} trail segs ${formatCount(metrics.drawTrailSegments || 0)}`,
         `state: ${current.particleCount} particles, trails ${current.trailsEnabled ? "on" : "off"}, playback ${current.playbackPaused ? "paused" : "running"}`,
       ].join("\n");
