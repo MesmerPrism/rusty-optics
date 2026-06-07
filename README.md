@@ -12,7 +12,7 @@ The first source slices focus on visual particles and mesh diagnostics:
 - CPU billboard instance preparation for renderer adapters;
 - flat-screen projection for desktop, browser, phone, or test previews;
 - animated morphed-ring mask atlas generation;
-- transparent particle render-budget summaries.
+- transparent particle render-budget summaries;
 - mesh debug frames derived from Matter triangle mesh surfaces;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over that same
   source surface;
