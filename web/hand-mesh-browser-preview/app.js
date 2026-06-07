@@ -10,9 +10,14 @@ const controls = {
   liveParticles: document.querySelector("#toggle-live-particles"),
   reset: document.querySelector("#reset-view"),
   resetParticles: document.querySelector("#reset-particles"),
+  playback: document.querySelector("#toggle-playback"),
 };
 
 let frame = null;
+let runtimeSequence = null;
+let runtimeFrameIndex = 0;
+let runtimePlaybackPaused = false;
+let runtimePlaybackAccumulator = 0;
 let center = { x: 0, y: 0, z: 0 };
 let radius = 1;
 let view = { yaw: -0.28, pitch: -0.78, zoom: 1.0 };
@@ -21,6 +26,7 @@ let liveParticleState = [];
 let particleAnimation = null;
 let lastParticleTimestamp = 0;
 let particleResetIndex = 0;
+let particleResetHoldSeconds = 0;
 
 const params = new URLSearchParams(window.location.search);
 const frameUrl = params.get("frame") || "/fixtures/hand_mesh/hand_mesh_browser_debug_frame.json";
@@ -33,7 +39,7 @@ fetch(frameUrl)
     return response.json();
   })
   .then((payload) => {
-    frame = payload;
+    loadPayload(payload);
     fitFrame();
     initializeParticleControls();
     updateStats();
@@ -44,6 +50,27 @@ fetch(frameUrl)
     stats.value = `Frame load failed: ${error.message}`;
     draw();
   });
+
+function loadPayload(payload) {
+  if (RealtimeHandSdf.isSurfaceSequence(payload)) {
+    runtimeSequence = RealtimeHandSdf.normalizeSurfaceSequence(payload);
+    runtimeFrameIndex = 0;
+    runtimePlaybackPaused = false;
+    runtimePlaybackAccumulator = 0;
+    frame = RealtimeHandSdf.buildRuntimeFrame(runtimeSequence, runtimeFrameIndex);
+    controls.playback.disabled = false;
+    controls.playback.textContent = "Pause";
+    return;
+  }
+
+  runtimeSequence = null;
+  runtimeFrameIndex = 0;
+  runtimePlaybackPaused = true;
+  runtimePlaybackAccumulator = 0;
+  frame = payload;
+  controls.playback.disabled = true;
+  controls.playback.textContent = "Pause";
+}
 
 for (const input of [
   controls.mesh,
@@ -57,7 +84,7 @@ for (const input of [
     if (input === controls.liveParticles) {
       if (controls.liveParticles.checked) {
         startParticleAnimation();
-      } else {
+      } else if (!runtimeSequence || runtimePlaybackPaused) {
         stopParticleAnimation();
       }
     }
@@ -75,6 +102,21 @@ controls.resetParticles.addEventListener("click", () => {
   updateStats();
   draw();
   startParticleAnimation();
+});
+
+controls.playback.addEventListener("click", () => {
+  if (!runtimeSequence) {
+    return;
+  }
+  runtimePlaybackPaused = !runtimePlaybackPaused;
+  controls.playback.textContent = runtimePlaybackPaused ? "Play" : "Pause";
+  if (!runtimePlaybackPaused) {
+    startParticleAnimation();
+  } else if (!controls.liveParticles.checked || liveParticleState.length === 0) {
+    stopParticleAnimation();
+  }
+  updateStats();
+  draw();
 });
 
 canvas.addEventListener("pointerdown", (event) => {
@@ -105,8 +147,8 @@ canvas.addEventListener("wheel", (event) => {
 window.addEventListener("resize", draw);
 
 function fitFrame() {
-  const min = frame.mesh.bounds_min;
-  const max = frame.mesh.bounds_max;
+  const min = runtimeSequence?.bounds_min || frame.mesh.bounds_min;
+  const max = runtimeSequence?.bounds_max || frame.mesh.bounds_max;
   center = {
     x: (min.x + max.x) * 0.5,
     y: (min.y + max.y) * 0.5,
@@ -119,9 +161,10 @@ function fitFrame() {
 }
 
 function initializeParticleControls() {
-  const liveReady = Boolean(frame?.particle_sdf_overlay?.sdf_grid);
+  const liveReady = Boolean(runtimeSequence || frame?.particle_sdf_overlay?.sdf_grid);
   controls.liveParticles.disabled = !liveReady;
   controls.resetParticles.disabled = !liveReady;
+  controls.playback.disabled = !runtimeSequence;
   if (liveReady) {
     resetParticlesToSphere();
   } else {
@@ -132,13 +175,21 @@ function initializeParticleControls() {
 
 function updateStats() {
   const overlay = frame.particle_sdf_overlay;
+  const frameLabel = runtimeSequence
+    ? `frame ${runtimeFrameIndex + 1}/${runtimeSequence.frame_count}`
+    : null;
   const items = [
     `${frame.mesh.vertices.length} vertices`,
     `${frame.mesh.triangles.length} triangles`,
     `${frame.coordinates.anchors.length} coordinates`,
     `${frame.sdf_slice.width}x${frame.sdf_slice.height} SDF`,
-    overlay ? `${liveParticleState.length || overlay.particles.samples.length} particles` : null,
-    overlay?.sdf_grid ? "sphere reset" : null,
+    frameLabel,
+    runtimeSequence ? "runtime SDF" : null,
+    runtimeSequence && runtimePlaybackPaused ? "paused" : null,
+    overlay || runtimeSequence
+      ? `${liveParticleState.length || overlay?.particles.samples.length || 0} particles`
+      : null,
+    runtimeSequence ? "random sphere reset" : overlay?.sdf_grid ? "sphere reset" : null,
   ];
   stats.value = items.filter(Boolean).join("  ");
 }
@@ -166,7 +217,7 @@ function draw() {
     drawLines(frame.coordinates.axes, 1.2);
     drawPoints(frame.coordinates.anchors);
   }
-  if (controls.particles.checked && frame.particle_sdf_overlay) {
+  if (controls.particles.checked && (frame.particle_sdf_overlay || liveParticleState.length > 0)) {
     drawParticleOverlay(frame.particle_sdf_overlay);
   }
 }
@@ -264,6 +315,16 @@ function drawLiveParticleTrails() {
 }
 
 function resetParticlesToSphere() {
+  if (runtimeSequence) {
+    liveParticleState = RealtimeHandSdf.resetParticles(
+      runtimeSequence,
+      frame,
+      particleResetIndex++,
+    );
+    particleResetHoldSeconds = 0.75;
+    return;
+  }
+
   const overlay = frame?.particle_sdf_overlay;
   const grid = overlay?.sdf_grid;
   if (!grid) {
@@ -293,10 +354,7 @@ function resetParticlesToSphere() {
 }
 
 function startParticleAnimation() {
-  if (particleAnimation !== null || !controls.liveParticles.checked) {
-    return;
-  }
-  if (!frame?.particle_sdf_overlay?.sdf_grid || liveParticleState.length === 0) {
+  if (particleAnimation !== null || !shouldAnimate()) {
     return;
   }
   lastParticleTimestamp = performance.now();
@@ -312,18 +370,63 @@ function stopParticleAnimation() {
 
 function stepParticleAnimation(timestamp) {
   particleAnimation = null;
-  if (!controls.liveParticles.checked || !frame?.particle_sdf_overlay?.sdf_grid) {
+  if (!shouldAnimate()) {
     return;
   }
 
   const deltaSeconds = clamp((timestamp - lastParticleTimestamp) / 1000, 0.001, 0.05);
   lastParticleTimestamp = timestamp;
-  stepLiveParticles(deltaSeconds);
+  const frameChanged = updateRuntimePlayback(deltaSeconds);
+  if (controls.liveParticles.checked && liveParticleState.length > 0) {
+    if (particleResetHoldSeconds > 0) {
+      particleResetHoldSeconds = Math.max(0, particleResetHoldSeconds - deltaSeconds);
+    } else {
+      stepLiveParticles(deltaSeconds);
+    }
+  }
+  if (frameChanged) {
+    updateStats();
+  }
   draw();
-  particleAnimation = requestAnimationFrame(stepParticleAnimation);
+  if (shouldAnimate()) {
+    particleAnimation = requestAnimationFrame(stepParticleAnimation);
+  }
+}
+
+function shouldAnimate() {
+  const playbackActive = Boolean(runtimeSequence && !runtimePlaybackPaused);
+  const staticParticlesActive = Boolean(frame?.particle_sdf_overlay?.sdf_grid);
+  const particlesActive = Boolean(
+    controls.liveParticles.checked &&
+    liveParticleState.length > 0 &&
+    (runtimeSequence || staticParticlesActive),
+  );
+  return playbackActive || particlesActive;
+}
+
+function updateRuntimePlayback(deltaSeconds) {
+  if (!runtimeSequence || runtimePlaybackPaused) {
+    return false;
+  }
+  runtimePlaybackAccumulator += deltaSeconds;
+  let advanced = false;
+  while (runtimePlaybackAccumulator >= runtimeSequence.frame_seconds) {
+    runtimePlaybackAccumulator -= runtimeSequence.frame_seconds;
+    runtimeFrameIndex = (runtimeFrameIndex + 1) % runtimeSequence.frame_count;
+    advanced = true;
+  }
+  if (advanced) {
+    frame = RealtimeHandSdf.buildRuntimeFrame(runtimeSequence, runtimeFrameIndex);
+  }
+  return advanced;
 }
 
 function stepLiveParticles(deltaSeconds) {
+  if (runtimeSequence) {
+    RealtimeHandSdf.stepParticles(liveParticleState, frame, deltaSeconds);
+    return;
+  }
+
   const grid = frame.particle_sdf_overlay.sdf_grid;
   const bounds = sdfGridBounds(grid);
   const targetDistance = (liveParticleState[0]?.radius || grid.voxel_size * 0.32) * 0.45;

@@ -39,3 +39,9 @@ hardware-free smoke evidence and is intentionally not a committed fixture. When
 that overlay is present, the local browser preview also receives the packed SDF
 grid so its `Live` and `Reset Particles` controls can seed a sphere distribution
 and show particles reacting to the SDF gradient in the browser.
+
+For realtime movement smoke tests, the browser preview can also load an
+external Matter animated surface sequence. That sequence must contain only
+skinned mesh positions and shared topology. The preview recomputes its SDF
+slice, collider shell, and 1000-particle response from the current mesh frame,
+which keeps animated hand checks separate from precomputed SDF/collider caches.

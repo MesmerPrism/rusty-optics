@@ -57,3 +57,20 @@ the packed Matter SDF grid used by the preview. The browser's `Live` toggle and
 sphere inside the SDF bounds and advance them against the sampled SDF gradient
 so SDF reaction can be inspected without adding renderer or legacy runtime
 dependencies.
+
+## Animated Runtime SDF Browser Smoke
+
+For realtime deformation checks, point the same browser preview at a Matter
+animated surface-sequence JSON exported from a hand recording:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-HandMeshBrowserPreview.ps1 `
+  -FramePath "local-artifacts\hand_mesh\hand_mesh_realtime_sequence.json"
+```
+
+Animated sequence payloads contain mesh positions and topology only. The browser
+preview recomputes the mesh wireframe, collider shell, visible SDF slice, and
+particle SDF response from the current animation frame. Use `Pause` to freeze
+the hand pose and `Reset Particles` to seed 1000 particles into a larger random
+sphere around the hand before the live SDF force pulls them toward the current
+mesh surface.
