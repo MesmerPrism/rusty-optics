@@ -50,7 +50,8 @@ const RealtimeHandSdf = (() => {
     };
   }
 
-  function buildRuntimeFrame(sequence, frameIndex) {
+  function buildRuntimeFrame(sequence, frameIndex, metrics = null) {
+    const startedAt = nowMs();
     const source = sequence.frames[frameIndex % sequence.frames.length];
     const positions = source.positions;
     const boundsMin = source.bounds_min || boundsForPositions(positions).min;
@@ -85,7 +86,7 @@ const RealtimeHandSdf = (() => {
       sequence_center: sequence.center,
       sequence_cloud_radius: sequence.cloud_radius,
     };
-    return {
+    const frame = {
       schema_id: "rusty.optics.mesh.browser.realtime_frame.v1",
       frame_id: `${sequence.sequence_id}.browser_frame.${source.frame_index}`,
       source_frame_id: source.surface_id,
@@ -117,9 +118,11 @@ const RealtimeHandSdf = (() => {
         contact_points: [],
         contact_normals: [],
       },
-      sdf_slice: sdfSliceVisual(runtimeSurface),
+      sdf_slice: sdfSliceVisual(runtimeSurface, metrics),
       runtime_surface: runtimeSurface,
     };
+    addMetric(metrics, "runtimeFrameBuildMs", nowMs() - startedAt);
+    return frame;
   }
 
   function resetParticles(sequence, runtimeFrame, seed) {
@@ -143,7 +146,9 @@ const RealtimeHandSdf = (() => {
   }
 
   function stepParticles(particles, runtimeFrame, deltaSeconds, options = {}) {
+    const startedAt = nowMs();
     const trailsEnabled = Boolean(options.trailsEnabled);
+    const metrics = options.metrics || null;
     const surface = runtimeFrame.runtime_surface;
     const targetDistance = Math.max(particles[0]?.radius || surface.radius * 0.01, 0.0008) * 0.65;
     const maxSpeed = surface.radius * 1.9;
@@ -191,6 +196,12 @@ const RealtimeHandSdf = (() => {
         particle.trail = [particle.position];
       }
     }
+    const sampleCount = particles.length * substeps + particles.length;
+    addMetric(metrics, "particleStepMs", nowMs() - startedAt);
+    setMetric(metrics, "particleSubsteps", substeps);
+    setMetric(metrics, "particleClosestSamples", sampleCount);
+    setMetric(metrics, "particleTriangleChecks", sampleCount * surface.triangle_cache.length);
+    setMetric(metrics, "runtimeTriangleCount", surface.triangle_cache.length);
   }
 
   function coordinateVisual(sequence, positions, boundsMin, boundsMax) {
@@ -223,7 +234,8 @@ const RealtimeHandSdf = (() => {
     };
   }
 
-  function sdfSliceVisual(surface) {
+  function sdfSliceVisual(surface, metrics = null) {
+    const startedAt = nowMs();
     const boundsMin = surface.bounds_min;
     const boundsMax = surface.bounds_max;
     const size = subtract(boundsMax, boundsMin);
@@ -259,6 +271,9 @@ const RealtimeHandSdf = (() => {
     for (const cell of cells) {
       cell.normalized_distance = clamp((cell.distance - minDistance) / range, 0, 1);
     }
+    addMetric(metrics, "runtimeSdfSliceMs", nowMs() - startedAt);
+    setMetric(metrics, "runtimeSdfCells", cells.length);
+    setMetric(metrics, "runtimeSdfTriangleChecks", cells.length * surface.triangle_cache.length);
     return {
       schema_id: "rusty.optics.sdf.slice.visual.v1",
       visual_id: `${surface.sequence_id || "runtime"}.sdf_slice`,
@@ -449,6 +464,24 @@ const RealtimeHandSdf = (() => {
 
   function clampInt(value, min, max) {
     return Math.round(clamp(value, min, max));
+  }
+
+  function nowMs() {
+    return globalThis.performance?.now?.() ?? Date.now();
+  }
+
+  function addMetric(metrics, key, value) {
+    if (!metrics || !Number.isFinite(value)) {
+      return;
+    }
+    metrics[key] = (metrics[key] || 0) + value;
+  }
+
+  function setMetric(metrics, key, value) {
+    if (!metrics || !Number.isFinite(value)) {
+      return;
+    }
+    metrics[key] = value;
   }
 
   return {

@@ -1,6 +1,7 @@
 const canvas = document.querySelector("#viewport");
 const ctx = canvas.getContext("2d");
 const stats = document.querySelector("#stats");
+const perfOutput = document.querySelector("#perf-metrics");
 const controls = {
   mesh: document.querySelector("#toggle-mesh"),
   coordinates: document.querySelector("#toggle-coordinates"),
@@ -9,6 +10,7 @@ const controls = {
   particles: document.querySelector("#toggle-particles"),
   trails: document.querySelector("#toggle-trails"),
   liveParticles: document.querySelector("#toggle-live-particles"),
+  metrics: document.querySelector("#toggle-metrics"),
   reset: document.querySelector("#reset-view"),
   resetParticles: document.querySelector("#reset-particles"),
   playback: document.querySelector("#toggle-playback"),
@@ -28,6 +30,23 @@ let particleAnimation = null;
 let lastParticleTimestamp = 0;
 let particleResetIndex = 0;
 let particleResetHoldSeconds = 0;
+const perfReporter = window.HandMeshPerfMetrics.create({
+  output: perfOutput,
+  isEnabled: () => controls.metrics.checked,
+  snapshot: () => ({
+    particleCount: liveParticleState.length,
+    runtimeFrameIndex,
+    triangleCount: frame?.mesh?.triangles?.length || 0,
+    playbackPaused: runtimePlaybackPaused,
+    trailsEnabled: controls.trails.checked,
+    particlesEnabled: controls.particles.checked,
+    sdfEnabled: controls.sdf.checked,
+    meshEnabled: controls.mesh.checked,
+    colliderEnabled: controls.collider.checked,
+    coordinatesEnabled: controls.coordinates.checked,
+  }),
+});
+window.__rustyPerf = perfReporter.state;
 
 const params = new URLSearchParams(window.location.search);
 const frameUrl = params.get("frame") || "/fixtures/hand_mesh/hand_mesh_browser_debug_frame.json";
@@ -81,6 +100,7 @@ for (const input of [
   controls.particles,
   controls.trails,
   controls.liveParticles,
+  controls.metrics,
 ]) {
   input.addEventListener("change", () => {
     if (input === controls.liveParticles) {
@@ -89,6 +109,9 @@ for (const input of [
       } else if (!runtimeSequence || runtimePlaybackPaused) {
         stopParticleAnimation();
       }
+    }
+    if (input === controls.metrics) {
+      perfReporter.update(true);
     }
     draw();
   });
@@ -196,32 +219,38 @@ function updateStats() {
   stats.value = items.filter(Boolean).join("  ");
 }
 
-function draw() {
-  resizeCanvas();
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawBackground();
-  if (!frame) {
-    drawLoading();
-    return;
-  }
-  if (controls.sdf.checked) {
-    drawSdf();
-  }
-  if (controls.mesh.checked) {
-    drawLines(frame.mesh.edges, 1.35);
-  }
-  if (controls.collider.checked) {
-    drawLines(frame.collider.shell_edges, 1.1);
-    drawLines(frame.collider.contact_normals, 2.0);
-    drawPoints(frame.collider.contact_points);
-  }
-  if (controls.coordinates.checked) {
-    drawLines(frame.coordinates.axes, 1.2);
-    drawPoints(frame.coordinates.anchors);
-  }
-  if (controls.particles.checked && (frame.particle_sdf_overlay || liveParticleState.length > 0)) {
-    drawParticleOverlay(frame.particle_sdf_overlay);
-  }
+function draw(metrics = null) {
+  perfReporter.measure(metrics, "drawMs", () => {
+    resizeCanvas();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBackground();
+    if (!frame) {
+      drawLoading();
+      return;
+    }
+    if (controls.sdf.checked) {
+      perfReporter.measure(metrics, "drawSdfMs", () => drawSdf(metrics));
+    }
+    if (controls.mesh.checked) {
+      perfReporter.measure(metrics, "drawMeshMs", () => drawLines(frame.mesh.edges, 1.35, metrics));
+    }
+    if (controls.collider.checked) {
+      perfReporter.measure(metrics, "drawColliderMs", () => {
+        drawLines(frame.collider.shell_edges, 1.1, metrics);
+        drawLines(frame.collider.contact_normals, 2.0, metrics);
+        drawPoints(frame.collider.contact_points, metrics);
+      });
+    }
+    if (controls.coordinates.checked) {
+      perfReporter.measure(metrics, "drawCoordinatesMs", () => {
+        drawLines(frame.coordinates.axes, 1.2, metrics);
+        drawPoints(frame.coordinates.anchors, metrics);
+      });
+    }
+    if (controls.particles.checked && (frame.particle_sdf_overlay || liveParticleState.length > 0)) {
+      perfReporter.measure(metrics, "drawParticlesMs", () => drawParticleOverlay(frame.particle_sdf_overlay, metrics));
+    }
+  });
 }
 
 function resizeCanvas() {
@@ -249,7 +278,10 @@ function drawLoading() {
   ctx.fillText("Loading mesh debug frame", 24, 36);
 }
 
-function drawLines(lines, width) {
+function drawLines(lines, width, metrics = null) {
+  if (metrics) {
+    metrics.drawLineSegments = (metrics.drawLineSegments || 0) + lines.length;
+  }
   for (const line of lines) {
     const start = project(line.start);
     const end = project(line.end);
@@ -262,7 +294,10 @@ function drawLines(lines, width) {
   }
 }
 
-function drawPoints(points) {
+function drawPoints(points, metrics = null) {
+  if (metrics) {
+    metrics.drawPoints = (metrics.drawPoints || 0) + points.length;
+  }
   for (const point of points) {
     const projected = project(point.position);
     const size = Math.max(2.2, point.radius * screenScale() * 1.8);
@@ -273,26 +308,29 @@ function drawPoints(points) {
   }
 }
 
-function drawParticleOverlay(overlay) {
+function drawParticleOverlay(overlay, metrics = null) {
   if (liveParticleState.length > 0) {
     if (controls.trails.checked) {
-      drawLiveParticleTrails();
+      drawLiveParticleTrails(metrics);
     }
     for (const particle of liveParticleState) {
-      drawParticleMarker(particle.position, particle.radius, particle.color);
+      drawParticleMarker(particle.position, particle.radius, particle.color, metrics);
     }
     return;
   }
 
   if (controls.trails.checked) {
-    drawLines(overlay.trails, 1.1);
+    drawLines(overlay.trails, 1.1, metrics);
   }
   for (const sample of overlay.particles.samples) {
-    drawParticleMarker(sample.position, sample.radius, sample.color);
+    drawParticleMarker(sample.position, sample.radius, sample.color, metrics);
   }
 }
 
-function drawParticleMarker(position, sourceRadius, color) {
+function drawParticleMarker(position, sourceRadius, color, metrics = null) {
+  if (metrics) {
+    metrics.drawParticleMarkers = (metrics.drawParticleMarkers || 0) + 1;
+  }
   const projected = project(position);
   const radius = Math.max(2.8, sourceRadius * screenScale() * 1.35);
   ctx.fillStyle = rgba(color);
@@ -304,8 +342,12 @@ function drawParticleMarker(position, sourceRadius, color) {
   ctx.stroke();
 }
 
-function drawLiveParticleTrails() {
+function drawLiveParticleTrails(metrics = null) {
   for (const particle of liveParticleState) {
+    if (metrics) {
+      metrics.drawTrailSegments =
+        (metrics.drawTrailSegments || 0) + Math.max(0, particle.trail.length - 1);
+    }
     for (let index = 1; index < particle.trail.length; index += 1) {
       const start = project(particle.trail[index - 1]);
       const end = project(particle.trail[index]);
@@ -380,20 +422,26 @@ function stepParticleAnimation(timestamp) {
     return;
   }
 
-  const deltaSeconds = clamp((timestamp - lastParticleTimestamp) / 1000, 0.001, 0.05);
+  const realDeltaMs = Math.max(1, timestamp - lastParticleTimestamp);
+  const realDeltaSeconds = realDeltaMs / 1000;
+  const deltaSeconds = clamp(realDeltaSeconds, 0.001, 0.05);
   lastParticleTimestamp = timestamp;
-  const frameChanged = updateRuntimePlayback(deltaSeconds);
+  const metrics = perfReporter.beginFrame(deltaSeconds, realDeltaMs);
+  const frameChanged = perfReporter.measure(metrics, "playbackMs", () =>
+    updateRuntimePlayback(realDeltaSeconds, metrics),
+  );
   if (controls.liveParticles.checked && liveParticleState.length > 0) {
     if (particleResetHoldSeconds > 0) {
       particleResetHoldSeconds = Math.max(0, particleResetHoldSeconds - deltaSeconds);
     } else {
-      stepLiveParticles(deltaSeconds);
+      perfReporter.measure(metrics, "simulationMs", () => stepLiveParticles(deltaSeconds, metrics));
     }
   }
   if (frameChanged) {
     updateStats();
   }
-  draw();
+  draw(metrics);
+  perfReporter.finish(metrics);
   if (shouldAnimate()) {
     particleAnimation = requestAnimationFrame(stepParticleAnimation);
   }
@@ -410,7 +458,7 @@ function shouldAnimate() {
   return playbackActive || particlesActive;
 }
 
-function updateRuntimePlayback(deltaSeconds) {
+function updateRuntimePlayback(deltaSeconds, metrics = null) {
   if (!runtimeSequence || runtimePlaybackPaused) {
     return false;
   }
@@ -420,17 +468,21 @@ function updateRuntimePlayback(deltaSeconds) {
     runtimePlaybackAccumulator -= runtimeSequence.frame_seconds;
     runtimeFrameIndex = (runtimeFrameIndex + 1) % runtimeSequence.frame_count;
     advanced = true;
+    if (metrics) {
+      metrics.playbackAdvancedFrames = (metrics.playbackAdvancedFrames || 0) + 1;
+    }
   }
   if (advanced) {
-    frame = RealtimeHandSdf.buildRuntimeFrame(runtimeSequence, runtimeFrameIndex);
+    frame = RealtimeHandSdf.buildRuntimeFrame(runtimeSequence, runtimeFrameIndex, metrics);
   }
   return advanced;
 }
 
-function stepLiveParticles(deltaSeconds) {
+function stepLiveParticles(deltaSeconds, metrics = null) {
   if (runtimeSequence) {
     RealtimeHandSdf.stepParticles(liveParticleState, frame, deltaSeconds, {
       trailsEnabled: controls.trails.checked,
+      metrics,
     });
     return;
   }
@@ -580,7 +632,10 @@ function distanceAt(grid, x, y, z) {
   return grid.distances[index] ?? null;
 }
 
-function drawSdf() {
+function drawSdf(metrics = null) {
+  if (metrics) {
+    metrics.drawSdfCells = (metrics.drawSdfCells || 0) + frame.sdf_slice.cells.length;
+  }
   const scale = Math.max(2, Math.min(7, screenScale() * frame.sdf_slice.width * 0.0018));
   for (const cell of frame.sdf_slice.cells) {
     const projected = project(cell.position);

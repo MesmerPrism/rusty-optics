@@ -16,13 +16,16 @@
         <label><input id="toggle-particles" type="checkbox" checked> Particles</label>
         <label><input id="toggle-trails" type="checkbox"> Trails</label>
         <label><input id="toggle-live-particles" type="checkbox" checked> Live</label>
+        <label><input id="toggle-metrics" type="checkbox" checked> Metrics</label>
         <button id="reset-view" type="button">Reset</button>
         <button id="reset-particles" type="button">Reset Particles</button>
         <button id="toggle-playback" type="button">Pause</button>
         <output id="stats">Loading</output>
       </div>
       <canvas id="viewport"></canvas>
+      <pre id="perf-metrics" class="perf-panel">Waiting for realtime metrics</pre>
     </main>
+    <script src="perf-metrics.js"></script>
     <script src="realtime-sdf.js"></script>
     <script src="app.js"></script>
   </body>
