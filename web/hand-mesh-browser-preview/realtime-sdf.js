@@ -142,7 +142,8 @@ const RealtimeHandSdf = (() => {
     return particles;
   }
 
-  function stepParticles(particles, runtimeFrame, deltaSeconds) {
+  function stepParticles(particles, runtimeFrame, deltaSeconds, options = {}) {
+    const trailsEnabled = Boolean(options.trailsEnabled);
     const surface = runtimeFrame.runtime_surface;
     const targetDistance = Math.max(particles[0]?.radius || surface.radius * 0.01, 0.0008) * 0.65;
     const maxSpeed = surface.radius * 1.9;
@@ -181,9 +182,13 @@ const RealtimeHandSdf = (() => {
         b: 1.0,
         a: 0.72 + (1 - distance01) * 0.24,
       };
-      particle.trail.push({ ...particle.position });
-      while (particle.trail.length > 10) {
-        particle.trail.shift();
+      if (trailsEnabled) {
+        particle.trail.push({ ...particle.position });
+        while (particle.trail.length > 10) {
+          particle.trail.shift();
+        }
+      } else {
+        particle.trail = [particle.position];
       }
     }
   }

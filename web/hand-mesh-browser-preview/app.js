@@ -7,6 +7,7 @@ const controls = {
   collider: document.querySelector("#toggle-collider"),
   sdf: document.querySelector("#toggle-sdf"),
   particles: document.querySelector("#toggle-particles"),
+  trails: document.querySelector("#toggle-trails"),
   liveParticles: document.querySelector("#toggle-live-particles"),
   reset: document.querySelector("#reset-view"),
   resetParticles: document.querySelector("#reset-particles"),
@@ -78,6 +79,7 @@ for (const input of [
   controls.collider,
   controls.sdf,
   controls.particles,
+  controls.trails,
   controls.liveParticles,
 ]) {
   input.addEventListener("change", () => {
@@ -273,14 +275,18 @@ function drawPoints(points) {
 
 function drawParticleOverlay(overlay) {
   if (liveParticleState.length > 0) {
-    drawLiveParticleTrails();
+    if (controls.trails.checked) {
+      drawLiveParticleTrails();
+    }
     for (const particle of liveParticleState) {
       drawParticleMarker(particle.position, particle.radius, particle.color);
     }
     return;
   }
 
-  drawLines(overlay.trails, 1.1);
+  if (controls.trails.checked) {
+    drawLines(overlay.trails, 1.1);
+  }
   for (const sample of overlay.particles.samples) {
     drawParticleMarker(sample.position, sample.radius, sample.color);
   }
@@ -423,7 +429,9 @@ function updateRuntimePlayback(deltaSeconds) {
 
 function stepLiveParticles(deltaSeconds) {
   if (runtimeSequence) {
-    RealtimeHandSdf.stepParticles(liveParticleState, frame, deltaSeconds);
+    RealtimeHandSdf.stepParticles(liveParticleState, frame, deltaSeconds, {
+      trailsEnabled: controls.trails.checked,
+    });
     return;
   }
 
@@ -459,9 +467,13 @@ function stepLiveParticles(deltaSeconds) {
 
   for (const particle of liveParticleState) {
     particle.color = colorForParticle(grid, particle);
-    particle.trail.push({ ...particle.position });
-    while (particle.trail.length > 14) {
-      particle.trail.shift();
+    if (controls.trails.checked) {
+      particle.trail.push({ ...particle.position });
+      while (particle.trail.length > 14) {
+        particle.trail.shift();
+      }
+    } else {
+      particle.trail = [particle.position];
     }
   }
 }
