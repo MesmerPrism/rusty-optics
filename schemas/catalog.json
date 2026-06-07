@@ -45,6 +45,31 @@
       "schema_id": "rusty.optics.particles.flat.frame.v1",
       "owner": "rusty-optics",
       "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.mesh.debug.frame.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.mesh.coordinate.visual.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.mesh.collider.visual.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.sdf.slice.visual.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.mesh.browser.debug_frame.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
     }
   ]
 }

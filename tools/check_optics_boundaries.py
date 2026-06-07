@@ -30,7 +30,7 @@ FORBIDDEN_SOURCE_TERMS = {
     "kuramoto",
 }
 
-SCAN_EXTENSIONS = {".rs", ".toml", ".json"}
+SCAN_EXTENSIONS = {".rs", ".toml", ".json", ".js", ".html", ".css"}
 
 
 def main() -> int:
@@ -44,7 +44,12 @@ def main() -> int:
             if term in lower_text:
                 failures.append(f"{cargo_toml}: forbidden cargo boundary term {term!r}")
 
-    roots = [repo.joinpath("crates"), repo.joinpath("schemas"), repo.joinpath("fixtures")]
+    roots = [
+        repo.joinpath("crates"),
+        repo.joinpath("schemas"),
+        repo.joinpath("fixtures"),
+        repo.joinpath("web"),
+    ]
     for root in roots:
         if not root.exists():
             continue
@@ -67,4 +72,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

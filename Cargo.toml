@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/rusty-optics-fixtures",
+    "crates/rusty-optics-mesh",
     "crates/rusty-optics-model",
     "crates/rusty-optics-particles",
     "crates/rusty-optics-schema",
@@ -21,4 +22,3 @@ missing_docs = "warn"
 [workspace.lints.clippy]
 all = "warn"
 pedantic = "warn"
-

@@ -14,6 +14,8 @@ Optics owns:
 - billboard instance preparation;
 - animated mask atlas descriptors and CPU reference generation;
 - trail appearance descriptors and particle render-budget summaries;
+- mesh debug frames, coordinate-map visuals, collider visuals, and SDF slice
+  visuals over Matter mesh payloads;
 - deterministic fixture and schema artifacts;
 - renderer-neutral diagnostics for visual payloads.
 
@@ -38,6 +40,13 @@ billboard draw mode, projection, blend/depth policy, mask animation, trail
 appearance, and render-budget summaries. Optics references Matter payload IDs
 and schema IDs without duplicating particle simulation truth.
 
+For meshes, Matter owns the triangle mesh surface, hand validation mesh wrapper,
+coordinate map, dynamic collider payloads, and SDF grid. Optics converts those
+validated Matter contracts into bounded debug visuals: mesh wireframes,
+coordinate anchors and axes, collider shell/contact markers, and sampled SDF
+slices. The browser preview consumes the same renderer-neutral debug frame that
+a later renderer adapter can consume.
+
 ## Renderer Adapter Boundary
 
 Optics can prepare backend-neutral instance arrays and mask atlas pixels, but
@@ -56,6 +65,10 @@ The implemented foundation slice is CPU/data-only:
 - billboard instance packing and transparent-particle budget summaries;
 - flat-screen projection and far-to-near sorting;
 - morphed-ring mask atlas CPU reference generation;
+- mesh debug frames over Matter triangle surfaces;
+- coordinate-map, dynamic-collider, and SDF-slice debug visuals over one shared
+  source mesh surface;
+- static browser preview for generated mesh debug JSON;
 - fixture and schema catalog checks;
 - dependency and namespace boundary scans.
 
@@ -68,6 +81,16 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
 - `rusty-optics-model/src/error.rs`: shared validation errors.
 - `rusty-optics-model/src/ids.rs`: Optics schema IDs.
 - `rusty-optics-model/src/vec2.rs`: two-dimensional projection points.
+- `rusty-optics-mesh/src/browser_frame.rs`: combined mesh debug frame for
+  static browser previews and future renderer adapters.
+- `rusty-optics-mesh/src/collider.rs`: dynamic mesh collider shell/contact
+  debug visuals.
+- `rusty-optics-mesh/src/coordinate.rs`: coordinate-map anchor and axis debug
+  visuals.
+- `rusty-optics-mesh/src/mesh_frame.rs`: mesh wireframe and topology debug
+  visuals.
+- `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug
+  visuals.
 - `rusty-optics-particles/src/appearance.rs`: particle appearance descriptors.
 - `rusty-optics-particles/src/billboard.rs`: billboard instance preparation and
   render-budget summaries.
@@ -78,5 +101,6 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
 - `rusty-optics-particles/src/visual_frame.rs`: visual particle samples and
   frames over Matter particle payloads.
 - `rusty-optics-fixtures/src/main.rs`: dispatch-only fixture CLI.
+- `rusty-optics-fixtures/src/hand_mesh.rs`: deterministic hand-validation mesh
+  debug fixture using Matter mesh, coordinate, collider, and SDF APIs.
 - `rusty-optics-schema/src/main.rs`: dispatch-only schema catalog CLI.
-

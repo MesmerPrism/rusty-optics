@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rusty Optics Mesh Debug</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <div class="toolbar" aria-label="Mesh debug controls">
+        <label><input id="toggle-mesh" type="checkbox" checked> Mesh</label>
+        <label><input id="toggle-coordinates" type="checkbox" checked> Coordinates</label>
+        <label><input id="toggle-collider" type="checkbox" checked> Collider</label>
+        <label><input id="toggle-sdf" type="checkbox" checked> SDF</label>
+        <button id="reset-view" type="button">Reset</button>
+        <output id="stats">Loading</output>
+      </div>
+      <canvas id="viewport"></canvas>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

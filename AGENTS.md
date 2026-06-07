@@ -28,7 +28,8 @@ runtime sockets, media stacks, or downstream app crates.
   payload truth. Optics consumes those payloads and adds view/appearance policy.
 - Optics owns visual particle frames, billboard preparation contracts, flat
   projection, animation-mask descriptors, trail appearance descriptors,
-  transparency/depth policy, and renderer-neutral budget summaries.
+  transparency/depth policy, renderer-neutral budget summaries, mesh debug
+  frames, coordinate-map visuals, collider visuals, and SDF slice visuals.
 - Renderer adapters own GPU buffers, shaders, draw calls, texture uploads,
   swapchains, platform frame lifecycle, and backend imports.
 - Downstream apps own private visual-driver mappings, exact runtime tuning,
@@ -49,6 +50,7 @@ runtime sockets, media stacks, or downstream app crates.
 - Split before adding behavior when a file starts mixing independent families.
   For Optics, the important families are colors/model IDs, visual particle
   frames, appearance profiles, billboards, flat projection, animated masks,
+  mesh debug frames, coordinate visuals, collider visuals, SDF slice visuals,
   fixtures, schema catalogs, and boundary scans.
 - Preserve public names, schema IDs, serde field names, fixture outputs, CLI
   messages, validation outcomes, and dependency boundaries during mechanical
@@ -59,10 +61,12 @@ Current crate-root maps:
 
 - `rusty-optics-model/src/lib.rs`: facade over `color`, `error`, `ids`, and
   `vec2`.
+- `rusty-optics-mesh/src/lib.rs`: facade over `browser_frame`, `collider`,
+  `coordinate`, `mesh_frame`, `sdf_slice`, and tests.
 - `rusty-optics-particles/src/lib.rs`: facade over `appearance`, `billboard`,
   `mask`, `projection`, `tests`, and `visual_frame`.
 - `rusty-optics-fixtures/src/main.rs`: dispatch-only binary over `cli`, `error`,
-  and `summary`.
+  `hand_mesh`, and `summary`.
 - `rusty-optics-schema/src/main.rs`: dispatch-only binary over `catalog`, `cli`,
   and `error`.
 
@@ -73,4 +77,3 @@ Run narrow checks before committing a slice:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\check_all.ps1
 ```
-

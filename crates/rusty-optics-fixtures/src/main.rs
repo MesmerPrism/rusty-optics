@@ -2,6 +2,7 @@
 
 mod cli;
 mod error;
+mod hand_mesh;
 mod summary;
 
 use std::process::ExitCode;

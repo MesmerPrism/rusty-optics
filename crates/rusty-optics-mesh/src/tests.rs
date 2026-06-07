@@ -1,0 +1,104 @@
+use rusty_matter_mesh::{
+    DynamicMeshCollider, DynamicMeshColliderConfig, MeshCoordinateFrameConfig, MeshCoordinateMap,
+    MeshSurfaceSampleConfig, TriangleMeshSurface,
+};
+use rusty_matter_model::{TriangleMeshSnapshot, Vec3};
+use rusty_matter_sdf::{build_sdf_from_mesh, MeshToSdfConfig};
+
+use crate::{
+    MeshBrowserDebugFrame, MeshColliderVisual, MeshCoordinateVisual, MeshDebugFrame, SdfSliceVisual,
+};
+
+#[test]
+fn mesh_debug_frame_preserves_surface_topology() {
+    let surface = sample_surface();
+    let frame =
+        MeshDebugFrame::from_surface("mesh.debug.frame.test", &surface).expect("mesh debug frame");
+
+    assert_eq!(frame.source_surface_id, surface.surface_id);
+    assert_eq!(frame.vertices.len(), 4);
+    assert_eq!(frame.triangles.len(), 2);
+    assert_eq!(frame.edges.len(), 5);
+    assert_eq!(frame.topology_index_hash, surface.topology_key().index_hash);
+}
+
+#[test]
+fn browser_frame_combines_mesh_coordinate_collider_and_sdf_payloads() {
+    let surface = sample_surface();
+    let mesh = MeshDebugFrame::from_surface("mesh.debug.frame.bundle", &surface)
+        .expect("mesh debug frame");
+    let coordinate_map = MeshCoordinateMap::from_surface(
+        "mesh.coordinate_map.bundle",
+        &surface,
+        MeshSurfaceSampleConfig::high_quality_surface_points(8),
+        MeshCoordinateFrameConfig::default(),
+    )
+    .expect("coordinate map");
+    let coordinates = MeshCoordinateVisual::from_coordinate_map(
+        "mesh.coordinate.visual.bundle",
+        &coordinate_map,
+        0.04,
+    )
+    .expect("coordinate visual");
+
+    let mut collider = DynamicMeshCollider::new(DynamicMeshColliderConfig {
+        surface_inflation: 0.02,
+        diagnostic_shell_inflation: 0.01,
+        ..DynamicMeshColliderConfig::default()
+    });
+    let update = collider.update_from_surface(&surface);
+    let contact = collider.closest_point(Vec3::new(0.25, 0.25, 0.10));
+    let collider_visual = MeshColliderVisual::from_collider_payload(
+        "mesh.collider.visual.bundle",
+        &surface.surface_id,
+        &update,
+        collider.diagnostic_shell(),
+        contact.as_ref(),
+    )
+    .expect("collider visual");
+
+    let sdf_mesh = TriangleMeshSnapshot::new(
+        "mesh.snapshot.bundle",
+        surface.positions.clone(),
+        surface.triangles.clone(),
+    );
+    let sdf = build_sdf_from_mesh(
+        &sdf_mesh,
+        MeshToSdfConfig {
+            voxel_size: 0.2,
+            padding_voxels: 1,
+            max_voxels: 4096,
+            ..MeshToSdfConfig::default()
+        },
+    )
+    .expect("sdf");
+    let sdf_slice = SdfSliceVisual::middle_z("mesh.sdf.slice.bundle", &sdf).expect("sdf slice");
+
+    let browser = MeshBrowserDebugFrame::new(
+        "mesh.browser.frame.bundle",
+        "hand.validation_mesh.test",
+        mesh,
+        coordinates,
+        collider_visual,
+        sdf_slice,
+    )
+    .expect("browser frame");
+
+    assert_eq!(browser.source_surface_id, surface.surface_id);
+    assert!(browser.coordinates.anchors.len() >= 8);
+    assert!(!browser.collider.shell_edges.is_empty());
+    assert!(!browser.sdf_slice.cells.is_empty());
+}
+
+fn sample_surface() -> TriangleMeshSurface {
+    TriangleMeshSurface::new(
+        "mesh.unit_square_surface",
+        vec![
+            Vec3::ZERO,
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(1.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ],
+        vec![[0, 1, 2], [0, 2, 3]],
+    )
+}
