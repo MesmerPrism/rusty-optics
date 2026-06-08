@@ -36,6 +36,10 @@ runtime sockets, media stacks, or downstream app crates.
 - Animated hand-mesh browser previews must call Matter runtime code through the
   Matter Wasm package for mesh-distance/SDF/particle queries. Do not re-add
   browser-owned brute-force triangle-distance simulation as the default path.
+- Surface-field browser previews must call Matter runtime code through the
+  Matter surface-field Wasm package for live dynamics. Browser code may own
+  playback and drawing, but not diffusion, decay, perturbation, or vector
+  update rules.
 - Downstream apps own private visual-driver mappings, exact runtime tuning,
   oscillator coupling, breath/control bindings, study defaults, and product
   profiles.

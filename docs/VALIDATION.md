@@ -43,8 +43,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-HandMeshBrowse
 Start the surface-field static preview with:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-SurfaceFieldPreview.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-SurfaceFieldPreview.ps1 -BuildMatterWasm
 ```
+
+Without `-BuildMatterWasm`, the preview falls back to the checked visual
+sequence fixture. With it, the preview imports
+`local-artifacts\matter_surface_field_wasm\rusty_matter_fields_wasm.js` and
+steps the Matter runtime live in the browser.
 
 Build the Matter WebAssembly runtime package into Optics local artifacts with:
 

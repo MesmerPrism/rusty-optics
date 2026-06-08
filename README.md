@@ -49,11 +49,11 @@ That JSON is renderer-neutral and can also feed a later renderer adapter.
 
 ## Surface Field Browser Preview
 
-Generate the deterministic surface-field visual fixture and start a local
-static server:
+Generate the deterministic surface-field visual fixture, copy the Matter
+surface-field Wasm runtime, and start a local static server:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-SurfaceFieldPreview.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-SurfaceFieldPreview.ps1 -BuildMatterWasm
 ```
 
 Then open:
@@ -63,9 +63,10 @@ http://127.0.0.1:8792/web/surface-field-preview/
 ```
 
 The preview consumes `fixtures/fields/surface_field_visual_sequence.json` by
-default. That sequence is derived from Matter-owned surface-field dynamics and
-debug frames. Optics owns playback, colors, edge styling, perturbation
-highlights, and polarity arrows only.
+default as a fallback. When `local-artifacts\matter_surface_field_wasm` is
+present, it runs the Matter-owned realtime surface-field Wasm runtime and uses
+the sequence only as fallback/evidence. Optics owns playback, colors, edge
+styling, perturbation highlights, and polarity arrows only.
 
 For animated hand-mesh sequence previews, build the Matter Wasm runtime into
 Optics local artifacts before launching:

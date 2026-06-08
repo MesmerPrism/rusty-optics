@@ -3,6 +3,8 @@ const ctx = canvas.getContext("2d");
 const stats = document.querySelector("#stats");
 const controls = {
   scalarLayer: document.querySelector("#scalar-layer"),
+  live: document.querySelector("#toggle-live"),
+  runtimeStatus: document.querySelector("#runtime-status"),
   play: document.querySelector("#toggle-play"),
   frameSlider: document.querySelector("#frame-slider"),
   framePosition: document.querySelector("#frame-position"),
@@ -20,6 +22,7 @@ const frameUrl = params.get("frame");
 const sequenceUrl = params.get("sequence")
   || (frameUrl ? null : "/fixtures/fields/surface_field_visual_sequence.json");
 const payloadUrl = sequenceUrl || frameUrl || "/fixtures/fields/surface_field_visual_frame.json";
+const wasmBaseUrl = params.get("wasm") || "/local-artifacts/matter_surface_field_wasm";
 
 let sequence = null;
 let frames = [];
@@ -30,6 +33,11 @@ let drag = null;
 let playing = true;
 let lastAnimationTime = null;
 let frameAccumulatorMs = 0;
+let liveRuntime = null;
+let liveTopology = null;
+let liveFrame = null;
+let liveStats = null;
+let liveStepMs = 0;
 
 fetch(payloadUrl)
   .then((response) => {
@@ -38,8 +46,9 @@ fetch(payloadUrl)
     }
     return response.json();
   })
-  .then((payload) => {
+  .then(async (payload) => {
     loadPayload(payload);
+    await initLiveRuntime();
     requestAnimationFrame(animationLoop);
   })
   .catch((error) => {
@@ -62,11 +71,34 @@ for (const input of [
   });
 }
 
+controls.live.addEventListener("change", () => {
+  if (controls.live.checked && !liveRuntime) {
+    controls.live.checked = false;
+    return;
+  }
+  if (isLiveMode()) {
+    liveRuntime.reset();
+    liveFrame = buildLiveFrame();
+    bounds = computeBounds(liveFrame);
+    setPlaying(true);
+  } else if (frames.length > 0) {
+    bounds = computeBounds(activeFrame());
+    setPlaying(frames.length > 1);
+  }
+  fillLayerSelect();
+  updateTimelineControls();
+  updateStats();
+  draw();
+});
+
 controls.play.addEventListener("click", () => {
   setPlaying(!playing);
 });
 
 controls.frameSlider.addEventListener("input", () => {
+  if (isLiveMode()) {
+    return;
+  }
   currentFrameIndex = Number(controls.frameSlider.value);
   lastAnimationTime = null;
   frameAccumulatorMs = 0;
@@ -80,7 +112,13 @@ controls.speed.addEventListener("change", () => {
 });
 
 controls.reset.addEventListener("click", () => {
+  if (isLiveMode()) {
+    liveRuntime.reset();
+    liveFrame = buildLiveFrame();
+  }
   resetView();
+  updateTimelineControls();
+  updateStats();
   draw();
 });
 
@@ -131,22 +169,63 @@ function loadPayload(payload) {
   resetView();
   setPlaying(frames.length > 1);
   updateTimelineControls();
+  updateRuntimeStatus("sequence");
   updateStats();
   draw();
 }
 
+async function initLiveRuntime() {
+  try {
+    const module = await import(`${wasmBaseUrl}/rusty_matter_fields_wasm.js`);
+    await module.default(`${wasmBaseUrl}/rusty_matter_fields_wasm_bg.wasm`);
+    liveRuntime = new module.SurfaceFieldRealtimeRuntime();
+    liveTopology = decodeLiveTopology(liveRuntime);
+    liveFrame = buildLiveFrame();
+    controls.live.disabled = false;
+    controls.live.checked = true;
+    bounds = computeBounds(liveFrame);
+    fillLayerSelect();
+    setPlaying(true);
+    updateTimelineControls();
+    updateRuntimeStatus("live");
+    updateStats();
+    draw();
+  } catch (_error) {
+    liveRuntime = null;
+    liveTopology = null;
+    liveFrame = null;
+    controls.live.checked = false;
+    controls.live.disabled = true;
+    updateRuntimeStatus("sequence");
+  }
+}
+
 function animationLoop(timestamp) {
-  if (playing && frames.length > 1) {
+  if (playing && canAnimate()) {
     if (lastAnimationTime !== null) {
       frameAccumulatorMs += timestamp - lastAnimationTime;
       const intervalMs = frameIntervalSeconds() * 1000 / playbackSpeed();
-      while (frameAccumulatorMs >= intervalMs) {
-        frameAccumulatorMs -= intervalMs;
-        currentFrameIndex = (currentFrameIndex + 1) % frames.length;
+      if (isLiveMode()) {
+        const steps = Math.min(8, Math.floor(frameAccumulatorMs / intervalMs));
+        if (steps > 0) {
+          frameAccumulatorMs -= steps * intervalMs;
+          const started = performance.now();
+          liveRuntime.step(steps);
+          liveStepMs = performance.now() - started;
+          liveFrame = buildLiveFrame();
+          updateTimelineControls();
+          updateStats();
+          draw();
+        }
+      } else {
+        while (frameAccumulatorMs >= intervalMs) {
+          frameAccumulatorMs -= intervalMs;
+          currentFrameIndex = (currentFrameIndex + 1) % frames.length;
+        }
+        updateTimelineControls();
+        updateStats();
+        draw();
       }
-      updateTimelineControls();
-      updateStats();
-      draw();
     }
     lastAnimationTime = timestamp;
   } else {
@@ -156,9 +235,17 @@ function animationLoop(timestamp) {
 }
 
 function setPlaying(nextPlaying) {
-  playing = nextPlaying && frames.length > 1;
+  playing = nextPlaying && canAnimate();
   controls.play.textContent = playing ? "Pause" : "Play";
-  controls.play.disabled = frames.length <= 1;
+  controls.play.disabled = !canAnimate();
+}
+
+function canAnimate() {
+  return isLiveMode() || frames.length > 1;
+}
+
+function isLiveMode() {
+  return Boolean(controls.live.checked && liveRuntime && liveFrame);
 }
 
 function fillLayerSelect() {
@@ -186,6 +273,13 @@ function resetView() {
 }
 
 function updateTimelineControls() {
+  if (isLiveMode()) {
+    controls.frameSlider.disabled = true;
+    controls.frameSlider.max = "0";
+    controls.frameSlider.value = "0";
+    controls.framePosition.textContent = `live ${Math.trunc(liveStats.step)}`;
+    return;
+  }
   const frameCount = Math.max(1, frames.length);
   controls.frameSlider.max = String(frameCount - 1);
   controls.frameSlider.value = String(currentFrameIndex);
@@ -193,17 +287,24 @@ function updateTimelineControls() {
   controls.framePosition.textContent = `${currentFrameIndex + 1}/${frameCount}`;
 }
 
+function updateRuntimeStatus(mode) {
+  controls.runtimeStatus.textContent = mode === "live" ? "Matter live" : "sequence";
+}
+
 function updateStats() {
-  if (frames.length === 0) {
+  const frame = activeFrame();
+  if (!frame) {
     return;
   }
-  const frame = activeFrame();
   const layer = activeScalarLayer();
+  const liveParts = isLiveMode()
+    ? [`live step ${Math.trunc(liveStats.step)}`, `${formatNumber(liveStepMs)}ms`]
+    : [`step ${frame.step_index}${sequence ? `/${sequence.step_count}` : ""}`];
   stats.textContent = [
     `${frame.nodes.length} nodes`,
     `${frame.edges.length} edges`,
-    `${frames.length} frames`,
-    `step ${frame.step_index}${sequence ? `/${sequence.step_count}` : ""}`,
+    isLiveMode() ? "live Matter Wasm" : `${frames.length} frames`,
+    ...liveParts,
     `t ${formatNumber(frame.time_seconds)}s`,
     `${frame.scalar_layers.length} scalar layers`,
     `${frame.vector_layers[0]?.arrows.length || 0} arrows`,
@@ -215,7 +316,7 @@ function draw() {
   resizeCanvas();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
-  if (frames.length === 0) {
+  if (!activeFrame()) {
     drawLoading();
     return;
   }
@@ -377,7 +478,10 @@ function drawArrowHead(start, end, size) {
 }
 
 function activeFrame() {
-  return frames[currentFrameIndex] || frames[0];
+  if (isLiveMode()) {
+    return liveFrame;
+  }
+  return frames[currentFrameIndex] || frames[0] || null;
 }
 
 function activeScalarLayer() {
@@ -385,6 +489,177 @@ function activeScalarLayer() {
   return frame?.scalar_layers.find((layer) => layer.field_id === controls.scalarLayer.value)
     || frame?.scalar_layers[0]
     || null;
+}
+
+function decodeLiveTopology(runtime) {
+  const nodeData = runtime.nodes();
+  const nodeCount = nodeData.length / 6;
+  const positions = [];
+  for (let index = 0; index < nodeCount; index += 1) {
+    const offset = index * 6;
+    positions.push({
+      x: nodeData[offset],
+      y: nodeData[offset + 1],
+      z: nodeData[offset + 2],
+    });
+  }
+  const topologyBounds = computeBoundsFromPositions(positions);
+  const radius = visualNodeRadius(topologyBounds);
+  const nodes = positions.map((position, nodeIndex) => ({
+    node_index: nodeIndex,
+    node_id: `live.node.${String(nodeIndex).padStart(4, "0")}`,
+    position,
+    radius,
+  }));
+
+  const edgeData = runtime.edges();
+  const edges = [];
+  for (let offset = 0; offset < edgeData.length; offset += 3) {
+    const tier = edgeData[offset + 2];
+    edges.push({
+      from: edgeData[offset],
+      to: edgeData[offset + 1],
+      tier,
+      color: edgeColor(tier),
+    });
+  }
+
+  const regionData = runtime.region_metadata();
+  const regionNodes = runtime.region_nodes();
+  const perturbation_regions = [];
+  for (let offset = 0; offset < regionData.length; offset += 4) {
+    const effectCode = regionData[offset];
+    const targetCodeValue = regionData[offset + 1];
+    const nodeOffset = regionData[offset + 2];
+    const nodeLength = regionData[offset + 3];
+    const node_indices = [];
+    for (let index = 0; index < nodeLength; index += 1) {
+      node_indices.push(regionNodes[nodeOffset + index]);
+    }
+    const effect_kind = effectKind(effectCode);
+    perturbation_regions.push({
+      perturbation_id: `live.region.${offset / 4}`,
+      target_field_id: targetField(targetCodeValue),
+      effect_kind,
+      node_indices,
+      color: perturbationColor(effect_kind),
+    });
+  }
+
+  return { bounds: topologyBounds, nodes, edges, perturbation_regions };
+}
+
+function buildLiveFrame() {
+  const snapshot = liveRuntime.snapshot();
+  const nodeCount = liveTopology.nodes.length;
+  const fields = {
+    "field.vmem_like": new Array(nodeCount),
+    "field.wound_signal": new Array(nodeCount),
+    "field.morphogen": new Array(nodeCount),
+  };
+  const vectors = new Array(nodeCount);
+  for (let nodeIndex = 0; nodeIndex < nodeCount; nodeIndex += 1) {
+    const offset = nodeIndex * 6;
+    fields["field.vmem_like"][nodeIndex] = snapshot[offset];
+    fields["field.wound_signal"][nodeIndex] = snapshot[offset + 1];
+    fields["field.morphogen"][nodeIndex] = snapshot[offset + 2];
+    vectors[nodeIndex] = {
+      x: snapshot[offset + 3],
+      y: snapshot[offset + 4],
+      z: snapshot[offset + 5],
+    };
+  }
+  liveStats = readLiveStats();
+  return {
+    schema_id: "rusty.optics.fields.surface.visual_frame.v1",
+    frame_id: `live.surface_field.frame.${Math.trunc(liveStats.step)}`,
+    source_frame_id: "live.matter.surface_field",
+    source_schema_id: "rusty.matter.fields.live_wasm.v1",
+    substrate_id: "fields.substrate.wasm_unit_square_dynamic",
+    surface_id: "mesh.unit_square_surface",
+    step_index: Math.trunc(liveStats.step),
+    time_seconds: liveStats.time_seconds,
+    bounds_min: liveTopology.bounds.min,
+    bounds_max: liveTopology.bounds.max,
+    nodes: liveTopology.nodes,
+    edges: liveTopology.edges,
+    scalar_layers: [
+      buildLiveScalarLayer("field.vmem_like", "VmemLike", fields["field.vmem_like"]),
+      buildLiveScalarLayer("field.wound_signal", "WoundSignal", fields["field.wound_signal"]),
+      buildLiveScalarLayer("field.morphogen", "Morphogen", fields["field.morphogen"]),
+    ],
+    vector_layers: [buildLiveVectorLayer("field.polarity", "Polarity", vectors)],
+    perturbation_regions: liveTopology.perturbation_regions,
+  };
+}
+
+function buildLiveScalarLayer(fieldId, kind, values) {
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const range = Math.max(1.0e-6, maxValue - minValue);
+  return {
+    field_id: fieldId,
+    kind,
+    min_value: minValue,
+    max_value: maxValue,
+    samples: values.map((value, nodeIndex) => {
+      const normalized_value = clamp((value - minValue) / range, 0, 1);
+      return {
+        node_index: nodeIndex,
+        value,
+        normalized_value,
+        color: scalarColor(fieldId, kind, normalized_value),
+      };
+    }),
+  };
+}
+
+function buildLiveVectorLayer(fieldId, kind, vectors) {
+  const arrowScale = liveTopology.nodes[0].radius * 4.2;
+  const arrows = [];
+  for (let nodeIndex = 0; nodeIndex < vectors.length; nodeIndex += 1) {
+    const vector = vectors[nodeIndex];
+    const magnitude = vectorLength(vector);
+    if (magnitude <= 1.0e-6) {
+      continue;
+    }
+    const start = liveTopology.nodes[nodeIndex].position;
+    const direction = {
+      x: vector.x / magnitude,
+      y: vector.y / magnitude,
+      z: vector.z / magnitude,
+    };
+    const scale = arrowScale * clamp(magnitude, 0.25, 1.0);
+    arrows.push({
+      node_index: nodeIndex,
+      start,
+      end: {
+        x: start.x + direction.x * scale,
+        y: start.y + direction.y * scale,
+        z: start.z + direction.z * scale,
+      },
+      magnitude,
+      color: vectorColor(fieldId, kind, vector),
+    });
+  }
+  return { field_id: fieldId, kind, arrows };
+}
+
+function readLiveStats() {
+  const values = liveRuntime.stats();
+  return {
+    step: values[0],
+    time_seconds: values[1],
+    node_count: values[2],
+    edge_count: values[3],
+    scalar_fields: values[4],
+    vector_fields: values[5],
+    active_perturbations: values[6],
+    neighbor_links_visited: values[7],
+    clamped_scalars: values[8],
+    clamped_vectors: values[9],
+    fixed_step_seconds: values[10],
+  };
 }
 
 function computeBounds(payload) {
@@ -408,6 +683,28 @@ function computeBounds(payload) {
   };
 }
 
+function computeBoundsFromPositions(positions) {
+  let min = { ...positions[0] };
+  let max = { ...positions[0] };
+  for (const position of positions) {
+    min = {
+      x: Math.min(min.x, position.x),
+      y: Math.min(min.y, position.y),
+      z: Math.min(min.z, position.z),
+    };
+    max = {
+      x: Math.max(max.x, position.x),
+      y: Math.max(max.y, position.y),
+      z: Math.max(max.z, position.z),
+    };
+  }
+  return computeBounds({ bounds_min: min, bounds_max: max });
+}
+
+function visualNodeRadius(topologyBounds) {
+  return Math.max(topologyBounds.size.x, topologyBounds.size.y, topologyBounds.size.z, 1.0) * 0.026;
+}
+
 function project(point) {
   const scale = screenScale();
   return {
@@ -425,6 +722,9 @@ function nodeScreenRadius(node) {
 }
 
 function frameIntervalSeconds() {
+  if (isLiveMode()) {
+    return liveStats?.fixed_step_seconds || 1 / 30;
+  }
   if (sequence) {
     return Math.max(0.01, sequence.fixed_step_seconds * sequence.frame_stride);
   }
@@ -435,12 +735,110 @@ function playbackSpeed() {
   return Number(controls.speed.value) || 1;
 }
 
+function edgeColor(tier) {
+  return tier === 1
+    ? { r: 0.56, g: 0.62, b: 0.66, a: 0.45 }
+    : { r: 0.38, g: 0.43, b: 0.47, a: 0.24 };
+}
+
+function scalarColor(fieldId, kind, value) {
+  const key = `${fieldId} ${kind}`.toLowerCase();
+  if (key.includes("wound")) {
+    return lerpColor(
+      { r: 0.38, g: 0.18, b: 0.14, a: 0.82 },
+      { r: 1.0, g: 0.36, b: 0.24, a: 0.96 },
+      value,
+    );
+  }
+  if (key.includes("morphogen")) {
+    return lerpColor(
+      { r: 0.13, g: 0.29, b: 0.20, a: 0.82 },
+      { r: 0.44, g: 0.84, b: 0.48, a: 0.96 },
+      value,
+    );
+  }
+  return lerpColor(
+    { r: 0.25, g: 0.24, b: 0.42, a: 0.80 },
+    { r: 0.72, g: 0.55, b: 0.92, a: 0.95 },
+    value,
+  );
+}
+
+function vectorColor(fieldId, kind, vector) {
+  const key = `${fieldId} ${kind}`.toLowerCase();
+  if (key.includes("polarity") && vector.x < 0.0) {
+    return { r: 1.0, g: 0.77, b: 0.25, a: 0.94 };
+  }
+  return { r: 0.86, g: 0.88, b: 0.74, a: 0.90 };
+}
+
+function perturbationColor(effectKindValue) {
+  switch (effectKindValue) {
+    case "wound_region":
+      return { r: 1.0, g: 0.26, b: 0.18, a: 0.34 };
+    case "polarity_inversion":
+      return { r: 1.0, g: 0.72, b: 0.22, a: 0.34 };
+    case "depolarize_region":
+      return { r: 0.78, g: 0.50, b: 0.96, a: 0.30 };
+    case "coupling_multiplier_change":
+      return { r: 0.42, g: 0.72, b: 0.56, a: 0.24 };
+    default:
+      return { r: 0.86, g: 0.86, b: 0.72, a: 0.24 };
+  }
+}
+
+function effectKind(code) {
+  switch (code) {
+    case 1:
+      return "wound_region";
+    case 2:
+      return "depolarize_region";
+    case 3:
+      return "polarity_inversion";
+    case 4:
+      return "coupling_multiplier_change";
+    case 5:
+      return "normal_polarity";
+    default:
+      return "custom";
+  }
+}
+
+function targetField(code) {
+  switch (code) {
+    case 1:
+      return "field.wound_signal";
+    case 2:
+      return "field.vmem_like";
+    case 3:
+      return "field.polarity";
+    case 4:
+      return "field.morphogen";
+    default:
+      return null;
+  }
+}
+
+function vectorLength(vector) {
+  return Math.hypot(vector.x, vector.y, vector.z);
+}
+
 function rgba(color) {
   const r = Math.round(clamp(color.r, 0, 1) * 255);
   const g = Math.round(clamp(color.g, 0, 1) * 255);
   const b = Math.round(clamp(color.b, 0, 1) * 255);
   const a = clamp(color.a, 0, 1);
   return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+function lerpColor(a, b, t) {
+  const clamped = clamp(t, 0, 1);
+  return {
+    r: a.r + (b.r - a.r) * clamped,
+    g: a.g + (b.g - a.g) * clamped,
+    b: a.b + (b.b - a.b) * clamped,
+    a: a.a + (b.a - a.a) * clamped,
+  };
 }
 
 function formatNumber(value) {

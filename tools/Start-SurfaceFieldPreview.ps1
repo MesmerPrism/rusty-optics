@@ -1,6 +1,8 @@
 param(
     [int]$Port = 8792,
-    [string]$FramePath = ""
+    [string]$FramePath = "",
+    [switch]$BuildMatterWasm,
+    [string]$MatterRepoRoot = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -30,6 +32,20 @@ try {
         "--",
         "export-surface-field-preview"
     )
+
+    if ($BuildMatterWasm) {
+        $buildArgs = @(
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            ".\tools\Build-SurfaceFieldPreviewMatterWasm.ps1"
+        )
+        if ($MatterRepoRoot.Trim().Length -gt 0) {
+            $buildArgs += @("-MatterRepoRoot", $MatterRepoRoot)
+        }
+        Invoke-Checked "surface field Matter Wasm build" "powershell" $buildArgs
+    }
 
     $url = "http://127.0.0.1:$Port/web/surface-field-preview/"
     if ($FramePath.Trim().Length -gt 0) {

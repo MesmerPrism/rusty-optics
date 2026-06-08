@@ -53,6 +53,12 @@ same renderer-neutral debug frame that a later renderer adapter can consume; for
 animated realtime hand-mesh previews it calls the Matter Wasm surface-distance
 runtime instead of owning triangle-distance math in browser code.
 
+For realtime surface-field previews, Optics calls the Matter surface-field
+Wasm runtime for fixed-step dynamics and snapshots. Browser JavaScript maps
+the returned Matter values into Optics-owned colors, arrows, overlays, and
+controls; it must not duplicate diffusion, decay, perturbation, or vector
+update rules.
+
 ## Renderer Adapter Boundary
 
 Optics can prepare backend-neutral instance arrays and mask atlas pixels, but
@@ -100,6 +106,8 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
 - `rusty-optics-mesh/src/field_frame.rs`: renderer-neutral surface-field node,
   edge, scalar-color, perturbation-region, polarity-arrow, and visual sequence
   contracts over Matter field debug frames/sequences.
+- `web/surface-field-preview/app.js`: browser preview for visual sequences and
+  live Matter surface-field Wasm snapshots; owns playback and drawing only.
 - `rusty-optics-mesh/src/mesh_frame.rs`: mesh wireframe and topology debug
   visuals.
 - `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug

@@ -96,6 +96,12 @@ output {
   text-align: center;
 }
 
+#runtime-status {
+  min-width: 74px;
+  margin-left: 0;
+  color: #d9e0e8;
+}
+
 #playback-speed {
   min-width: 72px;
 }
