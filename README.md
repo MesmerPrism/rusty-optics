@@ -107,7 +107,9 @@ Matter-exported affected-target rows. The browser wraps those Matter reads in
 an Optics edit-feedback frame shape before drawing them. The browser preview
 refuses a low-count procedural body in this mode and renders the converted
 Matter triangle mesh as the visible source body, with the sampled node/edge
-graph overlaid as simulation state.
+graph overlaid as simulation state. Body, Nodes, and Edges are separate view
+controls in Planarian 3D mode; Edges default off so the GLB-derived body does
+not read as a procedural cage.
 
 For animated hand-mesh sequence previews, build the Matter Wasm runtime into
 Optics local artifacts before launching:

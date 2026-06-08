@@ -88,7 +88,8 @@ feedback-frame shape, and only formats operation, target, revision, status,
 clamping metadata, renderer color, size, recency fade, and compact timeline
 marks. The browser Planarian 3D adapter may style the converted Matter mesh as
 a solid visible body, but it must use the Matter-exported triangle surface and
-refuse a low-count procedural fallback for this GLB-backed mode.
+GLB surface-anchor rows, keep body/nodes/edges as separate visibility
+controls, and refuse a low-count procedural fallback for this GLB-backed mode.
 
 ## Renderer Adapter Boundary
 
@@ -123,10 +124,10 @@ The implemented foundation slice is CPU/data-only:
 - planarian 3D edit-feedback frame contracts for renderer adapters to display
   Matter-owned recent edit events and affected node/edge targets;
 - live Planarian 3D browser outcome plotting over Matter-exported scenario
-  traces, comparison trace sets, selected target readouts, recent edit events,
-  recent affected-target highlights, an edit-event timeline over the Optics
-  feedback-frame shape, live stats, and the Matter-exported GLB-derived
-  triangle body surface;
+traces, comparison trace sets, selected target readouts, recent edit events,
+recent affected-target highlights, an edit-event timeline over the Optics
+feedback-frame shape, live stats, and the Matter-exported GLB-derived
+  triangle body surface plus GLB-anchor node graph;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over one shared
   source mesh surface;
 - browser preview for generated mesh debug JSON and Matter-Wasm-backed animated
@@ -166,8 +167,8 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
   request UI for node and conductance-edge targets, plus inspector rendering
   over Matter-selected readout accessors plus Optics-shaped feedback frames
   over Matter recent edit-event and affected-target rows; owns playback,
-  drawing, converted-GLB mesh styling, feedback-frame timeline marks, and
-  edit-intent construction only.
+  drawing, converted-GLB mesh styling, body/node/edge visibility toggles,
+  feedback-frame timeline marks, and edit-intent construction only.
 - `rusty-optics-mesh/src/mesh_frame.rs`: mesh wireframe and topology debug
   visuals.
 - `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug

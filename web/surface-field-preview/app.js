@@ -13,9 +13,12 @@ const controls = {
   speed: document.querySelector("#playback-speed"),
   edges: document.querySelector("#toggle-edges"),
   tier2: document.querySelector("#toggle-tier2"),
+  body: document.querySelector("#toggle-body"),
+  nodes: document.querySelector("#toggle-nodes"),
   regions: document.querySelector("#toggle-regions"),
   polarity: document.querySelector("#toggle-polarity"),
   labels: document.querySelector("#toggle-labels"),
+  planarian3dToggles: document.querySelectorAll(".planarian-3d-toggle"),
   planarian3dControls: document.querySelector("#planarian-3d-controls"),
   planarianScenario: document.querySelector("#planarian-scenario"),
   planarianCompareScenario: document.querySelector("#planarian-compare-scenario"),
@@ -52,7 +55,7 @@ const wasmBaseUrl = params.get("wasm") || "/local-artifacts/matter_surface_field
 const threeModuleUrl = params.get("three")
   || new URL("/local-artifacts/web3d/three.module.js", window.location.href).href;
 const planarian3dModuleUrl = params.get("planarian3d")
-  || "./planarian-3d.js?v=planarian-glb-surface-1";
+  || "./planarian-3d.js?v=planarian-glb-anchors-1";
 const PLANARIAN_EDIT_FEEDBACK_FRAME_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.edit_feedback_frame.v1";
 const PLANARIAN_EDIT_INTENT_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.edit_intent.v1";
 const PLANARIAN_3D_VISUAL_ID = "fields.visual.planarian3d.live";
@@ -202,6 +205,8 @@ for (const input of [
   controls.scalarLayer,
   controls.edges,
   controls.tier2,
+  controls.body,
+  controls.nodes,
   controls.regions,
   controls.polarity,
   controls.labels,
@@ -521,7 +526,10 @@ async function initPlanarian3D() {
     planarian3dTrace = readPlanarian3DOutcomeTrace();
     syncPlanarianComparisonSelect();
     controls.planarianScenario.value = String(Math.trunc(planarian3dStats.scenario_code || 3));
+    controls.edges.checked = false;
     controls.tier2.checked = false;
+    controls.body.checked = true;
+    controls.nodes.checked = true;
     updatePlanarian3DView();
     planarian3dError = null;
   } catch (error) {
@@ -635,6 +643,11 @@ function updateControlAvailability() {
   controls.viewMode.querySelector('option[value="planarian3d"]').disabled = !planarian3dView;
   controls.live.disabled = circuit || planarian || planarian3d || !liveRuntime;
   controls.polarity.disabled = circuit || planarian || planarian3d;
+  controls.body.disabled = !planarian3d;
+  controls.nodes.disabled = !planarian3d;
+  for (const toggle of controls.planarian3dToggles) {
+    toggle.hidden = !planarian3d;
+  }
   controls.planarian3dControls.hidden = !planarian3d;
   controls.planarianOutcomePanel.hidden = !planarian3d;
   controls.planarianSelectionPanel.hidden = !planarian3d;
@@ -839,7 +852,8 @@ function updatePlanarian3DStats() {
     "GLB-derived Matter mesh",
     `${Math.trunc(planarian3dStats?.body_vertex_count || 0)} body vertices`,
     `${Math.trunc(planarian3dStats?.body_triangle_count || 0)} body triangles`,
-    `${Math.trunc(planarian3dStats?.node_count || 0)} nodes`,
+    `${Math.trunc(planarian3dStats?.node_count || 0)} GLB-anchor nodes`,
+    `${Math.trunc(planarian3dStats?.sample_anchor_count || 0)} mesh anchors`,
     `${Math.trunc(planarian3dStats?.edge_count || 0)} conductance edges`,
     `step ${Math.trunc(planarian3dStats?.step || 0)}`,
     `revision ${Math.trunc(planarian3dStats?.revision || 0)}`,
@@ -1432,6 +1446,8 @@ function readPlanarian3DStats() {
     tail_identity_at_tail: values[17],
     body_vertex_count: planarian3dRuntime.body_vertex_count(),
     body_triangle_count: planarian3dRuntime.body_triangle_count(),
+    sample_anchor_count: planarian3dView?.anchorCount ?? 0,
+    sample_anchor_stride: planarian3dView?.anchorStride ?? 0,
   };
 }
 
@@ -1588,7 +1604,12 @@ function updatePlanarian3DView() {
     planarian3dRuntime.conductance_values(),
     controls.scalarLayer.value || "circuit.voltage",
   );
-  planarian3dView.setVisibility(controls.edges.checked, controls.tier2.checked);
+  planarian3dView.setVisibility(
+    controls.edges.checked,
+    controls.tier2.checked,
+    controls.body.checked,
+    controls.nodes.checked,
+  );
   planarian3dView.updateEditHighlights(recentPlanarianEditTargets(feedbackFrame));
   planarian3dView.render();
   updatePlanarian3DSelectionReadout();

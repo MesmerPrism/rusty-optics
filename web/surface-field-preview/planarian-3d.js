@@ -33,6 +33,11 @@ class PlanarianBioelectric3DView {
     this.selectedNodeIndex = null;
     this.selectedEdgeIndex = null;
     this.editHighlightTargets = [];
+    this.editNodeHighlightCount = 0;
+    this.editEdgeHighlightCount = 0;
+    this.showBody = true;
+    this.showEdges = true;
+    this.showNodes = true;
     this.pointer = null;
     this.yaw = -0.42;
     this.pitch = 0.42;
@@ -77,10 +82,36 @@ class PlanarianBioelectric3DView {
     this.container.dataset.bodyTriangleCount = String(this.bodyTriangleCount);
 
     const nodeData = this.runtime.nodes();
+    const anchorData = typeof this.runtime.node_surface_anchors === "function"
+      ? this.runtime.node_surface_anchors()
+      : null;
+    this.anchorStride = typeof this.runtime.node_surface_anchor_stride === "function"
+      ? Math.trunc(this.runtime.node_surface_anchor_stride())
+      : 0;
     const nodeCount = nodeData.length / NODE_STRIDE;
+    this.anchorCount = anchorData && this.anchorStride > 0
+      ? Math.floor(anchorData.length / this.anchorStride)
+      : 0;
+    if (anchorData && this.anchorCount !== nodeCount) {
+      throw new Error([
+        "Planarian 3D Matter node anchors must match sampled nodes",
+        `got ${this.anchorCount} anchors for ${nodeCount} nodes`,
+      ].join("; "));
+    }
     this.nodes = [];
     for (let nodeIndex = 0; nodeIndex < nodeCount; nodeIndex += 1) {
       const offset = nodeIndex * NODE_STRIDE;
+      const anchorOffset = nodeIndex * this.anchorStride;
+      const barycentric = anchorData
+        ? [
+            anchorData[anchorOffset + 1],
+            anchorData[anchorOffset + 2],
+            anchorData[anchorOffset + 3],
+          ]
+        : [0, 0, 0];
+      if (anchorData && !barycentricAnchorIsValid(barycentric)) {
+        throw new Error(`Planarian 3D node ${nodeIndex} has an invalid GLB surface anchor`);
+      }
       const position = new this.THREE.Vector3(
         nodeData[offset],
         nodeData[offset + 1],
@@ -97,8 +128,12 @@ class PlanarianBioelectric3DView {
         regionCode: nodeData[offset + 6],
         ap: nodeData[offset + 7],
         lateral: nodeData[offset + 8],
+        triangleIndex: anchorData ? Math.trunc(anchorData[anchorOffset]) : null,
+        barycentric,
       });
     }
+    this.container.dataset.sampleAnchorCount = String(this.anchorCount);
+    this.container.dataset.sampleAnchorStride = String(this.anchorStride);
 
     const edgeData = this.runtime.conductance_edges();
     this.edges = [];
@@ -238,12 +273,13 @@ class PlanarianBioelectric3DView {
     geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
     const material = new THREE.PointsMaterial({
       alphaTest: 0.08,
-      depthTest: false,
+      depthTest: true,
+      depthWrite: false,
       map: createNodePointTexture(THREE),
-      size: this.nodeRadius * 1.75,
+      size: this.nodeRadius * 1.28,
       sizeAttenuation: true,
       transparent: true,
-      opacity: 0.94,
+      opacity: 0.9,
       vertexColors: true,
     });
     this.nodeColors = colors;
@@ -257,7 +293,7 @@ class PlanarianBioelectric3DView {
     const geometry = new THREE.SphereGeometry(this.nodeRadius * 0.82, 24, 14);
     const material = new THREE.MeshBasicMaterial({
       color: 0xffffff,
-      depthTest: false,
+      depthTest: true,
       wireframe: true,
       transparent: true,
       opacity: 0.92,
@@ -290,7 +326,7 @@ class PlanarianBioelectric3DView {
     nodeGeometry.setAttribute("color", new THREE.BufferAttribute(new Float32Array(0), 3));
     const nodeMaterial = new THREE.PointsMaterial({
       alphaTest: 0.08,
-      depthTest: false,
+      depthTest: true,
       depthWrite: false,
       map: createNodePointTexture(THREE),
       size: this.nodeRadius * 3.4,
@@ -411,10 +447,28 @@ class PlanarianBioelectric3DView {
     }
   }
 
-  setVisibility(showEdges, showTier2) {
-    for (const group of this.edgeGroups) {
-      group.lines.visible = showEdges && (showTier2 || group.tier !== 2);
+  setVisibility(showEdges, showTier2, showBody = true, showNodes = true) {
+    this.showBody = Boolean(showBody);
+    this.showEdges = Boolean(showEdges);
+    this.showNodes = Boolean(showNodes);
+    if (this.bodyMesh) {
+      this.bodyMesh.visible = this.showBody;
     }
+    if (this.bodyWire) {
+      this.bodyWire.visible = false;
+    }
+    if (this.nodePoints) {
+      this.nodePoints.visible = this.showNodes;
+    }
+    for (const group of this.edgeGroups) {
+      group.lines.visible = this.showEdges && (showTier2 || group.tier !== 2);
+    }
+    this.updateSelectionVisibility();
+    this.updateHighlightVisibility();
+    this.container.dataset.bodyVisible = String(this.showBody);
+    this.container.dataset.nodesVisible = String(this.showNodes);
+    this.container.dataset.edgesVisible = String(this.showEdges);
+    this.container.dataset.tier2Visible = String(this.showEdges && Boolean(showTier2));
   }
 
   updateEditHighlights(targets) {
@@ -449,12 +503,13 @@ class PlanarianBioelectric3DView {
     }
     this.replaceGeometryAttribute(this.editNodeHighlightGeometry, "position", nodePositions);
     this.replaceGeometryAttribute(this.editNodeHighlightGeometry, "color", nodeColors);
-    this.editNodeHighlights.visible = nodePositions.length > 0;
+    this.editNodeHighlightCount = nodePositions.length / 3;
     this.replaceGeometryAttribute(this.editEdgeHighlightGeometry, "position", edgePositions);
     this.replaceGeometryAttribute(this.editEdgeHighlightGeometry, "color", edgeColors);
-    this.editEdgeHighlights.visible = edgePositions.length > 0;
-    this.container.dataset.editNodeHighlights = String(nodePositions.length / 3);
-    this.container.dataset.editEdgeHighlights = String(edgePositions.length / 6);
+    this.editEdgeHighlightCount = edgePositions.length / 6;
+    this.updateHighlightVisibility();
+    this.container.dataset.editNodeHighlights = String(this.editNodeHighlightCount);
+    this.container.dataset.editEdgeHighlights = String(this.editEdgeHighlightCount);
   }
 
   replaceGeometryAttribute(geometry, name, values) {
@@ -480,7 +535,7 @@ class PlanarianBioelectric3DView {
       return;
     }
     this.selectedMarker.position.copy(node.renderPosition || node.position);
-    this.selectedMarker.visible = true;
+    this.selectedMarker.visible = this.showNodes;
     this.render();
   }
 
@@ -507,8 +562,26 @@ class PlanarianBioelectric3DView {
     positions[4] = end.y;
     positions[5] = end.z;
     this.selectedEdgeMarker.geometry.attributes.position.needsUpdate = true;
-    this.selectedEdgeMarker.visible = true;
+    this.selectedEdgeMarker.visible = this.showEdges;
     this.render();
+  }
+
+  updateSelectionVisibility() {
+    if (this.selectedMarker) {
+      this.selectedMarker.visible = this.showNodes && this.selectedNodeIndex !== null;
+    }
+    if (this.selectedEdgeMarker) {
+      this.selectedEdgeMarker.visible = this.showEdges && this.selectedEdgeIndex !== null;
+    }
+  }
+
+  updateHighlightVisibility() {
+    if (this.editNodeHighlights) {
+      this.editNodeHighlights.visible = this.showNodes && this.editNodeHighlightCount > 0;
+    }
+    if (this.editEdgeHighlights) {
+      this.editEdgeHighlights.visible = this.showEdges && this.editEdgeHighlightCount > 0;
+    }
   }
 
   edgeInfo(edgeIndex) {
@@ -522,11 +595,13 @@ class PlanarianBioelectric3DView {
     this.raycaster.params.Points.threshold = this.nodeRadius * 1.6;
     this.raycaster.params.Line.threshold = this.nodeRadius * 3.4;
     this.raycaster.setFromCamera(this.mouse, this.camera);
-    const hits = this.raycaster.intersectObject(this.nodePoints, false);
-    const hit = hits.find((entry) => Number.isInteger(entry.index));
-    if (hit) {
-      this.onSelectNode(this.selectionForNode(hit.index, hit.distance));
-      return;
+    if (this.nodePoints?.visible) {
+      const hits = this.raycaster.intersectObject(this.nodePoints, false);
+      const hit = hits.find((entry) => Number.isInteger(entry.index));
+      if (hit) {
+        this.onSelectNode(this.selectionForNode(hit.index, hit.distance));
+        return;
+      }
     }
 
     const edgeHits = this.raycaster.intersectObjects(
@@ -775,4 +850,11 @@ function createNodePointTexture(THREE) {
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function barycentricAnchorIsValid(values) {
+  return values.every((value) => (
+    Number.isFinite(value) && value >= -1.0e-5 && value <= 1.0 + 1.0e-5
+  ))
+    && Math.abs(values[0] + values[1] + values[2] - 1) <= 1.0e-4;
 }
