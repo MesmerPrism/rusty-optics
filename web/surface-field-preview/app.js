@@ -17,6 +17,7 @@ const controls = {
   polarity: document.querySelector("#toggle-polarity"),
   labels: document.querySelector("#toggle-labels"),
   planarian3dControls: document.querySelector("#planarian-3d-controls"),
+  planarianScenario: document.querySelector("#planarian-scenario"),
   selectedNode: document.querySelector("#selected-node"),
   voltageDelta: document.querySelector("#voltage-delta"),
   voltageDeltaValue: document.querySelector("#voltage-delta-value"),
@@ -43,6 +44,13 @@ const PLANARIAN_EDIT_INTENT_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectr
 const PLANARIAN_3D_VISUAL_ID = "fields.visual.planarian3d.live";
 const PLANARIAN_3D_SURFACE_ID = "mesh.planarian_ap.sketchfab_educational_surface";
 const PLANARIAN_3D_SUBSTRATE_ID = "fields.substrate.planarian_ap.sketchfab_educational";
+const PLANARIAN_SCENARIOS = new Map([
+  [0, { label: "baseline", outcome: "stable AP identity" }],
+  [1, { label: "wound", outcome: "cut-band depolarization" }],
+  [2, { label: "gap block", outcome: "reduced cross-band coupling" }],
+  [3, { label: "memory", outcome: "posterior head-memory persistence" }],
+  [4, { label: "no-memory", outcome: "transient relaxes" }],
+]);
 
 let sequence = null;
 let frames = [];
@@ -222,6 +230,12 @@ controls.reset.addEventListener("click", () => {
 
 controls.voltageDelta.addEventListener("input", () => {
   updateVoltageDeltaLabel();
+});
+
+controls.planarianScenario.addEventListener("change", () => {
+  if (isPlanarian3DMode()) {
+    setPlanarian3DScenario(Number(controls.planarianScenario.value));
+  }
 });
 
 controls.applyVoltage.addEventListener("click", () => {
@@ -426,6 +440,7 @@ async function initPlanarian3D() {
       },
     });
     planarian3dStats = readPlanarian3DStats();
+    controls.planarianScenario.value = String(Math.trunc(planarian3dStats.scenario_code || 3));
     updatePlanarian3DView();
     planarian3dError = null;
   } catch (error) {
@@ -540,6 +555,7 @@ function updateControlAvailability() {
   controls.live.disabled = circuit || planarian || planarian3d || !liveRuntime;
   controls.polarity.disabled = circuit || planarian || planarian3d;
   controls.planarian3dControls.hidden = !planarian3d;
+  controls.planarianScenario.disabled = !planarian3d;
   controls.applyVoltage.disabled = !planarian3d || selectedPlanarianNode === null;
   controls.pulseCurrent.disabled = controls.applyVoltage.disabled;
   controls.setMemory.disabled = controls.applyVoltage.disabled;
@@ -727,8 +743,10 @@ function updatePlanarian3DStats() {
   const edit = lastPlanarianEdit
     ? `edit ${lastPlanarianEdit.accepted ? "accepted" : "rejected"} r${lastPlanarianEdit.revision_after}`
     : "no edit";
+  const scenario = scenarioInfo(planarian3dStats?.scenario_code);
   stats.textContent = [
     "planarian 3D",
+    scenario.label,
     `${Math.trunc(planarian3dStats?.body_vertex_count || 0)} body vertices`,
     `${Math.trunc(planarian3dStats?.body_triangle_count || 0)} body triangles`,
     `${Math.trunc(planarian3dStats?.node_count || 0)} nodes`,
@@ -738,6 +756,10 @@ function updatePlanarian3DStats() {
     `t ${formatNumber(planarian3dStats?.time_seconds || 0)}s`,
     `${formatNumber(planarian3dStepMs)}ms`,
     `${Math.trunc(planarian3dStats?.active_gates || 0)} gates`,
+    `post memory ${formatNumber(planarian3dStats?.posterior_memory || 0)}`,
+    `post head ${formatNumber(planarian3dStats?.posterior_head_identity || 0)}`,
+    `head ${formatNumber(planarian3dStats?.head_identity_at_head || 0)}`,
+    `tail ${formatNumber(planarian3dStats?.tail_identity_at_tail || 0)}`,
     `node ${selected}`,
     layerLabel,
     edit,
@@ -1305,6 +1327,11 @@ function readPlanarian3DStats() {
     fixed_step_seconds: values[10],
     last_edit_accepted: values[11],
     last_edit_revision_after: values[12],
+    scenario_code: values[13],
+    posterior_memory: values[14],
+    posterior_head_identity: values[15],
+    head_identity_at_head: values[16],
+    tail_identity_at_tail: values[17],
     body_vertex_count: planarian3dRuntime.body_vertex_count(),
     body_triangle_count: planarian3dRuntime.body_triangle_count(),
   };
@@ -1341,6 +1368,27 @@ function resetPlanarian3D() {
     return;
   }
   planarian3dRuntime.reset();
+  planarian3dStats = readPlanarian3DStats();
+  controls.planarianScenario.value = String(Math.trunc(planarian3dStats.scenario_code || 0));
+  clearPlanarian3DInteractionState();
+  updatePlanarian3DView();
+}
+
+function setPlanarian3DScenario(scenarioCode) {
+  if (!planarian3dRuntime || !planarian3dView || !Number.isFinite(scenarioCode)) {
+    return;
+  }
+  planarian3dRuntime.reset_to_scenario(Math.trunc(scenarioCode));
+  planarian3dStats = readPlanarian3DStats();
+  controls.planarianScenario.value = String(Math.trunc(planarian3dStats.scenario_code || 0));
+  clearPlanarian3DInteractionState();
+  updatePlanarian3DView();
+  updateTimelineControls();
+  updateStats();
+  draw();
+}
+
+function clearPlanarian3DInteractionState() {
   selectedPlanarianNode = null;
   selectedPlanarianPick = null;
   lastPlanarianIntent = null;
@@ -1348,7 +1396,6 @@ function resetPlanarian3D() {
   planarian3dStepMs = 0;
   planarian3dView.selectNode(null);
   updatePlanarian3DSelection();
-  updatePlanarian3DView();
 }
 
 function applyPlanarian3DEdit(operation, apply) {
@@ -1422,6 +1469,11 @@ function updateVoltageDeltaLabel() {
 
 function operationKind(operation) {
   return Object.keys(operation || {})[0] || "Unknown";
+}
+
+function scenarioInfo(scenarioCode) {
+  return PLANARIAN_SCENARIOS.get(Math.trunc(scenarioCode ?? 3))
+    || { label: "scenario", outcome: "Matter preset" };
 }
 
 function computeBounds(payload) {

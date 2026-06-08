@@ -38,7 +38,7 @@ That command writes both `fixtures/fields/surface_field_visual_frame.json` and
 preview defaults to the sequence for dynamic playback and can switch to the
 circuit frame for voltage/conductance/memory/readout inspection, the planarian
 sequence for AP-region bioelectric playback, or the live Planarian 3D view for
-Matter-Wasm-backed picking and edit-intent requests.
+Matter-Wasm-backed scenario switching, picking, and edit-intent requests.
 
 The committed planarian visual sequence intentionally uses Matter's compact
 synthetic AP surface so the Optics fixture remains a deterministic visual
@@ -50,6 +50,11 @@ The interaction-intent fixture records one renderer-neutral Planarian 3D node
 pick and one voltage edit intent. It validates Optics' request shape only;
 Matter remains the authority that accepts, rejects, clamps, mutates, and
 advances revisions.
+
+The live Planarian 3D scenario selector is a browser smoke-test surface over
+Matter reset codes. It should show the GLB-derived body vertex/triangle counts,
+switch among baseline, wound, gap-block, memory, and no-memory presets, and keep
+pick/edit intents routed back into Matter Wasm after switching.
 
 Start the static browser preview with:
 
@@ -68,10 +73,12 @@ sequence fixture. With it, the preview imports
 `local-artifacts\matter_surface_field_wasm\rusty_matter_fields_wasm.js` and
 steps the Matter runtime live in the browser.
 
-Build the Matter WebAssembly runtime package into Optics local artifacts with:
+Build the Matter surface-field WebAssembly runtime package into Optics local
+artifacts with:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Build-HandMeshBrowserMatterWasm.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Build-SurfaceFieldPreviewMatterWasm.ps1 `
+  -MatterRepoRoot "<rusty-matter repo root>"
 ```
 
 ## External Mesh Surface Browser Smoke

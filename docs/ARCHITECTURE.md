@@ -75,7 +75,8 @@ For interactive planarian 3D previews, Optics owns the pick-selection and
 edit-intent payload shape: selected visual context, target node or conductance
 edge, normalized pointer, expected revision, and proposed operation. Matter
 remains the authority for edit validation, clamping, state mutation, acceptance
-or rejection, and revision advancement.
+or rejection, revision advancement, and scenario reset semantics over the
+GLB-derived body substrate.
 
 ## Renderer Adapter Boundary
 
@@ -141,8 +142,8 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
 - `web/surface-field-preview/app.js`: browser preview for visual sequences and
   live Matter surface-field Wasm snapshots, plus static bioelectric circuit
   visual frames, planarian AP bioelectric sequence playback, and live Planarian
-  3D pick/edit request UI; owns playback, drawing, and edit-intent construction
-  only.
+  3D scenario selection plus pick/edit request UI; owns playback, drawing, and
+  edit-intent construction only.
 - `rusty-optics-mesh/src/mesh_frame.rs`: mesh wireframe and topology debug
   visuals.
 - `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug

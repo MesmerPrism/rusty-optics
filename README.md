@@ -90,7 +90,9 @@ validated Optics sequence.
 The `Planarian 3D` view imports Matter Wasm for the live GLB-backed body mesh
 and circuit state. Browser raycasts become Optics pick-selection payloads, UI
 edits become Optics edit-intent payloads, and Matter remains the authority that
-accepts or rejects those edits and advances revisions.
+accepts or rejects those edits and advances revisions. The scenario selector
+only asks Matter to reset to one of its deterministic planarian presets; browser
+JavaScript does not rebuild the body graph or compute circuit dynamics.
 
 For animated hand-mesh sequence previews, build the Matter Wasm runtime into
 Optics local artifacts before launching:

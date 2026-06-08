@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Rusty Optics Surface Field</title>
-    <link rel="stylesheet" href="styles.css?v=surface-field-planarian-3d-glb-1">
+    <link rel="stylesheet" href="styles.css?v=surface-field-planarian-scenarios-1">
   </head>
   <body>
     <main class="app">
@@ -45,6 +45,16 @@
         <label><input id="toggle-polarity" type="checkbox" checked> Vectors</label>
         <label><input id="toggle-labels" type="checkbox"> Labels</label>
         <span id="planarian-3d-controls" class="edit-controls" hidden>
+          <label>
+            Scenario
+            <select id="planarian-scenario">
+              <option value="0">Baseline</option>
+              <option value="1">Wound</option>
+              <option value="2">Gap block</option>
+              <option value="3" selected>Memory</option>
+              <option value="4">No-memory</option>
+            </select>
+          </label>
           <label>Node <output id="selected-node">none</output></label>
           <label>
             dV
@@ -65,6 +75,6 @@
         <div id="viewport-3d" class="viewport-3d" hidden></div>
       </div>
     </main>
-    <script src="app.js?v=surface-field-planarian-3d-glb-1"></script>
+    <script src="app.js?v=surface-field-planarian-scenarios-1"></script>
   </body>
 </html>
