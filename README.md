@@ -95,7 +95,9 @@ revisions. The scenario selector only asks Matter to reset to one of its
 deterministic planarian presets; browser JavaScript does not rebuild the body
 graph, compute circuit dynamics, or decide gate behavior. The outcome plot
 overlays Matter-exported current and comparison scenario traces with the
-live-step marker without becoming the metric authority.
+live-step marker without becoming the metric authority. The selection
+inspector reads Matter-exported node and conductance-edge state accessors and
+only formats those values for feedback.
 
 For animated hand-mesh sequence previews, build the Matter Wasm runtime into
 Optics local artifacts before launching:
