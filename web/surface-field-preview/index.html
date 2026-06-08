@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Rusty Optics Surface Field</title>
-    <link rel="stylesheet" href="styles.css?v=surface-field-planarian-node-activity-1">
+    <link rel="stylesheet" href="styles.css?v=surface-field-planarian-surface-color-1">
   </head>
   <body>
     <main class="app">
@@ -96,6 +96,10 @@
           <canvas id="planarian-outcome-trace" aria-label="Planarian outcome trace"></canvas>
           <output id="planarian-outcome-readout">trace unavailable</output>
         </div>
+        <div id="planarian-dynamics-panel" class="dynamics-panel" hidden>
+          <canvas id="planarian-dynamics-legend" aria-label="Planarian dynamics legend"></canvas>
+          <output id="planarian-dynamics-readout">activity unavailable</output>
+        </div>
         <div id="planarian-selection-panel" class="selection-panel" hidden>
           <output id="planarian-selection-readout">pick none</output>
           <canvas id="planarian-event-timeline" aria-label="Planarian edit event timeline"></canvas>
@@ -103,6 +107,6 @@
         </div>
       </div>
     </main>
-    <script src="app.js?v=surface-field-planarian-node-activity-1"></script>
+    <script src="app.js?v=surface-field-planarian-surface-color-1"></script>
   </body>
 </html>

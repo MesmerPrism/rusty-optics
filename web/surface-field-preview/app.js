@@ -25,6 +25,9 @@ const controls = {
   planarianOutcomePanel: document.querySelector("#planarian-outcome-panel"),
   planarianOutcomeTrace: document.querySelector("#planarian-outcome-trace"),
   planarianOutcomeReadout: document.querySelector("#planarian-outcome-readout"),
+  planarianDynamicsPanel: document.querySelector("#planarian-dynamics-panel"),
+  planarianDynamicsLegend: document.querySelector("#planarian-dynamics-legend"),
+  planarianDynamicsReadout: document.querySelector("#planarian-dynamics-readout"),
   planarianSelectionPanel: document.querySelector("#planarian-selection-panel"),
   planarianSelectionReadout: document.querySelector("#planarian-selection-readout"),
   planarianEventTimeline: document.querySelector("#planarian-event-timeline"),
@@ -55,7 +58,7 @@ const wasmBaseUrl = params.get("wasm") || "/local-artifacts/matter_surface_field
 const threeModuleUrl = params.get("three")
   || new URL("/local-artifacts/web3d/three.module.js", window.location.href).href;
 const planarian3dModuleUrl = params.get("planarian3d")
-  || "./planarian-3d.js?v=planarian-node-activity-1";
+  || "./planarian-3d.js?v=planarian-surface-color-2";
 const PLANARIAN_EDIT_FEEDBACK_FRAME_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.edit_feedback_frame.v1";
 const PLANARIAN_EDIT_INTENT_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.edit_intent.v1";
 const PLANARIAN_3D_VISUAL_ID = "fields.visual.planarian3d.live";
@@ -136,6 +139,7 @@ let selectedPlanarianPick = null;
 let lastPlanarianIntent = null;
 let lastPlanarianEdit = null;
 let planarian3dError = null;
+let planarian3dPlaybackDefaultsApplied = false;
 
 updateVoltageDeltaLabel();
 updateGateThresholdLabel();
@@ -186,6 +190,7 @@ controls.viewMode.addEventListener("change", () => {
     setPlaying(planarianFrames.length > 1);
   } else if (isPlanarian3DMode()) {
     controls.live.checked = false;
+    applyPlanarian3DShowcaseDefaults();
     setPlaying(true);
   } else {
     if (liveRuntime) {
@@ -437,6 +442,7 @@ function applyInitialViewMode() {
   if (initialView === "planarian3d" && planarian3dView) {
     controls.viewMode.value = "planarian3d";
     controls.live.checked = false;
+    applyPlanarian3DShowcaseDefaults();
     setPlaying(true);
     fillLayerSelect();
     updateControlAvailability();
@@ -468,13 +474,18 @@ function applyInitialViewMode() {
 
 async function initLiveRuntime() {
   try {
+    setLiveRuntimeStage("import-wasm-module");
     const module = await import(`${wasmBaseUrl}/rusty_matter_fields_wasm.js`);
+    setLiveRuntimeStage("init-wasm");
     await module.default(`${wasmBaseUrl}/rusty_matter_fields_wasm_bg.wasm`);
+    setLiveRuntimeStage("construct-surface-runtime");
     matterWasmModule = module;
     liveRuntime = new module.SurfaceFieldRealtimeRuntime();
     liveTopology = decodeLiveTopology(liveRuntime);
     liveFrame = buildLiveFrame();
+    setLiveRuntimeStage("init-planarian3d");
     await initPlanarian3D();
+    setLiveRuntimeStage(planarian3dView ? "ready-planarian3d" : "ready-surface-only");
     if (initialView) {
       applyInitialViewMode();
     }
@@ -487,25 +498,39 @@ async function initLiveRuntime() {
     updateRuntimeStatus("live");
     updateStats();
     draw();
-  } catch (_error) {
+  } catch (error) {
     matterWasmModule = null;
     liveRuntime = null;
     liveTopology = null;
     liveFrame = null;
+    if (viewport3d) {
+      viewport3d.dataset.liveRuntimeError = error?.message || String(error);
+    }
+    console.warn(`Matter live runtime unavailable: ${error?.message || error}`);
     controls.live.checked = false;
     controls.live.disabled = true;
     updateRuntimeStatus("sequence");
   }
 }
 
+function setLiveRuntimeStage(stage) {
+  if (viewport3d) {
+    viewport3d.dataset.liveRuntimeStage = stage;
+  }
+}
+
 async function initPlanarian3D() {
   if (!matterWasmModule?.PlanarianBioelectricRealtimeRuntime) {
     planarian3dError = "missing Matter planarian runtime";
+    setLiveRuntimeStage("planarian3d-missing-runtime");
     return;
   }
   try {
+    setLiveRuntimeStage("planarian3d-import-adapter");
     const module = await import(planarian3dModuleUrl);
+    setLiveRuntimeStage("planarian3d-construct-runtime");
     planarian3dRuntime = new matterWasmModule.PlanarianBioelectricRealtimeRuntime();
+    setLiveRuntimeStage("planarian3d-create-view");
     planarian3dView = await module.createPlanarianBioelectric3DView({
       container: viewport3d,
       runtime: planarian3dRuntime,
@@ -523,6 +548,7 @@ async function initPlanarian3D() {
         selectPlanarian3DTarget(selection);
       },
     });
+    setLiveRuntimeStage("planarian3d-read-stats");
     planarian3dStats = readPlanarian3DStats();
     planarian3dTrace = readPlanarian3DOutcomeTrace();
     syncPlanarianComparisonSelect();
@@ -533,10 +559,15 @@ async function initPlanarian3D() {
     controls.nodes.checked = true;
     updatePlanarian3DView();
     planarian3dError = null;
+    setLiveRuntimeStage("planarian3d-ready");
   } catch (error) {
     planarian3dRuntime = null;
     planarian3dView = null;
     planarian3dError = error.message;
+    if (viewport3d) {
+      viewport3d.dataset.planarian3dError = error?.message || String(error);
+    }
+    setLiveRuntimeStage("planarian3d-error");
     console.warn(`Planarian 3D unavailable: ${planarian3dError}`);
   }
 }
@@ -605,6 +636,16 @@ function setPlaying(nextPlaying) {
   controls.play.disabled = !canAnimate();
 }
 
+function applyPlanarian3DShowcaseDefaults() {
+  if (planarian3dPlaybackDefaultsApplied) {
+    return;
+  }
+  if (controls.speed.value === "1") {
+    controls.speed.value = "4";
+  }
+  planarian3dPlaybackDefaultsApplied = true;
+}
+
 function canAnimate() {
   if (isPlanarian3DMode()) {
     return Boolean(planarian3dRuntime && planarian3dView);
@@ -655,6 +696,7 @@ function updateControlAvailability() {
   }
   controls.planarian3dControls.hidden = !planarian3d;
   controls.planarianOutcomePanel.hidden = !planarian3d;
+  controls.planarianDynamicsPanel.hidden = !planarian3d;
   controls.planarianSelectionPanel.hidden = !planarian3d;
   controls.planarianScenario.disabled = !planarian3d;
   controls.planarianCompareScenario.disabled = !planarian3d;
@@ -862,6 +904,7 @@ function updatePlanarian3DStats() {
     `${Math.trunc(planarian3dStats?.body_vertex_count || 0)} body vertices`,
     `${Math.trunc(planarian3dStats?.body_triangle_count || 0)} body triangles`,
     `${Math.trunc(planarian3dStats?.node_count || 0)} GLB-anchor nodes`,
+    `${Math.trunc(planarian3dStats?.surface_field_colored_vertices || 0)} colored body vertices`,
     `${Math.trunc(planarian3dStats?.sample_anchor_count || 0)} mesh anchors`,
     `${Math.trunc(planarian3dStats?.edge_count || 0)} conductance edges`,
     `step ${Math.trunc(planarian3dStats?.step || 0)}`,
@@ -875,6 +918,10 @@ function updatePlanarian3DStats() {
     controls.scalarLayer.value === "circuit.activity"
       ? `active nodes ${Math.trunc(planarian3dStats?.node_activity_active_count || 0)}`
       : null,
+    controls.scalarLayer.value === "circuit.activity"
+      ? `max activity ${formatDeltaNumber(planarian3dStats?.node_activity_max_delta || 0)}`
+      : null,
+    `g ${formatDeltaNumber(planarian3dStats?.conductance_min || 0)}..${formatDeltaNumber(planarian3dStats?.conductance_max || 0)}`,
     `${Math.trunc(planarian3dStats?.active_gates || 0)} gates`,
     `post memory ${formatNumber(planarian3dStats?.posterior_memory || 0)}`,
     `post head ${formatNumber(planarian3dStats?.posterior_head_identity || 0)}`,
@@ -895,6 +942,7 @@ function draw() {
   updateViewportVisibility();
   if (isPlanarian3DMode()) {
     planarian3dView.render();
+    drawPlanarianDynamicsPanel();
     drawPlanarianOutcomeTrace();
     return;
   }
@@ -1468,6 +1516,15 @@ function readPlanarian3DStats() {
     node_activity_active_count: Number(viewport3d?.dataset?.nodeActivityActiveCount || 0),
     node_activity_stride: Number(viewport3d?.dataset?.nodeActivityStride || 0),
     node_activity_max_delta: Number(viewport3d?.dataset?.nodeActivityMaxDelta || 0),
+    node_surface_offset_scale: Number(viewport3d?.dataset?.nodeSurfaceOffsetScale || 0),
+    node_surface_offset_distance: Number(viewport3d?.dataset?.nodeSurfaceOffsetDistance || 0),
+    conductance_count: Number(viewport3d?.dataset?.conductanceCount || 0),
+    conductance_active_count: Number(viewport3d?.dataset?.conductanceActiveCount || 0),
+    conductance_min: Number(viewport3d?.dataset?.conductanceMin || 0),
+    conductance_max: Number(viewport3d?.dataset?.conductanceMax || 0),
+    surface_field_colored_vertices: Number(viewport3d?.dataset?.surfaceFieldColoredVertices || 0),
+    surface_field_influence_count: Number(viewport3d?.dataset?.surfaceFieldInfluenceCount || 0),
+    surface_field_projection: viewport3d?.dataset?.surfaceFieldProjection || "",
   };
 }
 
@@ -1634,10 +1691,119 @@ function updatePlanarian3DView() {
   );
   planarian3dView.updateEditHighlights(recentPlanarianEditTargets(feedbackFrame));
   planarian3dView.render();
+  drawPlanarianDynamicsPanel();
   updatePlanarian3DSelectionReadout();
   updatePlanarian3DEventReadout(feedbackFrame);
   drawPlanarianEventTimeline(feedbackFrame);
   drawPlanarianOutcomeTrace();
+}
+
+function drawPlanarianDynamicsPanel() {
+  if (!controls.planarianDynamicsLegend || !controls.planarianDynamicsReadout) {
+    return;
+  }
+  if (!isPlanarian3DMode() || !planarian3dView) {
+    controls.planarianDynamicsReadout.textContent = "activity unavailable";
+    return;
+  }
+  const legendCanvas = controls.planarianDynamicsLegend;
+  const legendCtx = legendCanvas.getContext("2d");
+  const rect = legendCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const width = Math.max(240, Math.round(rect.width * dpr));
+  const height = Math.max(72, Math.round(rect.height * dpr));
+  if (legendCanvas.width !== width || legendCanvas.height !== height) {
+    legendCanvas.width = width;
+    legendCanvas.height = height;
+  }
+  legendCtx.clearRect(0, 0, width, height);
+  legendCtx.fillStyle = "#10151b";
+  legendCtx.fillRect(0, 0, width, height);
+
+  const layer = controls.scalarLayer.value || "circuit.activity";
+  const layerLabel = planarianLayerLegendLabel(layer);
+  const layerSamples = planarian3dView.layerLegendSamples?.(layer) || [];
+  const conductanceSamples = planarian3dView.conductanceLegendSamples?.(1) || [];
+  drawPlanarianLegendRow(
+    legendCtx,
+    layerSamples,
+    `${layerLabel}`,
+    13 * dpr,
+    18 * dpr,
+    width - 26 * dpr,
+    16 * dpr,
+    dpr,
+  );
+  drawPlanarianLegendRow(
+    legendCtx,
+    conductanceSamples,
+    "edge g",
+    13 * dpr,
+    53 * dpr,
+    width - 26 * dpr,
+    12 * dpr,
+    dpr,
+  );
+  legendCanvas.dataset.legendLayer = layer;
+  legendCanvas.dataset.legendSampleCount = String(layerSamples.length);
+  legendCanvas.dataset.legendEdgeSampleCount = String(conductanceSamples.length);
+
+  controls.planarianDynamicsReadout.textContent = [
+    `activity ${Math.trunc(planarian3dStats?.node_activity_active_count || 0)}/${Math.trunc(planarian3dStats?.node_activity_count || 0)}`,
+    `max dV ${formatDeltaNumber(planarian3dStats?.node_activity_max_delta || 0)}`,
+    `g ${formatDeltaNumber(planarian3dStats?.conductance_min || 0)}..${formatDeltaNumber(planarian3dStats?.conductance_max || 0)}`,
+    `node lift ${formatDeltaNumber(planarian3dStats?.node_surface_offset_distance || 0)}`,
+    `surface k${Math.trunc(planarian3dStats?.surface_field_influence_count || 0)}`,
+    `${playbackSpeed()}x`,
+  ].join("  ");
+}
+
+function planarianLayerLegendLabel(layer) {
+  if (layer === "circuit.activity") {
+    return "activity dV";
+  }
+  if (layer === "circuit.voltage") {
+    return "voltage";
+  }
+  if (layer === "circuit.memory") {
+    return "memory";
+  }
+  if (layer.includes("head_identity")) {
+    return "head id";
+  }
+  if (layer.includes("tail_identity")) {
+    return "tail id";
+  }
+  return "layer";
+}
+
+function drawPlanarianLegendRow(legendCtx, samples, label, x, y, width, height, dpr) {
+  const labelWidth = Math.min(86 * dpr, Math.max(48 * dpr, label.length * 6.2 * dpr));
+  const rampX = x + labelWidth;
+  const rampWidth = Math.max(16 * dpr, width - labelWidth);
+  legendCtx.font = `${11 * dpr}px Inter, sans-serif`;
+  legendCtx.fillStyle = "#d5dde6";
+  legendCtx.fillText(label, x, y + height - 2 * dpr);
+  if (samples.length === 0) {
+    legendCtx.strokeStyle = "rgba(92, 106, 122, 0.52)";
+    legendCtx.strokeRect(rampX, y, rampWidth, height);
+    return;
+  }
+  const gradient = legendCtx.createLinearGradient(rampX, y, rampX + rampWidth, y);
+  samples.forEach((sample, index) => {
+    gradient.addColorStop(samples.length === 1 ? 0 : index / (samples.length - 1), sample.color);
+  });
+  legendCtx.fillStyle = gradient;
+  legendCtx.fillRect(rampX, y, rampWidth, height);
+  legendCtx.strokeStyle = "rgba(190, 202, 214, 0.52)";
+  legendCtx.lineWidth = 1 * dpr;
+  legendCtx.strokeRect(rampX, y, rampWidth, height);
+  legendCtx.font = `${9 * dpr}px Inter, sans-serif`;
+  legendCtx.fillStyle = "#aebdca";
+  legendCtx.fillText(samples[0].label, rampX, y + height + 10 * dpr);
+  const last = samples[samples.length - 1];
+  const textWidth = legendCtx.measureText(last.label).width;
+  legendCtx.fillText(last.label, rampX + rampWidth - textWidth, y + height + 10 * dpr);
 }
 
 function resetPlanarian3D() {

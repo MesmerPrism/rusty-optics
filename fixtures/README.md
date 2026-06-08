@@ -82,6 +82,8 @@ fixtures. Planarian 3D preview code refuses a low-count procedural body in this
 mode, validates the Matter-exported GLB surface-anchor rows, and displays the
 Matter-exported triangle body mesh separately from sampled nodes and
 conductance edges. Its default activity layer consumes Matter-exported
-per-node voltage-delta rows at runtime; Optics fixtures do not duplicate those
-live circuit deltas. The browser edit-event timeline is likewise a runtime view
-over the Optics feedback-frame shape, not a committed timeline fixture.
+per-node voltage-delta rows at runtime; the live browser adapter also projects
+those rows onto GLB body vertices through a bounded nearest-node weighting
+cache. Optics fixtures do not duplicate those live circuit deltas or GLB-body
+surface-color caches. The browser edit-event timeline is likewise a runtime
+view over the Optics feedback-frame shape, not a committed timeline fixture.

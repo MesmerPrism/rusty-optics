@@ -90,8 +90,11 @@ feedback-frame shape, and only formats operation, target, revision, status,
 clamping metadata, renderer color, size, recency fade, and compact timeline
 marks. The browser Planarian 3D adapter may style the converted Matter mesh as
 a solid visible body, draw Matter-exported node activity as a visual layer, and
-default first-tier conductance edges on for readability, but it must use the
-Matter-exported triangle surface and GLB surface-anchor rows, keep
+project graph-node values onto the body vertex-color buffer through a bounded
+nearest-node weighting cache. That cache is a renderer aid only: Matter remains
+the source for graph state, voltages, memory, conductance, gates, and readouts.
+The adapter may default first-tier conductance edges on for readability, but it
+must use the Matter-exported triangle surface and GLB surface-anchor rows, keep
 body/nodes/edges as separate visibility controls, and refuse a low-count
 procedural fallback for this GLB-backed mode.
 

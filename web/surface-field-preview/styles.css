@@ -182,6 +182,18 @@ canvas {
   pointer-events: none;
 }
 
+.dynamics-panel {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: min(344px, calc(100% - 24px));
+  padding: 9px 10px;
+  border: 1px solid rgba(84, 98, 114, 0.86);
+  border-radius: 8px;
+  background: rgba(13, 17, 22, 0.88);
+  pointer-events: none;
+}
+
 .selection-panel {
   position: absolute;
   left: 12px;
@@ -203,7 +215,24 @@ canvas {
   background: #10151b;
 }
 
+.dynamics-panel canvas {
+  width: 100%;
+  height: 86px;
+  border: 1px solid rgba(60, 72, 86, 0.92);
+  border-radius: 6px;
+  background: #10151b;
+}
+
 #planarian-outcome-readout {
+  display: block;
+  margin: 6px 0 0;
+  color: #d5dde6;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+#planarian-dynamics-readout {
   display: block;
   margin: 6px 0 0;
   color: #d5dde6;
@@ -292,6 +321,13 @@ canvas {
     padding: 7px;
   }
 
+  .dynamics-panel {
+    left: 8px;
+    top: 8px;
+    width: min(312px, calc(100% - 16px));
+    padding: 7px;
+  }
+
   .selection-panel {
     left: 8px;
     bottom: 158px;
@@ -304,7 +340,15 @@ canvas {
     height: 112px;
   }
 
+  .dynamics-panel canvas {
+    height: 76px;
+  }
+
   #planarian-outcome-readout {
+    font-size: 11px;
+  }
+
+  #planarian-dynamics-readout {
     font-size: 11px;
   }
 

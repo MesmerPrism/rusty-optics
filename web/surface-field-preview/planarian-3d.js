@@ -5,13 +5,19 @@ const EDGE_STRIDE = 4;
 const CONDUCTANCE_STRIDE = 6;
 const PICK_SELECTION_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.pick_selection.v1";
 const PLANARIAN_GLB_MIN_BODY_VERTICES = 1000;
-const NODE_SURFACE_OFFSET_SCALE = 0.45;
-const NODE_POINT_SIZE_SCALE = 0.92;
+const NODE_SURFACE_OFFSET_SCALE = 0.16;
+const NODE_POINT_SIZE_SCALE = 0.78;
+const SURFACE_COLOR_INFLUENCE_COUNT = 5;
+const SURFACE_COLOR_DISTANCE_EPSILON = 1.0e-5;
 
 export async function createPlanarianBioelectric3DView(options) {
+  setPlanarian3DAdapterStage(options.container, "import-three");
   const three = await import(options.threeModuleUrl);
+  setPlanarian3DAdapterStage(options.container, "construct-view");
   const view = new PlanarianBioelectric3DView(three, options);
+  setPlanarian3DAdapterStage(options.container, "initialize-view");
   view.initialize();
+  setPlanarian3DAdapterStage(options.container, "ready");
   return view;
 }
 
@@ -49,20 +55,30 @@ class PlanarianBioelectric3DView {
     this.mouse = new this.THREE.Vector2();
     this.raycaster = new this.THREE.Raycaster();
     this.nodeColor = new this.THREE.Color();
+    this.bodyColor = new this.THREE.Color();
     this.pickCounter = 0;
   }
 
   initialize() {
+    setPlanarian3DAdapterStage(this.container, "read-geometry");
     this.readRuntimeGeometry();
+    setPlanarian3DAdapterStage(this.container, "create-scene");
     this.createScene();
+    setPlanarian3DAdapterStage(this.container, "create-body-surface");
     this.createBodySurface();
+    setPlanarian3DAdapterStage(this.container, "create-conductance-edges");
     this.createConductanceEdges();
+    setPlanarian3DAdapterStage(this.container, "create-nodes");
     this.createNodes();
+    setPlanarian3DAdapterStage(this.container, "create-selection-markers");
     this.createSelectedNodeMarker();
     this.createSelectedEdgeMarker();
     this.createEditHighlightMarkers();
+    setPlanarian3DAdapterStage(this.container, "install-controls");
     this.installControls();
+    setPlanarian3DAdapterStage(this.container, "initial-snapshot");
     this.updateSnapshot(this.runtime.snapshot(), this.runtime.conductance_values(), "circuit.voltage");
+    setPlanarian3DAdapterStage(this.container, "initial-render");
     this.render();
   }
 
@@ -154,8 +170,78 @@ class PlanarianBioelectric3DView {
     this.target.copy(this.bounds.center);
     this.distance = Math.max(0.001, this.bounds.radius * 1.55);
     this.nodeRadius = Math.max(0.006, this.bounds.radius * 0.018);
+    this.nodeSurfaceOffsetDistance = this.nodeRadius * NODE_SURFACE_OFFSET_SCALE;
+    for (const node of this.nodes) {
+      node.renderPosition = node.position.clone().addScaledVector(
+        node.normal,
+        this.nodeSurfaceOffsetDistance,
+      );
+    }
+    this.precomputeSurfaceColorInfluences();
     this.container.dataset.nodeSurfaceOffsetScale = String(NODE_SURFACE_OFFSET_SCALE);
+    this.container.dataset.nodeSurfaceOffsetDistance = String(this.nodeSurfaceOffsetDistance);
     this.container.dataset.nodePointSizeScale = String(NODE_POINT_SIZE_SCALE);
+  }
+
+  precomputeSurfaceColorInfluences() {
+    setPlanarian3DAdapterStage(this.container, "precompute-surface-colors");
+    this.surfaceColorInfluenceCount = Math.max(
+      1,
+      Math.min(SURFACE_COLOR_INFLUENCE_COUNT, this.nodes.length),
+    );
+    const k = this.surfaceColorInfluenceCount;
+    const IndexArray = this.nodes.length <= 65535 ? Uint16Array : Uint32Array;
+    const indices = new IndexArray(this.bodyVertexCount * k);
+    const weights = new Float32Array(this.bodyVertexCount * k);
+    const bestIndices = new IndexArray(k);
+    const bestDistances = new Float32Array(k);
+
+    for (let vertexIndex = 0; vertexIndex < this.bodyVertexCount; vertexIndex += 1) {
+      bestDistances.fill(Number.POSITIVE_INFINITY);
+      const vertexOffset = vertexIndex * 3;
+      const vx = this.bodyVertices[vertexOffset];
+      const vy = this.bodyVertices[vertexOffset + 1];
+      const vz = this.bodyVertices[vertexOffset + 2];
+      for (const node of this.nodes) {
+        const dx = vx - node.position.x;
+        const dy = vy - node.position.y;
+        const dz = vz - node.position.z;
+        const distanceSquared = dx * dx + dy * dy + dz * dz;
+        insertNearestSurfaceNode(
+          bestIndices,
+          bestDistances,
+          node.nodeIndex,
+          distanceSquared,
+        );
+      }
+
+      const influenceOffset = vertexIndex * k;
+      const exactSlot = firstExactDistanceSlot(bestDistances);
+      if (exactSlot !== -1) {
+        for (let slot = 0; slot < k; slot += 1) {
+          indices[influenceOffset + slot] = bestIndices[exactSlot];
+          weights[influenceOffset + slot] = slot === 0 ? 1 : 0;
+        }
+        continue;
+      }
+
+      let weightSum = 0;
+      for (let slot = 0; slot < k; slot += 1) {
+        const weight = 1 / Math.sqrt(Math.max(bestDistances[slot], SURFACE_COLOR_DISTANCE_EPSILON));
+        indices[influenceOffset + slot] = bestIndices[slot];
+        weights[influenceOffset + slot] = weight;
+        weightSum += weight;
+      }
+      const normalizer = weightSum > 1.0e-6 ? 1 / weightSum : 1;
+      for (let slot = 0; slot < k; slot += 1) {
+        weights[influenceOffset + slot] *= normalizer;
+      }
+    }
+
+    this.surfaceColorNodeIndices = indices;
+    this.surfaceColorNodeWeights = weights;
+    this.container.dataset.surfaceFieldProjection = "nearest_node_weights";
+    this.container.dataset.surfaceFieldInfluenceCount = String(k);
   }
 
   createScene() {
@@ -198,13 +284,14 @@ class PlanarianBioelectric3DView {
     const material = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       vertexColors: true,
-      roughness: 0.82,
+      roughness: 0.68,
       metalness: 0.02,
       transparent: true,
-      opacity: 0.78,
+      opacity: 0.88,
       side: THREE.DoubleSide,
     });
     this.bodyMesh = new THREE.Mesh(geometry, material);
+    this.bodyColorArray = colors;
     this.bodyMesh.userData.sourceKind = this.sourceKind;
     this.bodyMesh.userData.surfaceId = this.surfaceId;
     this.scene.add(this.bodyMesh);
@@ -229,8 +316,8 @@ class PlanarianBioelectric3DView {
     for (let edgeIndex = 0; edgeIndex < this.edges.length; edgeIndex += 1) {
       const edge = this.edges[edgeIndex];
       const group = groups.get(edge.tier) || groups.get(2);
-      const start = this.nodes[edge.from]?.position;
-      const end = this.nodes[edge.to]?.position;
+      const start = this.nodes[edge.from]?.renderPosition || this.nodes[edge.from]?.position;
+      const end = this.nodes[edge.to]?.renderPosition || this.nodes[edge.to]?.position;
       if (!start || !end) {
         continue;
       }
@@ -263,11 +350,7 @@ class PlanarianBioelectric3DView {
     const positions = new Float32Array(this.nodes.length * 3);
     const colors = new Float32Array(this.nodes.length * 3);
     for (const node of this.nodes) {
-      const renderPosition = node.position.clone().addScaledVector(
-        node.normal,
-        this.nodeRadius * NODE_SURFACE_OFFSET_SCALE,
-      );
-      node.renderPosition = renderPosition;
+      const renderPosition = node.renderPosition || node.position;
       const offset = node.nodeIndex * 3;
       positions[offset] = renderPosition.x;
       positions[offset + 1] = renderPosition.y;
@@ -412,6 +495,7 @@ class PlanarianBioelectric3DView {
     this.snapshot = snapshot;
     this.activityValues = activityValues;
     this.updateActivityDataset(activityValues);
+    this.updateBodySurfaceColors(layer);
     this.updateNodeColors(layer);
     this.updateConductanceColors(conductanceValues);
   }
@@ -452,14 +536,56 @@ class PlanarianBioelectric3DView {
     this.nodeGeometry.attributes.color.needsUpdate = true;
   }
 
+  updateBodySurfaceColors(layer) {
+    if (!this.snapshot || !this.bodyMesh || !this.bodyColorArray || !this.surfaceColorNodeIndices) {
+      return;
+    }
+    const nodeValues = new Float32Array(this.nodes.length);
+    for (let nodeIndex = 0; nodeIndex < this.nodes.length; nodeIndex += 1) {
+      nodeValues[nodeIndex] = snapshotValue(this.snapshot, this.activityValues, nodeIndex, layer);
+    }
+    const k = this.surfaceColorInfluenceCount;
+    for (let vertexIndex = 0; vertexIndex < this.bodyVertexCount; vertexIndex += 1) {
+      const influenceOffset = vertexIndex * k;
+      let value = 0;
+      for (let slot = 0; slot < k; slot += 1) {
+        const nodeIndex = this.surfaceColorNodeIndices[influenceOffset + slot];
+        const weight = this.surfaceColorNodeWeights[influenceOffset + slot];
+        value += nodeValues[nodeIndex] * weight;
+      }
+      colorForLayer(this.THREE, this.bodyColor, layer, value);
+      const colorOffset = vertexIndex * 3;
+      this.bodyColorArray[colorOffset] = this.bodyColor.r;
+      this.bodyColorArray[colorOffset + 1] = this.bodyColor.g;
+      this.bodyColorArray[colorOffset + 2] = this.bodyColor.b;
+    }
+    this.bodyMesh.geometry.attributes.color.needsUpdate = true;
+    this.container.dataset.surfaceFieldLayer = layer;
+    this.container.dataset.surfaceFieldColoredVertices = String(this.bodyVertexCount);
+  }
+
   updateConductanceColors(values) {
     if (!values) {
       return;
     }
     let maxConductance = 1.0e-6;
+    let minConductance = Number.POSITIVE_INFINITY;
+    let activeConductanceCount = 0;
     for (let offset = 0; offset < values.length; offset += CONDUCTANCE_STRIDE) {
-      maxConductance = Math.max(maxConductance, values[offset + 1]);
+      const conductance = values[offset + 1];
+      maxConductance = Math.max(maxConductance, conductance);
+      minConductance = Math.min(minConductance, conductance);
+      if (conductance > 1.0e-6) {
+        activeConductanceCount += 1;
+      }
     }
+    if (!Number.isFinite(minConductance)) {
+      minConductance = 0;
+    }
+    this.container.dataset.conductanceCount = String(Math.floor(values.length / CONDUCTANCE_STRIDE));
+    this.container.dataset.conductanceActiveCount = String(activeConductanceCount);
+    this.container.dataset.conductanceMin = String(minConductance);
+    this.container.dataset.conductanceMax = String(maxConductance);
     for (const group of this.edgeGroups) {
       for (let localIndex = 0; localIndex < group.edgeIndices.length; localIndex += 1) {
         const edgeIndex = group.edgeIndices[localIndex];
@@ -476,6 +602,43 @@ class PlanarianBioelectric3DView {
       }
       group.geometry.attributes.color.needsUpdate = true;
     }
+  }
+
+  layerLegendSamples(layer) {
+    const samples = layer === "circuit.voltage"
+      ? [
+        { value: -1, label: "-1" },
+        { value: -0.5, label: "-0.5" },
+        { value: 0, label: "0" },
+        { value: 0.5, label: "+0.5" },
+        { value: 1, label: "+1" },
+      ]
+      : [
+        { value: 0, label: "0" },
+        { value: 0.25, label: "0.25" },
+        { value: 0.5, label: "0.5" },
+        { value: 0.75, label: "0.75" },
+        { value: 1, label: "1" },
+      ];
+    return samples.map((sample) => {
+      const color = new this.THREE.Color();
+      colorForLayer(this.THREE, color, layer, sample.value);
+      return {
+        ...sample,
+        color: `#${color.getHexString()}`,
+      };
+    });
+  }
+
+  conductanceLegendSamples(tier = 1) {
+    return [0, 0.25, 0.5, 0.75, 1].map((value) => {
+      const color = conductanceColor(this.THREE, value, tier);
+      return {
+        value,
+        label: value === 0 ? "0" : value.toFixed(2),
+        color: `#${color.getHexString()}`,
+      };
+    });
   }
 
   setVisibility(showEdges, showTier2, showBody = true, showNodes = true) {
@@ -788,6 +951,30 @@ function computeBounds(THREE, vertices, nodes) {
   };
 }
 
+function insertNearestSurfaceNode(bestIndices, bestDistances, nodeIndex, distanceSquared) {
+  const k = bestDistances.length;
+  if (distanceSquared >= bestDistances[k - 1]) {
+    return;
+  }
+  let insertAt = k - 1;
+  while (insertAt > 0 && distanceSquared < bestDistances[insertAt - 1]) {
+    bestDistances[insertAt] = bestDistances[insertAt - 1];
+    bestIndices[insertAt] = bestIndices[insertAt - 1];
+    insertAt -= 1;
+  }
+  bestDistances[insertAt] = distanceSquared;
+  bestIndices[insertAt] = nodeIndex;
+}
+
+function firstExactDistanceSlot(bestDistances) {
+  for (let slot = 0; slot < bestDistances.length; slot += 1) {
+    if (bestDistances[slot] <= SURFACE_COLOR_DISTANCE_EPSILON) {
+      return slot;
+    }
+  }
+  return -1;
+}
+
 function bodyColorForZ(THREE, z, minZ, maxZ) {
   const t = clamp((z - minZ) / Math.max(1.0e-6, maxZ - minZ), 0, 1);
   const color = new THREE.Color();
@@ -822,50 +1009,56 @@ function snapshotValue(snapshot, activityValues, nodeIndex, layer) {
 
 function colorForLayer(THREE, color, layer, value) {
   if (layer === "circuit.activity") {
-    const t = clamp(value, 0, 1);
-    if (t < 0.5) {
-      const u = t * 2;
-      color.setRGB(0.18 + u * 0.28, 0.24 + u * 0.38, 0.34 + u * 0.16);
-    } else {
-      const u = (t - 0.5) * 2;
-      color.setRGB(0.46 + u * 0.54, 0.62 + u * 0.22, 0.50 - u * 0.28);
-    }
-    return color;
+    return vividTeachingRampColor(color, value);
   }
   if (layer === "circuit.memory") {
-    const t = clamp(value, 0, 1);
-    color.setRGB(0.12 + t * 0.30, 0.34 + t * 0.62, 0.30 + t * 0.42);
-    return color;
+    return vividTeachingRampColor(color, value);
   }
   if (layer.includes("head_identity")) {
-    const t = clamp(value, 0, 1);
-    color.setRGB(0.16 + t * 0.12, 0.38 + t * 0.56, 0.54 + t * 0.42);
-    return color;
+    return vividTeachingRampColor(color, value);
   }
   if (layer.includes("tail_identity")) {
-    const t = clamp(value, 0, 1);
-    color.setRGB(0.36 + t * 0.62, 0.28 + t * 0.44, 0.14 + t * 0.14);
-    return color;
+    return vividTeachingRampColor(color, value);
   }
-  const t = clamp((value + 1) * 0.5, 0, 1);
-  if (t < 0.5) {
-    const u = t * 2;
-    color.setRGB(0.18 + u * 0.54, 0.42 + u * 0.42, 0.86 + u * 0.08);
+  return vividTeachingRampColor(color, (value + 1) * 0.5);
+}
+
+function conductanceColor(THREE, normalized, tier) {
+  const color = new THREE.Color();
+  vividTeachingRampColor(color, normalized);
+  if (tier === 1) {
+    color.multiplyScalar(0.88);
   } else {
-    const u = (t - 0.5) * 2;
-    color.setRGB(0.72 + u * 0.26, 0.84 - u * 0.28, 0.94 - u * 0.68);
+    color.multiplyScalar(0.48);
   }
   return color;
 }
 
-function conductanceColor(THREE, normalized, tier) {
-  const t = clamp(normalized, 0, 1);
-  const color = new THREE.Color();
-  if (tier === 1) {
-    color.setRGB(0.28 + t * 0.38, 0.42 + t * 0.44, 0.52 + t * 0.34);
-  } else {
-    color.setRGB(0.20 + t * 0.24, 0.28 + t * 0.30, 0.34 + t * 0.22);
+function vividTeachingRampColor(color, value) {
+  const stops = [
+    { t: 0.0, r: 0.05, g: 0.82, b: 0.92 },
+    { t: 0.24, r: 0.00, g: 0.93, b: 0.54 },
+    { t: 0.50, r: 0.78, g: 0.91, b: 0.29 },
+    { t: 0.68, r: 1.00, g: 0.80, b: 0.27 },
+    { t: 0.83, r: 1.00, g: 0.56, b: 0.34 },
+    { t: 1.0, r: 0.94, g: 0.24, b: 0.58 },
+  ];
+  const t = clamp(value, 0, 1);
+  for (let index = 0; index < stops.length - 1; index += 1) {
+    const start = stops[index];
+    const end = stops[index + 1];
+    if (t <= end.t) {
+      const u = (t - start.t) / Math.max(1.0e-6, end.t - start.t);
+      color.setRGB(
+        start.r + (end.r - start.r) * u,
+        start.g + (end.g - start.g) * u,
+        start.b + (end.b - start.b) * u,
+      );
+      return color;
+    }
   }
+  const last = stops[stops.length - 1];
+  color.setRGB(last.r, last.g, last.b);
   return color;
 }
 
@@ -904,6 +1097,12 @@ function createNodePointTexture(THREE) {
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function setPlanarian3DAdapterStage(container, stage) {
+  if (container) {
+    container.dataset.planarian3dAdapterStage = stage;
+  }
 }
 
 function barycentricAnchorIsValid(values) {

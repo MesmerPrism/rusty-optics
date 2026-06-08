@@ -47,6 +47,10 @@ a target disables that loop until reset so inspected state is stable.
 The default Planarian 3D layer is `activity dV`; browser smoke checks should
 see `nodeActivityCount`, `nodeActivityActiveCount`, and
 `nodeActivityMaxDelta` dataset values while the Matter runtime is stepping.
+They should also see `surfaceFieldProjection=nearest_node_weights`,
+`surfaceFieldInfluenceCount`, and `surfaceFieldColoredVertices` matching the
+GLB body vertex count, proving that the body surface receives the same
+Matter-owned graph dynamics as a smooth visual projection.
 The live Planarian 3D path also exposes the Matter comparison trace set through
 the browser comparison selector; Optics validates selector wiring and drawing,
 not the metrics themselves.

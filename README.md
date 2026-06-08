@@ -101,7 +101,10 @@ live-step marker without becoming the metric authority. The selection
 inspector reads Matter-exported node and conductance-edge state accessors and
 only formats those values for feedback. The default `activity dV` layer uses
 Matter-exported per-node voltage-delta rows so realtime dynamics are visible
-without moving circuit math into Optics. The same inspector displays a bounded
+without moving circuit math into Optics. The 3D adapter also precomputes a
+small nearest-node weighting cache from GLB body vertices to Matter sample
+nodes so the body surface can be smoothly colored from those same graph values
+at render time. The same inspector displays a bounded
 Matter-exported recent edit-event trail for accepted or rejected node and edge
 mutations, draws a compact event timeline from the same feedback frame, and
 the 3D view highlights recently affected nodes or conductance edges using
