@@ -9,6 +9,9 @@ The first source slices focus on visual particles and mesh diagnostics:
 - visual particle frames derived from Matter particle payloads;
 - appearance profiles for billboard draw mode, blend/depth policy, animated
   mask descriptors, facing response, frame scaling, and trail appearance;
+- visual animation profiles that resolve color ramps, size envelopes,
+  transparency envelopes, spin, and half-open animation phase from Matter
+  particle snapshots;
 - CPU billboard instance preparation for renderer adapters;
 - flat-screen projection for desktop, browser, phone, or test previews;
 - animated morphed-ring mask atlas generation;

@@ -314,13 +314,23 @@ function drawPoints(points, metrics = null) {
 }
 
 function drawParticleOverlay(overlay, metrics = null) {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
   if (liveParticleState.length > 0) {
     if (controls.trails.checked) {
       drawLiveParticleTrails(metrics);
     }
     for (const particle of liveParticleState) {
-      drawParticleMarker(particle.position, particle.radius, particle.color, metrics);
+      drawParticleMarker(
+        particle.position,
+        particle.visualRadius || particle.radius,
+        particle.color,
+        metrics,
+        particle.frame01 || 0,
+        particle.rotationRadians || 0,
+      );
     }
+    ctx.restore();
     return;
   }
 
@@ -328,23 +338,44 @@ function drawParticleOverlay(overlay, metrics = null) {
     drawLines(overlay.trails, 1.1, metrics);
   }
   for (const sample of overlay.particles.samples) {
-    drawParticleMarker(sample.position, sample.radius, sample.color, metrics);
+    drawParticleMarker(
+      sample.position,
+      sample.radius,
+      sample.color,
+      metrics,
+      sample.frame01 || 0,
+      sample.rotation_radians || 0,
+    );
   }
+  ctx.restore();
 }
 
-function drawParticleMarker(position, sourceRadius, color, metrics = null) {
+function drawParticleMarker(position, sourceRadius, color, metrics = null, frame01 = 0, rotationRadians = 0) {
   if (metrics) {
     metrics.drawParticleMarkers = (metrics.drawParticleMarkers || 0) + 1;
   }
   const projected = project(position);
   const radius = Math.max(2.8, sourceRadius * screenScale() * 1.35);
-  ctx.fillStyle = rgba(color);
+  const frame = clamp(frame01, 0, 1);
+  const alpha = clamp(color.a, 0, 1);
+  ctx.save();
+  ctx.translate(projected.x, projected.y);
+  ctx.rotate(rotationRadians + frame * Math.PI * 2);
+  ctx.fillStyle = rgba({ ...color, a: alpha * 0.22 });
   ctx.beginPath();
-  ctx.arc(projected.x, projected.y, radius, 0, Math.PI * 2);
+  ctx.arc(0, 0, radius * (0.68 + frame * 0.10), 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = "rgba(235, 250, 255, 0.82)";
-  ctx.lineWidth = Math.max(1, radius * 0.18);
+  ctx.strokeStyle = rgba({ ...color, a: Math.min(0.55, alpha * 1.65) });
+  ctx.lineWidth = Math.max(0.9, radius * 0.13);
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, Math.PI * 0.08, Math.PI * (1.58 + frame * 0.32));
   ctx.stroke();
+  ctx.strokeStyle = `rgba(235, 250, 255, ${Math.min(0.28, alpha * 0.72)})`;
+  ctx.lineWidth = Math.max(1, radius * 0.22);
+  ctx.beginPath();
+  ctx.arc(0, 0, radius * (0.86 + frame * 0.12), Math.PI * 1.14, Math.PI * (2.0 + frame * 0.40));
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawLiveParticleTrails(metrics = null) {
@@ -357,7 +388,8 @@ function drawLiveParticleTrails(metrics = null) {
       const start = project(particle.trail[index - 1]);
       const end = project(particle.trail[index]);
       const t = index / Math.max(1, particle.trail.length - 1);
-      ctx.strokeStyle = `rgba(58, 216, 255, ${0.10 + t * 0.34})`;
+      const alpha = (particle.color?.a ?? 0.42) * (0.18 + t * 0.58);
+      ctx.strokeStyle = `rgba(86, 220, 255, ${Math.min(0.34, alpha)})`;
       ctx.lineWidth = (0.7 + t * 0.7) * (window.devicePixelRatio || 1);
       ctx.beginPath();
       ctx.moveTo(start.x, start.y);

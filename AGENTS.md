@@ -66,8 +66,8 @@ Current crate-root maps:
   `vec2`.
 - `rusty-optics-mesh/src/lib.rs`: facade over `browser_frame`, `collider`,
   `coordinate`, `mesh_frame`, `sdf_slice`, and tests.
-- `rusty-optics-particles/src/lib.rs`: facade over `appearance`, `billboard`,
-  `mask`, `projection`, `tests`, and `visual_frame`.
+- `rusty-optics-particles/src/lib.rs`: facade over `animation`, `appearance`,
+  `billboard`, `mask`, `projection`, `tests`, and `visual_frame`.
 - `rusty-optics-fixtures/src/main.rs`: dispatch-only binary over `cli`, `error`,
   `hand_mesh`, and `summary`.
 - `rusty-optics-schema/src/main.rs`: dispatch-only binary over `catalog`, `cli`,

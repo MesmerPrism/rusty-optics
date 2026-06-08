@@ -9,6 +9,8 @@ adapters.
 Optics owns:
 
 - visual particle frames;
+- visual animation profiles that resolve renderer-neutral color, size,
+  transparency, spin, and frame phase from Matter particle snapshots;
 - appearance profiles and material policy descriptors;
 - view/projection contracts;
 - billboard instance preparation;
@@ -62,6 +64,7 @@ The implemented foundation slice is CPU/data-only:
 
 - color and schema ID primitives;
 - particle visual frames over Matter particle payloads;
+- renderer-neutral particle animation profiles and CPU reference resolution;
 - appearance profiles for billboard, blend/depth, animated mask, facing, frame
   scaling, and trail policy;
 - billboard instance packing and transparent-particle budget summaries;
@@ -95,6 +98,8 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
 - `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug
   visuals.
 - `rusty-optics-particles/src/appearance.rs`: particle appearance descriptors.
+- `rusty-optics-particles/src/animation.rs`: renderer-neutral particle
+  animation profiles and CPU reference resolution into visual frames.
 - `rusty-optics-particles/src/billboard.rs`: billboard instance preparation and
   render-budget summaries.
 - `rusty-optics-particles/src/mask.rs`: animated morphed-ring mask atlas

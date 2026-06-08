@@ -9,6 +9,9 @@ pub const PARTICLE_VISUAL_FRAME_SCHEMA_ID: &str = "rusty.optics.particles.visual
 /// Particle appearance profile schema.
 pub const PARTICLE_APPEARANCE_PROFILE_SCHEMA_ID: &str =
     "rusty.optics.particles.appearance.profile.v1";
+/// Particle visual animation profile schema.
+pub const PARTICLE_VISUAL_ANIMATION_PROFILE_SCHEMA_ID: &str =
+    "rusty.optics.particles.animation.profile.v1";
 /// Particle animated mask descriptor schema.
 pub const PARTICLE_ANIMATED_MASK_SCHEMA_ID: &str = "rusty.optics.particles.mask.animated.v1";
 /// Particle billboard build profile schema.
@@ -35,12 +38,13 @@ pub const PARTICLE_SDF_BROWSER_OVERLAY_SCHEMA_ID: &str =
 
 /// Returns the schema IDs currently emitted by Rusty Optics.
 #[must_use]
-pub const fn optics_schema_ids() -> [&'static str; 15] {
+pub const fn optics_schema_ids() -> [&'static str; 16] {
     [
         COLOR_RGBA_SCHEMA_ID,
         PARTICLE_VISUAL_SAMPLE_SCHEMA_ID,
         PARTICLE_VISUAL_FRAME_SCHEMA_ID,
         PARTICLE_APPEARANCE_PROFILE_SCHEMA_ID,
+        PARTICLE_VISUAL_ANIMATION_PROFILE_SCHEMA_ID,
         PARTICLE_ANIMATED_MASK_SCHEMA_ID,
         PARTICLE_BILLBOARD_BUILD_SCHEMA_ID,
         PARTICLE_RENDER_BUDGET_SCHEMA_ID,

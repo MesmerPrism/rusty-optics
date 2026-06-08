@@ -1,6 +1,19 @@
 const RealtimeHandSdf = (() => {
   const SURFACE_SEQUENCE_SCHEMA_ID = "rusty.matter.tools.glb_mesh_surface_sequence.v1";
   const DEFAULT_PARTICLE_COUNT = 1000;
+  const VISUAL_PARTICLE_PROFILE = {
+    animationCyclesPerSecond: 0.85,
+    indexPhaseStride: 0.013,
+    sizeMin: 0.92,
+    sizeMax: 1.12,
+    alphaMin: 0.22,
+    alphaMax: 0.58,
+    opacityMultiplier: 0.72,
+    maxAlpha: 0.42,
+    colorLow: { r: 0.10, g: 0.72, b: 1.0, a: 1.0 },
+    colorMid: { r: 0.36, g: 0.94, b: 0.98, a: 1.0 },
+    colorHigh: { r: 0.76, g: 1.0, b: 0.82, a: 1.0 },
+  };
   const meshLineColor = { r: 1.0, g: 0.63, b: 0.10, a: 1.0 };
   const colliderLineColor = { r: 0.98, g: 0.68, b: 0.24, a: 0.78 };
   const coordinateColor = { r: 0.2, g: 0.74, b: 1.0, a: 0.90 };
@@ -205,7 +218,7 @@ const RealtimeHandSdf = (() => {
   }
 
   function syncParticlesFromSnapshot(particles, snapshot, surface, trailsEnabled) {
-    const stride = 9;
+    const stride = 10;
     const count = Math.floor(snapshot.length / stride);
     particles.length = count;
     for (let index = 0; index < count; index += 1) {
@@ -218,13 +231,19 @@ const RealtimeHandSdf = (() => {
       };
       const radius = snapshot[offset + 6];
       const speed = snapshot[offset + 7];
-      const distance = snapshot[offset + 8];
+      const ageSeconds = snapshot[offset + 8];
+      const distance = snapshot[offset + 9];
+      const visual = visualForSurfaceParticle(surface, distance, speed, ageSeconds, index, count);
       const particle = particles[index] || {};
       const trail = Array.isArray(particle.trail) ? particle.trail : [];
       particle.position = position;
       particle.velocity = velocity;
       particle.radius = radius;
-      particle.color = colorForSurfaceParticle(surface, distance, speed);
+      particle.visualRadius = Math.max(radius * visual.radiusMultiplier, radius);
+      particle.color = visual.color;
+      particle.frame01 = visual.frame01;
+      particle.rotationRadians = visual.rotationRadians;
+      particle.speed01 = visual.speed01;
       if (trailsEnabled) {
         trail.push(position);
         while (trail.length > 10) {
@@ -238,19 +257,57 @@ const RealtimeHandSdf = (() => {
     }
   }
 
-  function colorForSurfaceParticle(surface, distance, speed) {
+  function visualForSurfaceParticle(surface, distance, speed, ageSeconds, index, count) {
+    const profile = VISUAL_PARTICLE_PROFILE;
+    const phase01 = cyclePhase01(
+      (Number.isFinite(ageSeconds) ? ageSeconds : 0) * profile.animationCyclesPerSecond
+        + (index / Math.max(1, count)) * profile.indexPhaseStride,
+    );
+    const hump = Math.max(0, Math.sin(phase01 * Math.PI));
     const distance01 = Number.isFinite(distance)
       ? clamp(distance / Math.max(surface.radius * 0.22, 0.001), 0, 1)
       : 1;
     const speed01 = Number.isFinite(speed)
       ? clamp(speed / Math.max(surface.radius * 1.9, 0.001), 0, 1)
       : 0;
+    const color = colorRamp(cyclePhase01(phase01 + speed01 * 0.18));
+    const alphaEnvelope = lerp(profile.alphaMin, profile.alphaMax, hump);
+    const surfaceAlpha = 0.72 + (1 - distance01) * 0.24;
+    color.a = clamp(alphaEnvelope * surfaceAlpha * profile.opacityMultiplier, 0.002, profile.maxAlpha);
+    const radiusMultiplier = lerp(profile.sizeMin, profile.sizeMax, hump) * (0.94 + speed01 * 0.12);
     return {
-      r: 0.10 + speed01 * 0.48,
-      g: 0.70 + (1 - distance01) * 0.24,
-      b: 1.0,
-      a: 0.72 + (1 - distance01) * 0.24,
+      color,
+      frame01: phase01,
+      radiusMultiplier,
+      rotationRadians: (Number.isFinite(ageSeconds) ? ageSeconds : 0) * Math.PI * 2 * 0.18
+        + phase01 * Math.PI * 2,
+      speed01,
     };
+  }
+
+  function colorRamp(phase01) {
+    const profile = VISUAL_PARTICLE_PROFILE;
+    if (phase01 <= 0.5) {
+      return mixColor(profile.colorLow, profile.colorMid, phase01 * 2);
+    }
+    return mixColor(profile.colorMid, profile.colorHigh, (phase01 - 0.5) * 2);
+  }
+
+  function mixColor(left, right, t) {
+    const amount = clamp(t, 0, 1);
+    return {
+      r: lerp(left.r, right.r, amount),
+      g: lerp(left.g, right.g, amount),
+      b: lerp(left.b, right.b, amount),
+      a: lerp(left.a, right.a, amount),
+    };
+  }
+
+  function cyclePhase01(value) {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+    return ((value % 1) + 1) % 1;
   }
 
   function coordinateVisual(sequence, positions, boundsMin, boundsMax) {
@@ -462,6 +519,10 @@ const RealtimeHandSdf = (() => {
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
+  }
+
+  function lerp(left, right, t) {
+    return left + (right - left) * clamp(t, 0, 1);
   }
 
   function clampInt(value, min, max) {
