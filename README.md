@@ -97,7 +97,9 @@ graph, compute circuit dynamics, or decide gate behavior. The outcome plot
 overlays Matter-exported current and comparison scenario traces with the
 live-step marker without becoming the metric authority. The selection
 inspector reads Matter-exported node and conductance-edge state accessors and
-only formats those values for feedback.
+only formats those values for feedback. The same inspector displays a bounded
+Matter-exported recent edit-event trail for accepted or rejected node and edge
+mutations.
 
 For animated hand-mesh sequence previews, build the Matter Wasm runtime into
 Optics local artifacts before launching:

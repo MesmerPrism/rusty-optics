@@ -24,6 +24,7 @@ const controls = {
   planarianOutcomeReadout: document.querySelector("#planarian-outcome-readout"),
   planarianSelectionPanel: document.querySelector("#planarian-selection-panel"),
   planarianSelectionReadout: document.querySelector("#planarian-selection-readout"),
+  planarianEventReadout: document.querySelector("#planarian-event-readout"),
   selectedNode: document.querySelector("#selected-node"),
   voltageDelta: document.querySelector("#voltage-delta"),
   voltageDeltaValue: document.querySelector("#voltage-delta-value"),
@@ -68,6 +69,7 @@ const PLANARIAN_REGION_LABELS = new Map([
   [5, "head"],
 ]);
 const PLANARIAN_OUTCOME_TRACE_STRIDE = 7;
+const PLANARIAN_EDIT_EVENT_STRIDE = 15;
 const PLANARIAN_OUTCOME_METRICS = [
   { key: "posterior_memory", label: "post memory", color: "#73d9bb" },
   { key: "posterior_head_identity", label: "post head", color: "#f1c65c" },
@@ -77,6 +79,20 @@ const PLANARIAN_COMPARISON_METRICS = [
   { key: "posterior_memory", label: "compare memory", color: "#73d9bb" },
   { key: "posterior_head_identity", label: "compare head", color: "#f1c65c" },
 ];
+const PLANARIAN_EDIT_OPERATION_LABELS = new Map([
+  [1, "set V"],
+  [2, "dV"],
+  [3, "memory"],
+  [4, "node g"],
+  [5, "gate theta"],
+  [6, "gate mult"],
+  [7, "pulse"],
+]);
+const PLANARIAN_EDIT_TARGET_LABELS = new Map([
+  [1, "node"],
+  [2, "edge"],
+  [3, "current"],
+]);
 
 let sequence = null;
 let frames = [];
@@ -1454,6 +1470,40 @@ function decodePlanarianEditResult(values) {
   };
 }
 
+function readPlanarianEditEvents() {
+  if (!planarian3dRuntime?.edit_event_history) {
+    return [];
+  }
+  const stride = Math.trunc(
+    planarian3dRuntime.edit_event_history_stride?.() || PLANARIAN_EDIT_EVENT_STRIDE,
+  );
+  if (stride < PLANARIAN_EDIT_EVENT_STRIDE) {
+    return [];
+  }
+  const values = planarian3dRuntime.edit_event_history();
+  const events = [];
+  for (let offset = 0; offset + stride <= values.length; offset += stride) {
+    events.push({
+      event_index: Math.trunc(values[offset]),
+      step: Math.trunc(values[offset + 1]),
+      time_seconds: values[offset + 2],
+      operation_code: Math.trunc(values[offset + 3]),
+      target_kind: Math.trunc(values[offset + 4]),
+      target_index: Math.trunc(values[offset + 5]),
+      value_a: values[offset + 6],
+      value_b: values[offset + 7],
+      accepted: values[offset + 8] > 0.5,
+      revision_before: Math.trunc(values[offset + 9]),
+      revision_after: Math.trunc(values[offset + 10]),
+      clamped_values: Math.trunc(values[offset + 11]),
+      affected_nodes: Math.trunc(values[offset + 12]),
+      affected_edges: Math.trunc(values[offset + 13]),
+      affected_currents: Math.trunc(values[offset + 14]),
+    });
+  }
+  return events;
+}
+
 function updatePlanarian3DView() {
   if (!planarian3dRuntime || !planarian3dView) {
     return;
@@ -1467,6 +1517,7 @@ function updatePlanarian3DView() {
   planarian3dView.setVisibility(controls.edges.checked, controls.tier2.checked);
   planarian3dView.render();
   updatePlanarian3DSelectionReadout();
+  updatePlanarian3DEventReadout();
   drawPlanarianOutcomeTrace();
 }
 
@@ -1700,6 +1751,70 @@ function updatePlanarian3DSelectionReadout() {
     return;
   }
   controls.planarianSelectionReadout.textContent = `${selectedPlanarianTargetLabel("full")} readout unavailable`;
+}
+
+function updatePlanarian3DEventReadout() {
+  if (!controls.planarianEventReadout) {
+    return;
+  }
+  if (!isPlanarian3DMode()) {
+    controls.planarianEventReadout.textContent = "events none";
+    return;
+  }
+  const events = readPlanarianEditEvents();
+  if (events.length === 0) {
+    controls.planarianEventReadout.textContent = "events none";
+    return;
+  }
+  const recent = events.slice(Math.max(0, events.length - 3)).reverse();
+  controls.planarianEventReadout.textContent = recent
+    .map((event) => formatPlanarianEditEvent(event))
+    .join("  |  ");
+}
+
+function formatPlanarianEditEvent(event) {
+  const operation = PLANARIAN_EDIT_OPERATION_LABELS.get(event.operation_code) || "edit";
+  const status = event.accepted ? "accepted" : "rejected";
+  const revision = `r${event.revision_before}->${event.revision_after}`;
+  const clamped = event.clamped_values > 0 ? `${event.clamped_values} clamped` : null;
+  return [
+    `#${event.event_index}`,
+    `t ${formatNumber(event.time_seconds)}s`,
+    `${operation} ${planarianEditTargetLabel(event)}`,
+    planarianEditValueLabel(event),
+    status,
+    revision,
+    clamped,
+  ].filter(Boolean).join(" ");
+}
+
+function planarianEditTargetLabel(event) {
+  const kind = PLANARIAN_EDIT_TARGET_LABELS.get(event.target_kind) || "target";
+  if (event.target_index >= 0) {
+    return `${kind} ${event.target_index}`;
+  }
+  return kind;
+}
+
+function planarianEditValueLabel(event) {
+  switch (event.operation_code) {
+    case 1:
+      return `V ${signedFormatNumber(event.value_a)}`;
+    case 2:
+      return `dV ${signedFormatNumber(event.value_a)}`;
+    case 3:
+      return `memory ${formatNumber(event.value_a)}`;
+    case 4:
+      return `scale ${formatNumber(event.value_a)}`;
+    case 5:
+      return `theta ${signedFormatNumber(event.value_a)}`;
+    case 6:
+      return `mult ${formatNumber(event.value_a)}-${formatNumber(event.value_b)}`;
+    case 7:
+      return `${signedFormatNumber(event.value_a)} ${Math.trunc(event.value_b)} steps`;
+    default:
+      return null;
+  }
 }
 
 function updateVoltageDeltaLabel() {

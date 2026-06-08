@@ -81,6 +81,9 @@ traces and comparison trace sets, but they must not recalculate the scenario
 metrics or treat plotted values as simulation truth. Selected-node and
 selected-edge inspector panels consume Matter readout accessors; they do not
 derive voltage, readout, conductance, or gate state from visual geometry.
+Recent edit-event inspector feedback consumes a bounded Matter-exported event
+history and only formats operation, target, revision, status, and clamping
+metadata.
 
 ## Renderer Adapter Boundary
 
@@ -113,7 +116,8 @@ The implemented foundation slice is CPU/data-only:
   to propose node voltage, memory, current, and conductance/gate edits without
   becoming simulation authority;
 - live Planarian 3D browser outcome plotting over Matter-exported scenario
-  traces, comparison trace sets, selected target readouts, and live stats;
+  traces, comparison trace sets, selected target readouts, recent edit events,
+  and live stats;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over one shared
   source mesh surface;
 - browser preview for generated mesh debug JSON and Matter-Wasm-backed animated
@@ -150,8 +154,8 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
   visual frames, planarian AP bioelectric sequence playback, and live Planarian
   3D scenario selection, outcome-trace comparison plotting, and pick/edit
   request UI for node and conductance-edge targets, plus inspector rendering
-  over Matter-selected readout accessors; owns playback, drawing, and
-  edit-intent construction only.
+  over Matter-selected readout accessors and recent edit-event history; owns
+  playback, drawing, and edit-intent construction only.
 - `rusty-optics-mesh/src/mesh_frame.rs`: mesh wireframe and topology debug
   visuals.
 - `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug

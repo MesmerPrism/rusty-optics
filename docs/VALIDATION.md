@@ -61,8 +61,9 @@ switch among baseline, wound, gap-block, memory, and no-memory presets, render
 the Matter-exported outcome trace panel, compare against alternate Matter
 scenario traces, pick both surface nodes and conductance edges, apply a node
 voltage edit and an edge gate-threshold edit, show the Matter-exported
-selection inspector for both targets, and keep those intents routed back into
-Matter Wasm after switching.
+selection inspector for both targets, show the Matter-exported recent edit
+event trail, and keep those intents routed back into Matter Wasm after
+switching.
 
 Start the static browser preview with:
 
