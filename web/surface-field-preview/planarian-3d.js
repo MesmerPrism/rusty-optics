@@ -27,6 +27,7 @@ class PlanarianBioelectric3DView {
     this.edgeGroups = [];
     this.selectedNodeIndex = null;
     this.selectedEdgeIndex = null;
+    this.editHighlightTargets = [];
     this.pointer = null;
     this.yaw = -0.42;
     this.pitch = 0.42;
@@ -46,6 +47,7 @@ class PlanarianBioelectric3DView {
     this.createNodes();
     this.createSelectedNodeMarker();
     this.createSelectedEdgeMarker();
+    this.createEditHighlightMarkers();
     this.installControls();
     this.updateSnapshot(this.runtime.snapshot(), this.runtime.conductance_values(), "circuit.voltage");
     this.render();
@@ -261,6 +263,45 @@ class PlanarianBioelectric3DView {
     this.scene.add(this.selectedEdgeMarker);
   }
 
+  createEditHighlightMarkers() {
+    const THREE = this.THREE;
+    const nodeGeometry = new THREE.BufferGeometry();
+    nodeGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(0), 3));
+    nodeGeometry.setAttribute("color", new THREE.BufferAttribute(new Float32Array(0), 3));
+    const nodeMaterial = new THREE.PointsMaterial({
+      alphaTest: 0.08,
+      depthTest: false,
+      depthWrite: false,
+      map: createNodePointTexture(THREE),
+      size: this.nodeRadius * 3.4,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.94,
+      vertexColors: true,
+    });
+    this.editNodeHighlightGeometry = nodeGeometry;
+    this.editNodeHighlights = new THREE.Points(nodeGeometry, nodeMaterial);
+    this.editNodeHighlights.renderOrder = 8;
+    this.editNodeHighlights.visible = false;
+    this.scene.add(this.editNodeHighlights);
+
+    const edgeGeometry = new THREE.BufferGeometry();
+    edgeGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(0), 3));
+    edgeGeometry.setAttribute("color", new THREE.BufferAttribute(new Float32Array(0), 3));
+    const edgeMaterial = new THREE.LineBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.96,
+      depthTest: false,
+      depthWrite: false,
+    });
+    this.editEdgeHighlightGeometry = edgeGeometry;
+    this.editEdgeHighlights = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+    this.editEdgeHighlights.renderOrder = 7;
+    this.editEdgeHighlights.visible = false;
+    this.scene.add(this.editEdgeHighlights);
+  }
+
   installControls() {
     const element = this.renderer.domElement;
     element.addEventListener("pointerdown", (event) => {
@@ -353,6 +394,55 @@ class PlanarianBioelectric3DView {
   setVisibility(showEdges, showTier2) {
     for (const group of this.edgeGroups) {
       group.lines.visible = showEdges && (showTier2 || group.tier !== 2);
+    }
+  }
+
+  updateEditHighlights(targets) {
+    this.editHighlightTargets = Array.isArray(targets) ? targets : [];
+    const nodePositions = [];
+    const nodeColors = [];
+    const edgePositions = [];
+    const edgeColors = [];
+    for (const target of this.editHighlightTargets) {
+      const intensity = clamp(target.intensity ?? 1, 0.2, 1);
+      if (target.target_kind === 1) {
+        const node = this.nodes[target.target_index];
+        const position = node?.renderPosition || node?.position;
+        if (!position) {
+          continue;
+        }
+        nodePositions.push(position.x, position.y, position.z);
+        nodeColors.push(0.98, 0.98, 0.72 + 0.20 * intensity);
+      } else if (target.target_kind === 2) {
+        const edge = this.edges[target.target_index];
+        const start = this.nodes[edge?.from]?.renderPosition || this.nodes[edge?.from]?.position;
+        const end = this.nodes[edge?.to]?.renderPosition || this.nodes[edge?.to]?.position;
+        if (!edge || !start || !end) {
+          continue;
+        }
+        edgePositions.push(start.x, start.y, start.z, end.x, end.y, end.z);
+        const r = 0.98;
+        const g = 0.74 + 0.20 * intensity;
+        const b = 0.26 + 0.20 * intensity;
+        edgeColors.push(r, g, b, r, g, b);
+      }
+    }
+    this.replaceGeometryAttribute(this.editNodeHighlightGeometry, "position", nodePositions);
+    this.replaceGeometryAttribute(this.editNodeHighlightGeometry, "color", nodeColors);
+    this.editNodeHighlights.visible = nodePositions.length > 0;
+    this.replaceGeometryAttribute(this.editEdgeHighlightGeometry, "position", edgePositions);
+    this.replaceGeometryAttribute(this.editEdgeHighlightGeometry, "color", edgeColors);
+    this.editEdgeHighlights.visible = edgePositions.length > 0;
+    this.container.dataset.editNodeHighlights = String(nodePositions.length / 3);
+    this.container.dataset.editEdgeHighlights = String(edgePositions.length / 6);
+  }
+
+  replaceGeometryAttribute(geometry, name, values) {
+    geometry.setAttribute(name, new this.THREE.BufferAttribute(new Float32Array(values), 3));
+    if (values.length === 0) {
+      geometry.boundingSphere = new this.THREE.Sphere(new this.THREE.Vector3(), 0);
+    } else {
+      geometry.computeBoundingSphere();
     }
   }
 

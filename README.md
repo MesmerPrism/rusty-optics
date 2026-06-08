@@ -99,7 +99,8 @@ live-step marker without becoming the metric authority. The selection
 inspector reads Matter-exported node and conductance-edge state accessors and
 only formats those values for feedback. The same inspector displays a bounded
 Matter-exported recent edit-event trail for accepted or rejected node and edge
-mutations.
+mutations, and the 3D view highlights recently affected nodes or conductance
+edges using Matter-exported affected-target rows.
 
 For animated hand-mesh sequence previews, build the Matter Wasm runtime into
 Optics local artifacts before launching:

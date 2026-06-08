@@ -50,6 +50,8 @@ const initialView = params.get("view");
 const wasmBaseUrl = params.get("wasm") || "/local-artifacts/matter_surface_field_wasm";
 const threeModuleUrl = params.get("three")
   || new URL("/local-artifacts/web3d/three.module.js", window.location.href).href;
+const planarian3dModuleUrl = params.get("planarian3d")
+  || "./planarian-3d.js?v=planarian-edit-targets-1";
 const PLANARIAN_EDIT_INTENT_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.edit_intent.v1";
 const PLANARIAN_3D_VISUAL_ID = "fields.visual.planarian3d.live";
 const PLANARIAN_3D_SURFACE_ID = "mesh.planarian_ap.sketchfab_educational_surface";
@@ -70,6 +72,7 @@ const PLANARIAN_REGION_LABELS = new Map([
 ]);
 const PLANARIAN_OUTCOME_TRACE_STRIDE = 7;
 const PLANARIAN_EDIT_EVENT_STRIDE = 15;
+const PLANARIAN_EDIT_TARGET_STRIDE = 8;
 const PLANARIAN_OUTCOME_METRICS = [
   { key: "posterior_memory", label: "post memory", color: "#73d9bb" },
   { key: "posterior_head_identity", label: "post head", color: "#f1c65c" },
@@ -491,7 +494,7 @@ async function initPlanarian3D() {
     return;
   }
   try {
-    const module = await import("./planarian-3d.js");
+    const module = await import(planarian3dModuleUrl);
     planarian3dRuntime = new matterWasmModule.PlanarianBioelectricRealtimeRuntime();
     planarian3dView = await module.createPlanarianBioelectric3DView({
       container: viewport3d,
@@ -1504,6 +1507,50 @@ function readPlanarianEditEvents() {
   return events;
 }
 
+function readPlanarianEditTargets() {
+  if (!planarian3dRuntime?.edit_event_targets) {
+    return [];
+  }
+  const stride = Math.trunc(
+    planarian3dRuntime.edit_event_targets_stride?.() || PLANARIAN_EDIT_TARGET_STRIDE,
+  );
+  if (stride < PLANARIAN_EDIT_TARGET_STRIDE) {
+    return [];
+  }
+  const values = planarian3dRuntime.edit_event_targets();
+  const targets = [];
+  for (let offset = 0; offset + stride <= values.length; offset += stride) {
+    targets.push({
+      event_index: Math.trunc(values[offset]),
+      step: Math.trunc(values[offset + 1]),
+      time_seconds: values[offset + 2],
+      operation_code: Math.trunc(values[offset + 3]),
+      target_kind: Math.trunc(values[offset + 4]),
+      target_index: Math.trunc(values[offset + 5]),
+      accepted: values[offset + 6] > 0.5,
+      revision_after: Math.trunc(values[offset + 7]),
+    });
+  }
+  return targets;
+}
+
+function recentPlanarianEditTargets() {
+  const targets = readPlanarianEditTargets().filter((target) => target.accepted);
+  if (targets.length === 0) {
+    return [];
+  }
+  const eventIndexes = [...new Set(targets.map((target) => target.event_index))]
+    .sort((a, b) => b - a)
+    .slice(0, 3);
+  const maxEventIndex = eventIndexes[0];
+  return targets
+    .filter((target) => eventIndexes.includes(target.event_index))
+    .map((target) => ({
+      ...target,
+      intensity: 1 - Math.min(0.7, Math.max(0, maxEventIndex - target.event_index) * 0.28),
+    }));
+}
+
 function updatePlanarian3DView() {
   if (!planarian3dRuntime || !planarian3dView) {
     return;
@@ -1515,6 +1562,7 @@ function updatePlanarian3DView() {
     controls.scalarLayer.value || "circuit.voltage",
   );
   planarian3dView.setVisibility(controls.edges.checked, controls.tier2.checked);
+  planarian3dView.updateEditHighlights(recentPlanarianEditTargets());
   planarian3dView.render();
   updatePlanarian3DSelectionReadout();
   updatePlanarian3DEventReadout();
@@ -1559,6 +1607,7 @@ function clearPlanarian3DInteractionState() {
   planarian3dStepMs = 0;
   planarian3dView.selectNode(null);
   planarian3dView.selectEdge(null);
+  planarian3dView.updateEditHighlights([]);
   updatePlanarian3DSelection();
 }
 
