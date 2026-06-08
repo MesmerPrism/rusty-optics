@@ -34,6 +34,11 @@ runtime sockets, media stacks, or downstream app crates.
   including planarian AP bioelectric visual sequences.
 - Renderer adapters own GPU buffers, shaders, draw calls, texture uploads,
   swapchains, platform frame lifecycle, and backend imports.
+- Lattice owns runtime-situated relation snapshots: reference spaces,
+  transforms, tracked poses, view sets, spatial input roles, frame-state
+  binding, calibration, validity, confidence, and runtime capability evidence.
+  Optics may consume Lattice view sets for rendering decisions, but stereo
+  projection, lenses, homographies, and appearance policy stay Optics-owned.
 - Animated hand-mesh browser previews must call Matter runtime code through the
   Matter Wasm package for mesh-distance/SDF/particle queries. Do not re-add
   browser-owned brute-force triangle-distance simulation as the default path.
