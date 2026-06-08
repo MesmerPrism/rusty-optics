@@ -98,6 +98,7 @@ window.HandMeshPerfMetrics = (() => {
         `  draw: ${formatMs(avg.drawMs)} avg / ${formatMs(metrics.drawMs)} last`,
         `  mesh+SDF rebuild: ${formatMs(avg.runtimeFrameBuildMs)} avg / ${formatMs(metrics.runtimeFrameBuildMs)} last`,
         `particle step/run: ${formatMs(avg.particleStepMs)} avg / ${formatMs(metrics.particleStepMs)} last  substeps ${metrics.particleSubsteps || 0}`,
+        `particle runtime: ${metrics.particleRuntimeMatterWasm ? "Matter Wasm" : "browser"}  samples ${formatCount(metrics.particleClosestSamples || 0)}  affected ${formatCount(metrics.particleAffected || 0)}  rejected ${formatCount(metrics.particleRejected || 0)}`,
         `SDF slice/rebuild: ${formatMs(avg.runtimeSdfSliceMs)} avg / ${formatMs(metrics.runtimeSdfSliceMs)} last  cells ${metrics.runtimeSdfCells || 0}`,
         `Matter Wasm BVH: build ${formatMs(avg.runtimeWasmBuildMs)} avg / ${formatMs(metrics.runtimeWasmBuildMs)} last  nodes ${formatCount(metrics.runtimeWasmNodeCount || 0)} leaves ${formatCount(metrics.runtimeWasmLeafCount || 0)}`,
         `playback advance: ${formatCount(avg.playbackAdvancedFrames || 0)} avg / ${formatCount(metrics.playbackAdvancedFrames || 0)} last`,

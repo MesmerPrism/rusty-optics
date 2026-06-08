@@ -139,22 +139,26 @@ const RealtimeHandSdf = (() => {
   }
 
   function resetParticles(sequence, runtimeFrame, seed) {
+    if (!matterWasm?.HandMeshParticleRuntime) {
+      throw new Error("Matter Wasm particle runtime is required for realtime hand-mesh particles");
+    }
     const count = sequence.particle_count || DEFAULT_PARTICLE_COUNT;
     const sphereRadius = sequence.cloud_radius;
     const particleRadius = Math.max(sequence.radius * 0.009, 0.0012);
+    const runtime = new matterWasm.HandMeshParticleRuntime();
+    runtime.reset_random_sphere(
+      sequence.center.x,
+      sequence.center.y,
+      sequence.center.z,
+      count,
+      sphereRadius,
+      particleRadius,
+      sequence.radius,
+      seed >>> 0,
+    );
     const particles = [];
-    for (let index = 0; index < count; index += 1) {
-      const direction = randomUnitDirection(index, seed);
-      const radial = Math.cbrt(unitHash(index, seed + 113)) * sphereRadius;
-      const position = add(sequence.center, scale(direction, radial));
-      particles.push({
-        position,
-        velocity: scale(direction, -sequence.radius * 0.025),
-        radius: particleRadius,
-        color: { r: 0.20, g: 0.84, b: 1.0, a: 0.86 },
-        trail: [position],
-      });
-    }
+    attachParticleRuntime(particles, runtime);
+    syncParticlesFromSnapshot(particles, runtime.snapshot(), runtimeFrame.runtime_surface, false);
     return particles;
   }
 
@@ -163,61 +167,90 @@ const RealtimeHandSdf = (() => {
     const trailsEnabled = Boolean(options.trailsEnabled);
     const metrics = options.metrics || null;
     const surface = runtimeFrame.runtime_surface;
-    const targetDistance = Math.max(particles[0]?.radius || surface.radius * 0.01, 0.0008) * 0.65;
-    const maxSpeed = surface.radius * 1.9;
-    const substeps = Math.max(1, Math.ceil(deltaSeconds / (1 / 45)));
-    const subDelta = deltaSeconds / substeps;
-    const triangleChecksBefore = metrics?.runtimeWasmTriangleTests || 0;
-    const nodeTestsBefore = metrics?.runtimeWasmNodeTests || 0;
-    for (let substep = 0; substep < substeps; substep += 1) {
-      for (const particle of particles) {
-        const sample = closestSurfaceSample(surface, particle.position, metrics);
-        const outward = sample.distance > 1.0e-7
-          ? normalize(subtract(particle.position, sample.point))
-          : sample.normal;
-        const error = sample.distance - targetDistance;
-        let acceleration = scale(outward, -error * 19.0);
-        const cloudOffset = subtract(particle.position, surface.sequence_center);
-        const cloudDistance = length(cloudOffset);
-        if (cloudDistance > surface.sequence_cloud_radius * 1.12) {
-          acceleration = add(
-            acceleration,
-            scale(normalize(cloudOffset), -(cloudDistance - surface.sequence_cloud_radius) * 7.0),
-          );
-        }
-        particle.velocity = add(particle.velocity, scale(acceleration, subDelta));
-        particle.velocity = scale(particle.velocity, Math.max(0, 1.0 - 1.55 * subDelta));
-        particle.velocity = clampVectorLength(particle.velocity, maxSpeed);
-        particle.position = add(particle.position, scale(particle.velocity, subDelta));
-      }
+    const runtime = particles?.matterParticleRuntime;
+    if (!runtime) {
+      throw new Error("live realtime particles are missing their Matter Wasm runtime");
     }
-
-    for (const particle of particles) {
-      const sample = closestSurfaceSample(surface, particle.position, metrics);
-      const distance01 = clamp(sample.distance / Math.max(surface.radius * 0.22, 0.001), 0, 1);
-      const speed01 = clamp(length(particle.velocity) / maxSpeed, 0, 1);
-      particle.color = {
-        r: 0.10 + speed01 * 0.48,
-        g: 0.70 + (1 - distance01) * 0.24,
-        b: 1.0,
-        a: 0.72 + (1 - distance01) * 0.24,
-      };
-      if (trailsEnabled) {
-        particle.trail.push({ ...particle.position });
-        while (particle.trail.length > 10) {
-          particle.trail.shift();
-        }
-      } else {
-        particle.trail = [particle.position];
-      }
-    }
-    const sampleCount = particles.length * substeps + particles.length;
+    const stats = Array.from(runtime.step_against_surface(
+      surface.distance_runtime,
+      surface.sequence_center.x,
+      surface.sequence_center.y,
+      surface.sequence_center.z,
+      surface.sequence_cloud_radius,
+      surface.radius,
+      deltaSeconds,
+    ));
+    syncParticlesFromSnapshot(particles, runtime.snapshot(), surface, trailsEnabled);
     addMetric(metrics, "particleStepMs", nowMs() - startedAt);
-    setMetric(metrics, "particleSubsteps", substeps);
-    setMetric(metrics, "particleClosestSamples", sampleCount);
-    setMetric(metrics, "particleTriangleChecks", (metrics?.runtimeWasmTriangleTests || 0) - triangleChecksBefore);
-    setMetric(metrics, "particleNodeTests", (metrics?.runtimeWasmNodeTests || 0) - nodeTestsBefore);
+    setMetric(metrics, "particleSubsteps", stats[1] || 0);
+    setMetric(metrics, "particleClosestSamples", stats[2] || 0);
+    setMetric(metrics, "particleAffected", stats[3] || 0);
+    setMetric(metrics, "particleRejected", stats[4] || 0);
+    setMetric(metrics, "particleClamped", stats[5] || 0);
+    setMetric(metrics, "particleNodeTests", stats[6] || 0);
+    setMetric(metrics, "particleLeafTests", stats[7] || 0);
+    setMetric(metrics, "particleTriangleChecks", stats[8] || 0);
+    setMetric(metrics, "particleMaxSpeed", stats[9] || 0);
+    setMetric(metrics, "particleRuntimeMatterWasm", 1);
     setMetric(metrics, "runtimeTriangleCount", surface.triangle_count);
+  }
+
+  function attachParticleRuntime(particles, runtime) {
+    Object.defineProperty(particles, "matterParticleRuntime", {
+      configurable: true,
+      enumerable: false,
+      value: runtime,
+      writable: true,
+    });
+  }
+
+  function syncParticlesFromSnapshot(particles, snapshot, surface, trailsEnabled) {
+    const stride = 9;
+    const count = Math.floor(snapshot.length / stride);
+    particles.length = count;
+    for (let index = 0; index < count; index += 1) {
+      const offset = index * stride;
+      const position = { x: snapshot[offset], y: snapshot[offset + 1], z: snapshot[offset + 2] };
+      const velocity = {
+        x: snapshot[offset + 3],
+        y: snapshot[offset + 4],
+        z: snapshot[offset + 5],
+      };
+      const radius = snapshot[offset + 6];
+      const speed = snapshot[offset + 7];
+      const distance = snapshot[offset + 8];
+      const particle = particles[index] || {};
+      const trail = Array.isArray(particle.trail) ? particle.trail : [];
+      particle.position = position;
+      particle.velocity = velocity;
+      particle.radius = radius;
+      particle.color = colorForSurfaceParticle(surface, distance, speed);
+      if (trailsEnabled) {
+        trail.push(position);
+        while (trail.length > 10) {
+          trail.shift();
+        }
+        particle.trail = trail;
+      } else {
+        particle.trail = [position];
+      }
+      particles[index] = particle;
+    }
+  }
+
+  function colorForSurfaceParticle(surface, distance, speed) {
+    const distance01 = Number.isFinite(distance)
+      ? clamp(distance / Math.max(surface.radius * 0.22, 0.001), 0, 1)
+      : 1;
+    const speed01 = Number.isFinite(speed)
+      ? clamp(speed / Math.max(surface.radius * 1.9, 0.001), 0, 1)
+      : 0;
+    return {
+      r: 0.10 + speed01 * 0.48,
+      g: 0.70 + (1 - distance01) * 0.24,
+      b: 1.0,
+      a: 0.72 + (1 - distance01) * 0.24,
+    };
   }
 
   function coordinateVisual(sequence, positions, boundsMin, boundsMax) {
@@ -399,27 +432,6 @@ const RealtimeHandSdf = (() => {
     return { min, max };
   }
 
-  function randomUnitDirection(index, seed) {
-    const z = unitHash(index, seed) * 2 - 1;
-    const angle = unitHash(index, seed + 41) * Math.PI * 2;
-    const radius = Math.sqrt(Math.max(0, 1 - z * z));
-    return {
-      x: Math.cos(angle) * radius,
-      y: Math.sin(angle) * radius,
-      z,
-    };
-  }
-
-  function unitHash(index, seed) {
-    let value = Math.imul(index + 1, 2654435761) ^ Math.imul(seed + 1, 2246822519);
-    value ^= value >>> 16;
-    value = Math.imul(value, 2246822507);
-    value ^= value >>> 13;
-    value = Math.imul(value, 3266489909);
-    value ^= value >>> 16;
-    return (value >>> 8) / 16777215;
-  }
-
   function add(left, right) {
     return { x: left.x + right.x, y: left.y + right.y, z: left.z + right.z };
   }
@@ -446,14 +458,6 @@ const RealtimeHandSdf = (() => {
 
   function dot(left, right) {
     return left.x * right.x + left.y * right.y + left.z * right.z;
-  }
-
-  function clampVectorLength(vector, maxLength) {
-    const vectorLength = length(vector);
-    if (!Number.isFinite(vectorLength) || vectorLength <= maxLength) {
-      return vector;
-    }
-    return scale(vector, maxLength / vectorLength);
   }
 
   function clamp(value, min, max) {
