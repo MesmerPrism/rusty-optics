@@ -37,9 +37,13 @@ const controls = {
   selectedNode: document.querySelector("#selected-node"),
   voltageDelta: document.querySelector("#voltage-delta"),
   voltageDeltaValue: document.querySelector("#voltage-delta-value"),
+  brushTier: document.querySelector("#brush-tier"),
+  brushFalloff: document.querySelector("#brush-falloff"),
+  brushFalloffValue: document.querySelector("#brush-falloff-value"),
   gateThreshold: document.querySelector("#gate-threshold"),
   gateThresholdValue: document.querySelector("#gate-threshold-value"),
   applyVoltage: document.querySelector("#apply-voltage"),
+  applyNeighborhoodVoltage: document.querySelector("#apply-neighborhood-voltage"),
   pulseCurrent: document.querySelector("#pulse-current"),
   setMemory: document.querySelector("#set-memory"),
   scaleGate: document.querySelector("#scale-gate"),
@@ -85,6 +89,7 @@ const PLANARIAN_REGION_LABELS = new Map([
 const PLANARIAN_OUTCOME_TRACE_STRIDE = 7;
 const PLANARIAN_EDIT_EVENT_STRIDE = 15;
 const PLANARIAN_EDIT_TARGET_STRIDE = 8;
+const PLANARIAN_NEIGHBORHOOD_TARGET_STRIDE = 3;
 const PLANARIAN_EVENT_TIMELINE_LIMIT = 8;
 const PLANARIAN_OUTCOME_METRICS = [
   { key: "posterior_memory", label: "post memory", color: "#73d9bb" },
@@ -103,6 +108,7 @@ const PLANARIAN_EDIT_OPERATION_LABELS = new Map([
   [5, "gate theta"],
   [6, "gate mult"],
   [7, "pulse"],
+  [8, "brush dV"],
 ]);
 const PLANARIAN_EDIT_TARGET_LABELS = new Map([
   [1, "node"],
@@ -149,6 +155,7 @@ let planarian3dError = null;
 let planarian3dPlaybackDefaultsApplied = false;
 
 updateVoltageDeltaLabel();
+updateBrushFalloffLabel();
 updateGateThresholdLabel();
 
 Promise.all([
@@ -309,6 +316,24 @@ controls.reset.addEventListener("click", () => {
 
 controls.voltageDelta.addEventListener("input", () => {
   updateVoltageDeltaLabel();
+  if (isPlanarian3DMode()) {
+    updatePlanarian3DView();
+  }
+});
+
+controls.brushTier.addEventListener("change", () => {
+  if (isPlanarian3DMode()) {
+    updatePlanarian3DView();
+    updateStats();
+  }
+});
+
+controls.brushFalloff.addEventListener("input", () => {
+  updateBrushFalloffLabel();
+  if (isPlanarian3DMode()) {
+    updatePlanarian3DView();
+    updateStats();
+  }
 });
 
 controls.gateThreshold.addEventListener("input", () => {
@@ -334,6 +359,21 @@ controls.applyVoltage.addEventListener("click", () => {
   applyPlanarian3DEdit(
     { AddNodeVoltage: { delta } },
     (runtime, selection) => runtime.add_node_voltage(selection.target.SurfaceNode.node_index, delta),
+  );
+});
+
+controls.applyNeighborhoodVoltage.addEventListener("click", () => {
+  const delta = Number(controls.voltageDelta.value) || 0;
+  const maxTier = selectedPlanarianBrushTier();
+  const neighborFalloff = selectedPlanarianBrushFalloff();
+  applyPlanarian3DEdit(
+    { AddNodeVoltageNeighborhood: { delta, max_tier: maxTier, neighbor_falloff: neighborFalloff } },
+    (runtime, selection) => runtime.add_node_voltage_neighborhood(
+      selection.target.SurfaceNode.node_index,
+      delta,
+      maxTier,
+      neighborFalloff,
+    ),
   );
 });
 
@@ -753,9 +793,13 @@ function updateControlAvailability() {
   controls.planarianScenario.disabled = !planarian3d;
   controls.planarianCompareScenario.disabled = !planarian3d;
   controls.applyVoltage.disabled = !planarian3d || selectedPlanarianNode === null;
+  controls.applyNeighborhoodVoltage.disabled = controls.applyVoltage.disabled
+    || !planarian3dRuntime?.add_node_voltage_neighborhood;
   controls.pulseCurrent.disabled = controls.applyVoltage.disabled;
   controls.setMemory.disabled = controls.applyVoltage.disabled;
   controls.scaleGate.disabled = controls.applyVoltage.disabled;
+  controls.brushTier.disabled = !planarian3d || selectedPlanarianNode === null;
+  controls.brushFalloff.disabled = controls.brushTier.disabled;
   controls.gateThreshold.disabled = !planarian3d || selectedPlanarianEdge === null;
   controls.setGateThreshold.disabled = controls.gateThreshold.disabled;
 }
@@ -1782,6 +1826,64 @@ function readPlanarianEditTargets() {
   return targets;
 }
 
+function readPlanarianNodeVoltageNeighborhood(nodeIndex) {
+  if (!planarian3dRuntime?.node_voltage_neighborhood || nodeIndex === null) {
+    return [];
+  }
+  const maxTier = selectedPlanarianBrushTier();
+  const neighborFalloff = selectedPlanarianBrushFalloff();
+  const stride = Math.trunc(
+    planarian3dRuntime.node_voltage_neighborhood_stride?.()
+      || PLANARIAN_NEIGHBORHOOD_TARGET_STRIDE,
+  );
+  if (stride < PLANARIAN_NEIGHBORHOOD_TARGET_STRIDE) {
+    return [];
+  }
+  try {
+    const values = planarian3dRuntime.node_voltage_neighborhood(
+      nodeIndex,
+      maxTier,
+      neighborFalloff,
+    );
+    const targets = [];
+    for (let offset = 0; offset + stride <= values.length; offset += stride) {
+      targets.push({
+        node_index: Math.trunc(values[offset]),
+        tier: Math.trunc(values[offset + 1]),
+        weight: values[offset + 2],
+      });
+    }
+    return targets;
+  } catch (error) {
+    return [];
+  }
+}
+
+function selectedPlanarianNeighborhoodHighlights() {
+  if (!isPlanarian3DMode() || selectedPlanarianNode === null) {
+    viewport3d.dataset.planarianBrushTargetCount = "0";
+    return [];
+  }
+  const targets = readPlanarianNodeVoltageNeighborhood(selectedPlanarianNode);
+  viewport3d.dataset.planarianBrushTargetCount = String(targets.length);
+  viewport3d.dataset.planarianBrushTier = String(selectedPlanarianBrushTier());
+  viewport3d.dataset.planarianBrushFalloff = String(selectedPlanarianBrushFalloff());
+  return targets.map((target) => ({
+    event_index: -1,
+    step: Math.trunc(planarian3dStats?.step ?? 0),
+    time_seconds: planarian3dStats?.time_seconds ?? 0,
+    operation_code: 8,
+    target_kind: 1,
+    target_index: target.node_index,
+    accepted: true,
+    revision_after: Math.trunc(planarian3dStats?.revision ?? 0),
+    intensity: target.tier === 0 ? 1 : 0.36 + 0.56 * clamp(target.weight, 0, 1),
+    preview: true,
+    tier: target.tier,
+    weight: target.weight,
+  }));
+}
+
 function readPlanarianEditFeedbackFrame() {
   const revision = Math.trunc(planarian3dStats?.revision ?? 0);
   return {
@@ -1837,7 +1939,11 @@ function updatePlanarian3DView() {
     controls.body.checked,
     controls.nodes.checked,
   );
-  planarian3dView.updateEditHighlights(recentPlanarianEditTargets(feedbackFrame));
+  const neighborhoodHighlights = selectedPlanarianNeighborhoodHighlights();
+  planarian3dView.updateEditHighlights([
+    ...neighborhoodHighlights,
+    ...recentPlanarianEditTargets(feedbackFrame),
+  ]);
   planarian3dViewUpdateMs = performance.now() - viewUpdateStarted;
   viewport3d.dataset.planarian3dViewUpdateMs = String(planarian3dViewUpdateMs);
   renderPlanarian3DView();
@@ -2119,6 +2225,7 @@ function selectPlanarian3DTarget(selection) {
   selectedPlanarianEdge = selection?.target?.ConductanceEdge?.edge_index ?? null;
   lastPlanarianIntent = null;
   updatePlanarian3DSelection();
+  updatePlanarian3DView();
   updateStats();
 }
 
@@ -2245,6 +2352,7 @@ function updatePlanarian3DSelectionReadout() {
   }
   const nodeInfo = selectedPlanarianNodeInfo();
   if (nodeInfo) {
+    const brushTargets = readPlanarianNodeVoltageNeighborhood(nodeInfo.node_index);
     controls.planarianSelectionReadout.textContent = [
       `node ${nodeInfo.node_index}`,
       nodeInfo.region,
@@ -2257,6 +2365,9 @@ function updatePlanarian3DSelectionReadout() {
       `head ${formatNumber(nodeInfo.head_identity)}`,
       `tail ${formatNumber(nodeInfo.tail_identity)}`,
       `edges ${nodeInfo.incident_edge_count}/${nodeInfo.outgoing_edge_count}`,
+      brushTargets.length
+        ? `brush ${brushTargets.length} tier ${selectedPlanarianBrushTier()} falloff ${formatNumber(selectedPlanarianBrushFalloff())}`
+        : null,
     ].filter(Boolean).join("  ");
     return;
   }
@@ -2432,6 +2543,7 @@ function planarianTimelineEventColor(event) {
   switch (event.operation_code) {
     case 2:
     case 1:
+    case 8:
       return "#83a7ff";
     case 3:
       return "#73d9bb";
@@ -2486,6 +2598,8 @@ function planarianEditValueLabel(event) {
       return `mult ${formatNumber(event.value_a)}-${formatNumber(event.value_b)}`;
     case 7:
       return `${signedFormatNumber(event.value_a)} ${Math.trunc(event.value_b)} steps`;
+    case 8:
+      return `dV ${signedFormatNumber(event.value_a)} tier ${Math.trunc(event.value_b)}`;
     default:
       return null;
   }
@@ -2496,9 +2610,21 @@ function updateVoltageDeltaLabel() {
   controls.voltageDeltaValue.textContent = `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
 }
 
+function updateBrushFalloffLabel() {
+  controls.brushFalloffValue.textContent = selectedPlanarianBrushFalloff().toFixed(2);
+}
+
 function updateGateThresholdLabel() {
   const value = Number(controls.gateThreshold.value) || 0;
   controls.gateThresholdValue.textContent = `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
+}
+
+function selectedPlanarianBrushTier() {
+  return Math.max(1, Math.min(2, Math.trunc(Number(controls.brushTier.value) || 1)));
+}
+
+function selectedPlanarianBrushFalloff() {
+  return clamp(Number(controls.brushFalloff.value) || 0, 0, 1);
 }
 
 function operationKind(operation) {

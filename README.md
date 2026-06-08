@@ -104,7 +104,10 @@ Matter-exported per-node voltage-delta rows so realtime dynamics are visible
 without moving circuit math into Optics. The 3D adapter also precomputes a
 small nearest-node weighting cache from GLB body vertices to Matter sample
 nodes so the body surface can be smoothly colored from those same graph values
-at render time. While the Matter/Three.js path is importing, the browser keeps
+at render time. The Brush dV control asks Matter for the selected node's
+tiered voltage-neighborhood preview and then requests the matching
+Matter-owned neighborhood mutation; browser JavaScript does not choose affected
+nodes. While the Matter/Three.js path is importing, the browser keeps
 the selected Planarian 3D viewport active and reports loading stages rather
 than falling back to the 2D surface sequence. Once live, the stats/readout split
 Matter step time from Optics view-buffer update, WebGL render, and panel draw

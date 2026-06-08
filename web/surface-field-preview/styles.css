@@ -130,6 +130,10 @@ output {
   min-width: 72px;
 }
 
+#brush-tier {
+  min-width: 54px;
+}
+
 #stats {
   flex-basis: 100%;
   margin-left: 0;

@@ -89,7 +89,8 @@ Matter-exported event and affected-target rows, wraps them in an Optics
 feedback-frame shape, and only formats operation, target, revision, status,
 clamping metadata, renderer color, size, recency fade, and compact timeline
 marks. The browser Planarian 3D adapter may style the converted Matter mesh as
-a solid visible body, draw Matter-exported node activity as a visual layer, and
+a solid visible body, draw Matter-exported node activity as a visual layer,
+preview Matter-resolved tiered node-neighborhood voltage-brush targets, and
 project graph-node values onto the body vertex-color buffer through a bounded
 nearest-node weighting cache. That cache is a renderer aid only: Matter remains
 the source for graph state, voltages, memory, conductance, gates, and readouts.
@@ -129,8 +130,8 @@ The implemented foundation slice is CPU/data-only:
   runs, including AP region labels, node-region colors, voltage/memory/readout
   playback frames, and circuit overlays;
 - planarian 3D pick-selection and edit-intent contracts for renderer adapters
-  to propose node voltage, memory, current, and conductance/gate edits without
-  becoming simulation authority;
+  to propose node voltage, tiered node-neighborhood voltage, memory, current,
+  and conductance/gate edits without becoming simulation authority;
 - planarian 3D edit-feedback frame contracts for renderer adapters to display
   Matter-owned recent edit events and affected node/edge targets;
 - live Planarian 3D browser outcome plotting over Matter-exported scenario
@@ -174,11 +175,12 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
   live Matter surface-field Wasm snapshots, plus static bioelectric circuit
   visual frames, planarian AP bioelectric sequence playback, and live Planarian
   3D scenario selection, outcome-trace comparison plotting, and pick/edit
-  request UI for node and conductance-edge targets, plus inspector rendering
-  over Matter-selected readout accessors plus Optics-shaped feedback frames
-  over Matter recent edit-event and affected-target rows; owns playback,
-  drawing, converted-GLB mesh styling, body/node/edge visibility toggles,
-  feedback-frame timeline marks, and edit-intent construction only.
+  request UI for node, Matter-resolved node-neighborhood, and conductance-edge
+  targets, plus inspector rendering over Matter-selected readout accessors plus
+  Optics-shaped feedback frames over Matter recent edit-event and
+  affected-target rows; owns playback, drawing, converted-GLB mesh styling,
+  body/node/edge visibility toggles, feedback-frame timeline marks, and
+  edit-intent construction only.
 - `rusty-optics-mesh/src/mesh_frame.rs`: mesh wireframe and topology debug
   visuals.
 - `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug
