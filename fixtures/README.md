@@ -85,5 +85,7 @@ conductance edges. Its default activity layer consumes Matter-exported
 per-node voltage-delta rows at runtime; the live browser adapter also projects
 those rows onto GLB body vertices through a bounded nearest-node weighting
 cache. Optics fixtures do not duplicate those live circuit deltas or GLB-body
-surface-color caches. The browser edit-event timeline is likewise a runtime
-view over the Optics feedback-frame shape, not a committed timeline fixture.
+surface-color caches. Loading-stage and split timing counters are likewise
+runtime browser-adapter observability, not committed fixture fields. The browser
+edit-event timeline is a runtime view over the Optics feedback-frame shape, not
+a committed timeline fixture.

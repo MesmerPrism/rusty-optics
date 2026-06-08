@@ -51,6 +51,13 @@ They should also see `surfaceFieldProjection=nearest_node_weights`,
 `surfaceFieldInfluenceCount`, and `surfaceFieldColoredVertices` matching the
 GLB body vertex count, proving that the body surface receives the same
 Matter-owned graph dynamics as a smooth visual projection.
+When the first Three.js import is still pending, browser smoke checks should
+see the selected view remain `planarian3d`, the 2D canvas hidden, the 3D
+viewport visible, `runtimeStatus=3D loading`, and the loading panel dataset
+reporting the current Matter/adapter stage. Once ready, the same smoke should
+see `runtimeStatus=Matter 3D` plus `planarian3dMatterStepMs`,
+`planarian3dViewUpdateMs`, `planarian3dRenderMs`, and
+`planarian3dUiDrawMs` dataset values.
 The live Planarian 3D path also exposes the Matter comparison trace set through
 the browser comparison selector; Optics validates selector wiring and drawing,
 not the metrics themselves.

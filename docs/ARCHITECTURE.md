@@ -96,7 +96,10 @@ the source for graph state, voltages, memory, conductance, gates, and readouts.
 The adapter may default first-tier conductance edges on for readability, but it
 must use the Matter-exported triangle surface and GLB surface-anchor rows, keep
 body/nodes/edges as separate visibility controls, and refuse a low-count
-procedural fallback for this GLB-backed mode.
+procedural fallback for this GLB-backed mode. Browser-adapter observability may
+expose loading stages and split timing counters for Matter stepping, Optics
+view-buffer updates, WebGL render, and panel drawing; those counters are
+diagnostics, not simulation state.
 
 ## Renderer Adapter Boundary
 

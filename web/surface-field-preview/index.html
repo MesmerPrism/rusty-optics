@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Rusty Optics Surface Field</title>
-    <link rel="stylesheet" href="styles.css?v=surface-field-planarian-surface-color-1">
+    <link rel="stylesheet" href="styles.css?v=surface-field-planarian-loading-1">
   </head>
   <body>
     <main class="app">
@@ -92,6 +92,9 @@
       <div class="viewport-shell">
         <canvas id="viewport"></canvas>
         <div id="viewport-3d" class="viewport-3d" hidden></div>
+        <div id="planarian-loading-panel" class="loading-panel" hidden>
+          <output id="planarian-loading-readout">loading Planarian 3D</output>
+        </div>
         <div id="planarian-outcome-panel" class="outcome-panel" hidden>
           <canvas id="planarian-outcome-trace" aria-label="Planarian outcome trace"></canvas>
           <output id="planarian-outcome-readout">trace unavailable</output>
@@ -107,6 +110,6 @@
         </div>
       </div>
     </main>
-    <script src="app.js?v=surface-field-planarian-surface-color-1"></script>
+    <script src="app.js?v=surface-field-planarian-loading-1"></script>
   </body>
 </html>
