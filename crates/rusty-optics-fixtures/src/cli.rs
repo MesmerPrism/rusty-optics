@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     error::FixtureError,
+    fields::surface_field_visual_frame_json,
     hand_mesh::{hand_mesh_browser_frame_json, hand_mesh_browser_frame_json_from_surface},
     summary::summary_json,
 };
@@ -14,9 +15,35 @@ pub fn run(args: impl IntoIterator<Item = String>) -> Result<(), FixtureError> {
         "export" => export(args),
         "export-hand-mesh-browser" => export_hand_mesh_browser(args),
         "export-hand-mesh-browser-from-surface" => export_hand_mesh_browser_from_surface(args),
+        "export-surface-field-preview" => export_surface_field_preview(args),
         "validate" => validate(),
         _ => Err(FixtureError::InvalidArgument(command)),
     }
+}
+
+fn export_surface_field_preview(
+    args: impl IntoIterator<Item = String>,
+) -> Result<(), FixtureError> {
+    let mut check = false;
+    let mut output = PathBuf::from("fixtures/fields/surface_field_visual_frame.json");
+    let mut args = args.into_iter();
+    while let Some(argument) = args.next() {
+        match argument.as_str() {
+            "--check" => check = true,
+            "--output" => {
+                let Some(path) = args.next() else {
+                    return Err(FixtureError::InvalidArgument(
+                        "--output requires a path".to_owned(),
+                    ));
+                };
+                output = PathBuf::from(path);
+            }
+            _ => return Err(FixtureError::InvalidArgument(argument)),
+        }
+    }
+
+    let json = surface_field_visual_frame_json()?;
+    write_or_check_json(output, json, check, "surface field visual frame")
 }
 
 fn export(args: impl IntoIterator<Item = String>) -> Result<(), FixtureError> {
@@ -160,7 +187,8 @@ fn export_hand_mesh_browser_from_surface(
 
 fn validate() -> Result<(), FixtureError> {
     export(["--check".to_owned()])?;
-    export_hand_mesh_browser(["--check".to_owned()])
+    export_hand_mesh_browser(["--check".to_owned()])?;
+    export_surface_field_preview(["--check".to_owned()])
 }
 
 fn parse_usize(label: &str, value: &str) -> Result<usize, FixtureError> {

@@ -45,3 +45,9 @@ external Matter animated surface sequence. That sequence must contain only
 skinned mesh positions and shared topology. The preview recomputes its SDF
 slice, collider shell, and 1000-particle response from the current mesh frame,
 which keeps animated hand checks separate from precomputed SDF/collider caches.
+Surface-field preview fixtures:
+
+- `fixtures/fields/surface_field_visual_frame.json`: renderer-neutral Optics
+  visual frame over a Matter-owned surface-field debug frame. It contains
+  colored scalar node samples, tiered neighbor edges, perturbation highlights,
+  and polarity arrows.

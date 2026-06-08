@@ -33,6 +33,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusty-matter-fields"
+version = "0.1.0"
+dependencies = [
+ "rusty-matter-mesh",
+ "rusty-matter-model",
+ "serde",
+]
+
+[[package]]
 name = "rusty-matter-mesh"
 version = "0.1.0"
 dependencies = [
@@ -69,6 +78,7 @@ dependencies = [
 name = "rusty-optics-fixtures"
 version = "0.1.0"
 dependencies = [
+ "rusty-matter-fields",
  "rusty-matter-mesh",
  "rusty-matter-model",
  "rusty-matter-particles",
@@ -84,6 +94,7 @@ dependencies = [
 name = "rusty-optics-mesh"
 version = "0.1.0"
 dependencies = [
+ "rusty-matter-fields",
  "rusty-matter-mesh",
  "rusty-matter-model",
  "rusty-matter-sdf",

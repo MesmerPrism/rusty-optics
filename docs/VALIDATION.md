@@ -24,10 +24,22 @@ The hand-mesh browser fixture is regenerated with:
 cargo run -p rusty-optics-fixtures -- export-hand-mesh-browser
 ```
 
+The surface-field browser fixture is regenerated with:
+
+```powershell
+cargo run -p rusty-optics-fixtures -- export-surface-field-preview
+```
+
 Start the static browser preview with:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-HandMeshBrowserPreview.ps1
+```
+
+Start the surface-field static preview with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-SurfaceFieldPreview.ps1
 ```
 
 Build the Matter WebAssembly runtime package into Optics local artifacts with:

@@ -1,12 +1,18 @@
+use rusty_matter_fields::{
+    SurfaceFieldDebugFrame, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
+    SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
+    SurfaceVectorField, SurfaceVectorFieldKind,
+};
 use rusty_matter_mesh::{
     DynamicMeshCollider, DynamicMeshColliderConfig, MeshCoordinateFrameConfig, MeshCoordinateMap,
-    MeshSurfaceSampleConfig, TriangleMeshSurface,
+    MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface,
 };
 use rusty_matter_model::{TriangleMeshSnapshot, Vec3};
 use rusty_matter_sdf::{build_sdf_from_mesh, MeshToSdfConfig};
 
 use crate::{
-    MeshBrowserDebugFrame, MeshColliderVisual, MeshCoordinateVisual, MeshDebugFrame, SdfSliceVisual,
+    MeshBrowserDebugFrame, MeshColliderVisual, MeshCoordinateVisual, MeshDebugFrame,
+    SdfSliceVisual, SurfaceFieldVisualFrame,
 };
 
 #[test]
@@ -90,6 +96,29 @@ fn browser_frame_combines_mesh_coordinate_collider_and_sdf_payloads() {
     assert!(!browser.sdf_slice.cells.is_empty());
 }
 
+#[test]
+fn surface_field_visual_frame_resolves_layers_edges_and_regions() {
+    let source = sample_surface_field_debug_frame();
+    let frame = SurfaceFieldVisualFrame::from_matter_debug_frame(
+        "fields.visual.frame.unit_square",
+        &source,
+    )
+    .expect("field visual frame");
+
+    assert_eq!(frame.nodes.len(), source.nodes.len());
+    assert_eq!(frame.edges.len(), source.edges.len());
+    assert_eq!(frame.scalar_layers.len(), source.scalar_layers.len());
+    assert_eq!(frame.vector_layers.len(), source.vector_layers.len());
+    assert_eq!(
+        frame.perturbation_regions.len(),
+        source.perturbation_regions.len()
+    );
+    assert!(frame.vector_layers[0]
+        .arrows
+        .iter()
+        .any(|arrow| arrow.end.x < arrow.start.x));
+}
+
 fn sample_surface() -> TriangleMeshSurface {
     TriangleMeshSurface::new(
         "mesh.unit_square_surface",
@@ -101,4 +130,66 @@ fn sample_surface() -> TriangleMeshSurface {
         ],
         vec![[0, 1, 2], [0, 2, 3]],
     )
+}
+
+fn sample_surface_field_debug_frame() -> SurfaceFieldDebugFrame {
+    let surface = sample_surface();
+    let config = MeshSurfaceSampleConfig {
+        point_count: 8,
+        first_tier_neighbor_count: 2,
+        second_tier_neighbor_count: 2,
+        pattern: MeshSurfaceSamplePattern::LowDiscrepancy,
+        ..MeshSurfaceSampleConfig::default()
+    };
+    let samples = surface.sample_points(&config).expect("samples");
+    let substrate =
+        SurfaceFieldSubstrate::from_sample_set("fields.substrate.visual_test", &samples)
+            .expect("substrate");
+    let node_count = substrate.node_count();
+    let wound = (0..node_count)
+        .map(|index| {
+            if index < 2 {
+                1.0 - index as f32 * 0.35
+            } else {
+                0.0
+            }
+        })
+        .collect::<Vec<_>>();
+    let polarity = (0..node_count)
+        .map(|index| {
+            if index == 2 {
+                Vec3::new(-1.0, 0.0, 0.0)
+            } else {
+                Vec3::new(1.0, 0.0, 0.0)
+            }
+        })
+        .collect::<Vec<_>>();
+    let state = SurfaceFieldState::new(
+        "fields.state.visual_test",
+        &substrate,
+        vec![SurfaceScalarField::new(
+            "field.wound_signal",
+            SurfaceScalarFieldKind::WoundSignal,
+            wound,
+        )],
+        vec![SurfaceVectorField::new(
+            "field.polarity",
+            SurfaceVectorFieldKind::Polarity,
+            polarity,
+        )],
+    )
+    .expect("state");
+    let perturbations = vec![SurfaceFieldPerturbation::new(
+        "perturbation.wound.visual_test",
+        Some("field.wound_signal".to_owned()),
+        vec![0, 1],
+        SurfaceFieldPerturbationEffect::WoundRegion { signal_value: 1.0 },
+    )];
+    SurfaceFieldDebugFrame::from_contracts(
+        "fields.debug_frame.visual_test",
+        &substrate,
+        &state,
+        &perturbations,
+    )
+    .expect("debug frame")
 }

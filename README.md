@@ -17,6 +17,7 @@ The first source slices focus on visual particles and mesh diagnostics:
 - animated morphed-ring mask atlas generation;
 - transparent particle render-budget summaries;
 - mesh debug frames derived from Matter triangle mesh surfaces;
+- surface-field visual frames derived from Matter field debug frames;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over that same
   source surface;
 - a browser preview that renders generated mesh debug JSON and, for animated
@@ -44,6 +45,25 @@ http://127.0.0.1:8791/web/hand-mesh-browser-preview/
 
 The preview consumes `fixtures/hand_mesh/hand_mesh_browser_debug_frame.json`.
 That JSON is renderer-neutral and can also feed a later renderer adapter.
+
+## Surface Field Browser Preview
+
+Generate the deterministic surface-field visual fixture and start a local
+static server:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-SurfaceFieldPreview.ps1
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8792/web/surface-field-preview/
+```
+
+The preview consumes `fixtures/fields/surface_field_visual_frame.json`, which
+is derived from Matter-owned surface-field debug data. Optics owns the colors,
+edge styling, perturbation highlights, and polarity arrows only.
 
 For animated hand-mesh sequence previews, build the Matter Wasm runtime into
 Optics local artifacts before launching:

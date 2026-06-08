@@ -35,10 +35,13 @@ pub const MESH_BROWSER_DEBUG_FRAME_SCHEMA_ID: &str = "rusty.optics.mesh.browser.
 /// Browser SDF particle overlay schema.
 pub const PARTICLE_SDF_BROWSER_OVERLAY_SCHEMA_ID: &str =
     "rusty.optics.particles.sdf.browser_overlay.v1";
+/// Surface-field visual frame schema.
+pub const SURFACE_FIELD_VISUAL_FRAME_SCHEMA_ID: &str =
+    "rusty.optics.fields.surface.visual_frame.v1";
 
 /// Returns the schema IDs currently emitted by Rusty Optics.
 #[must_use]
-pub const fn optics_schema_ids() -> [&'static str; 16] {
+pub const fn optics_schema_ids() -> [&'static str; 17] {
     [
         COLOR_RGBA_SCHEMA_ID,
         PARTICLE_VISUAL_SAMPLE_SCHEMA_ID,
@@ -56,5 +59,6 @@ pub const fn optics_schema_ids() -> [&'static str; 16] {
         SDF_SLICE_VISUAL_SCHEMA_ID,
         MESH_BROWSER_DEBUG_FRAME_SCHEMA_ID,
         PARTICLE_SDF_BROWSER_OVERLAY_SCHEMA_ID,
+        SURFACE_FIELD_VISUAL_FRAME_SCHEMA_ID,
     ]
 }
