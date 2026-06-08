@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Rusty Optics Surface Field</title>
-    <link rel="stylesheet" href="styles.css?v=surface-field-planarian-trace-1">
+    <link rel="stylesheet" href="styles.css?v=surface-field-planarian-compare-1">
   </head>
   <body>
     <main class="app">
@@ -55,6 +55,17 @@
               <option value="4">No-memory</option>
             </select>
           </label>
+          <label>
+            Compare
+            <select id="planarian-compare-scenario">
+              <option value="-1">None</option>
+              <option value="0">Baseline</option>
+              <option value="1">Wound</option>
+              <option value="2">Gap block</option>
+              <option value="3">Memory</option>
+              <option value="4" selected>No-memory</option>
+            </select>
+          </label>
           <label>Node <output id="selected-node">none</output></label>
           <label>
             dV
@@ -79,6 +90,6 @@
         </div>
       </div>
     </main>
-    <script src="app.js?v=surface-field-planarian-trace-1"></script>
+    <script src="app.js?v=surface-field-planarian-compare-1"></script>
   </body>
 </html>

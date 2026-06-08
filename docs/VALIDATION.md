@@ -39,6 +39,9 @@ preview defaults to the sequence for dynamic playback and can switch to the
 circuit frame for voltage/conductance/memory/readout inspection, the planarian
 sequence for AP-region bioelectric playback, or the live Planarian 3D view for
 Matter-Wasm-backed scenario switching, picking, and edit-intent requests.
+The live Planarian 3D path also exposes the Matter comparison trace set through
+the browser comparison selector; Optics validates selector wiring and drawing,
+not the metrics themselves.
 
 The committed planarian visual sequence intentionally uses Matter's compact
 synthetic AP surface so the Optics fixture remains a deterministic visual
@@ -54,8 +57,9 @@ advances revisions.
 The live Planarian 3D scenario selector is a browser smoke-test surface over
 Matter reset codes. It should show the GLB-derived body vertex/triangle counts,
 switch among baseline, wound, gap-block, memory, and no-memory presets, render
-the Matter-exported outcome trace panel, and keep pick/edit intents routed back
-into Matter Wasm after switching.
+the Matter-exported outcome trace panel, compare against alternate Matter
+scenario traces, and keep pick/edit intents routed back into Matter Wasm after
+switching.
 
 Start the static browser preview with:
 

@@ -77,8 +77,8 @@ edge, normalized pointer, expected revision, and proposed operation. Matter
 remains the authority for edit validation, clamping, state mutation, acceptance
 or rejection, revision advancement, and scenario reset semantics over the
 GLB-derived body substrate. Browser adapters may plot Matter-exported outcome
-traces, but they must not recalculate the scenario metrics or treat plotted
-values as simulation truth.
+traces and comparison trace sets, but they must not recalculate the scenario
+metrics or treat plotted values as simulation truth.
 
 ## Renderer Adapter Boundary
 
@@ -111,7 +111,7 @@ The implemented foundation slice is CPU/data-only:
   to propose node voltage, memory, current, and conductance/gate edits without
   becoming simulation authority;
 - live Planarian 3D browser outcome plotting over Matter-exported scenario
-  traces and live stats;
+  traces, comparison trace sets, and live stats;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over one shared
   source mesh surface;
 - browser preview for generated mesh debug JSON and Matter-Wasm-backed animated
@@ -146,8 +146,8 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
 - `web/surface-field-preview/app.js`: browser preview for visual sequences and
   live Matter surface-field Wasm snapshots, plus static bioelectric circuit
   visual frames, planarian AP bioelectric sequence playback, and live Planarian
-  3D scenario selection, outcome-trace plotting, and pick/edit request UI; owns
-  playback, drawing, and edit-intent construction only.
+  3D scenario selection, outcome-trace comparison plotting, and pick/edit
+  request UI; owns playback, drawing, and edit-intent construction only.
 - `rusty-optics-mesh/src/mesh_frame.rs`: mesh wireframe and topology debug
   visuals.
 - `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug

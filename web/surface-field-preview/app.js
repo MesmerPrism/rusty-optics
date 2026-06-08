@@ -18,6 +18,7 @@ const controls = {
   labels: document.querySelector("#toggle-labels"),
   planarian3dControls: document.querySelector("#planarian-3d-controls"),
   planarianScenario: document.querySelector("#planarian-scenario"),
+  planarianCompareScenario: document.querySelector("#planarian-compare-scenario"),
   planarianOutcomePanel: document.querySelector("#planarian-outcome-panel"),
   planarianOutcomeTrace: document.querySelector("#planarian-outcome-trace"),
   planarianOutcomeReadout: document.querySelector("#planarian-outcome-readout"),
@@ -60,6 +61,10 @@ const PLANARIAN_OUTCOME_METRICS = [
   { key: "posterior_head_identity", label: "post head", color: "#f1c65c" },
   { key: "tail_identity_at_tail", label: "tail", color: "#83a7ff" },
 ];
+const PLANARIAN_COMPARISON_METRICS = [
+  { key: "posterior_memory", label: "compare memory", color: "#73d9bb" },
+  { key: "posterior_head_identity", label: "compare head", color: "#f1c65c" },
+];
 
 let sequence = null;
 let frames = [];
@@ -84,6 +89,7 @@ let planarian3dRuntime = null;
 let planarian3dView = null;
 let planarian3dStats = null;
 let planarian3dTrace = null;
+let planarian3dComparisonTrace = null;
 let planarian3dStepMs = 0;
 let selectedPlanarianNode = null;
 let selectedPlanarianPick = null;
@@ -245,6 +251,14 @@ controls.voltageDelta.addEventListener("input", () => {
 controls.planarianScenario.addEventListener("change", () => {
   if (isPlanarian3DMode()) {
     setPlanarian3DScenario(Number(controls.planarianScenario.value));
+  }
+});
+
+controls.planarianCompareScenario.addEventListener("change", () => {
+  if (isPlanarian3DMode()) {
+    updatePlanarian3DComparisonTrace();
+    updateStats();
+    draw();
   }
 });
 
@@ -451,6 +465,7 @@ async function initPlanarian3D() {
     });
     planarian3dStats = readPlanarian3DStats();
     planarian3dTrace = readPlanarian3DOutcomeTrace();
+    syncPlanarianComparisonSelect();
     controls.planarianScenario.value = String(Math.trunc(planarian3dStats.scenario_code || 3));
     updatePlanarian3DView();
     planarian3dError = null;
@@ -568,6 +583,7 @@ function updateControlAvailability() {
   controls.planarian3dControls.hidden = !planarian3d;
   controls.planarianOutcomePanel.hidden = !planarian3d;
   controls.planarianScenario.disabled = !planarian3d;
+  controls.planarianCompareScenario.disabled = !planarian3d;
   controls.applyVoltage.disabled = !planarian3d || selectedPlanarianNode === null;
   controls.pulseCurrent.disabled = controls.applyVoltage.disabled;
   controls.setMemory.disabled = controls.applyVoltage.disabled;
@@ -757,6 +773,7 @@ function updatePlanarian3DStats() {
     : "no edit";
   const scenario = scenarioInfo(planarian3dStats?.scenario_code);
   const cutConductance = planarian3dTrace?.cross_cut_conductance ?? 0;
+  const comparison = comparisonScenarioInfo();
   stats.textContent = [
     "planarian 3D",
     scenario.label,
@@ -774,6 +791,7 @@ function updatePlanarian3DStats() {
     `head ${formatNumber(planarian3dStats?.head_identity_at_head || 0)}`,
     `tail ${formatNumber(planarian3dStats?.tail_identity_at_tail || 0)}`,
     `cut g ${formatNumber(cutConductance)}`,
+    comparison ? `compare ${comparison.label}` : null,
     `node ${selected}`,
     layerLabel,
     edit,
@@ -1353,14 +1371,18 @@ function readPlanarian3DStats() {
   };
 }
 
-function readPlanarian3DOutcomeTrace() {
+function readPlanarian3DOutcomeTrace(scenarioCode = null) {
   if (!planarian3dRuntime?.outcome_trace) {
     return null;
   }
+  const hasScenario = scenarioCode !== null && scenarioCode !== undefined;
+  const code = hasScenario ? Math.trunc(scenarioCode) : null;
   const stride = Math.trunc(
     planarian3dRuntime.outcome_trace_stride?.() || PLANARIAN_OUTCOME_TRACE_STRIDE,
   );
-  const values = planarian3dRuntime.outcome_trace();
+  const values = hasScenario
+    ? planarian3dRuntime.outcome_trace_for_scenario(code)
+    : planarian3dRuntime.outcome_trace();
   const samples = [];
   for (let offset = 0; offset + stride <= values.length; offset += stride) {
     samples.push({
@@ -1376,7 +1398,10 @@ function readPlanarian3DOutcomeTrace() {
   return {
     samples,
     stride,
-    cross_cut_conductance: planarian3dRuntime.outcome_trace_cross_cut_conductance?.() || 0,
+    scenario_code: hasScenario ? code : Math.trunc(planarian3dStats?.scenario_code ?? 3),
+    cross_cut_conductance: hasScenario
+      ? planarian3dRuntime.outcome_trace_cross_cut_conductance_for_scenario?.(code) || 0
+      : planarian3dRuntime.outcome_trace_cross_cut_conductance?.() || 0,
   };
 }
 
@@ -1414,6 +1439,7 @@ function resetPlanarian3D() {
   planarian3dRuntime.reset();
   planarian3dStats = readPlanarian3DStats();
   planarian3dTrace = readPlanarian3DOutcomeTrace();
+  syncPlanarianComparisonSelect();
   controls.planarianScenario.value = String(Math.trunc(planarian3dStats.scenario_code || 0));
   clearPlanarian3DInteractionState();
   updatePlanarian3DView();
@@ -1426,6 +1452,7 @@ function setPlanarian3DScenario(scenarioCode) {
   planarian3dRuntime.reset_to_scenario(Math.trunc(scenarioCode));
   planarian3dStats = readPlanarian3DStats();
   planarian3dTrace = readPlanarian3DOutcomeTrace();
+  syncPlanarianComparisonSelect();
   controls.planarianScenario.value = String(Math.trunc(planarian3dStats.scenario_code || 0));
   clearPlanarian3DInteractionState();
   updatePlanarian3DView();
@@ -1522,6 +1549,49 @@ function scenarioInfo(scenarioCode) {
     || { label: "scenario", outcome: "Matter preset" };
 }
 
+function comparisonScenarioCode() {
+  const code = Number(controls.planarianCompareScenario.value);
+  if (!Number.isFinite(code) || code < 0) {
+    return null;
+  }
+  const scenarioCode = Math.trunc(planarian3dStats?.scenario_code ?? 3);
+  return Math.trunc(code) === scenarioCode ? null : Math.trunc(code);
+}
+
+function comparisonScenarioInfo() {
+  const code = comparisonScenarioCode();
+  return code === null ? null : scenarioInfo(code);
+}
+
+function syncPlanarianComparisonSelect() {
+  if (!controls.planarianCompareScenario || !planarian3dStats) {
+    return;
+  }
+  const scenarioCode = Math.trunc(planarian3dStats.scenario_code ?? 3);
+  if (Number(controls.planarianCompareScenario.value) === scenarioCode) {
+    controls.planarianCompareScenario.value = String(preferredComparisonScenario(scenarioCode));
+  }
+  updatePlanarian3DComparisonTrace();
+}
+
+function preferredComparisonScenario(scenarioCode) {
+  if (scenarioCode === 3) {
+    return 4;
+  }
+  if (scenarioCode === 4) {
+    return 3;
+  }
+  if (scenarioCode === 2) {
+    return 0;
+  }
+  return 3;
+}
+
+function updatePlanarian3DComparisonTrace() {
+  const code = comparisonScenarioCode();
+  planarian3dComparisonTrace = code === null ? null : readPlanarian3DOutcomeTrace(code);
+}
+
 function drawPlanarianOutcomeTrace() {
   if (!isPlanarian3DMode() || !planarian3dTrace?.samples?.length) {
     if (controls.planarianOutcomeReadout) {
@@ -1560,7 +1630,20 @@ function drawPlanarianOutcomeTrace() {
 
   drawTraceGrid(traceCtx, plot, dpr);
   for (const metric of PLANARIAN_OUTCOME_METRICS) {
-    drawTraceLine(traceCtx, plot, samples, maxStep, metric);
+    drawTraceLine(traceCtx, plot, samples, maxStep, metric, dpr);
+  }
+  if (planarian3dComparisonTrace?.samples?.length) {
+    for (const metric of PLANARIAN_COMPARISON_METRICS) {
+      drawTraceLine(
+        traceCtx,
+        plot,
+        planarian3dComparisonTrace.samples,
+        maxStep,
+        metric,
+        dpr,
+        { dashed: true, alpha: 0.55, lineWidth: 1.6 },
+      );
+    }
   }
   drawTraceLiveMarker(traceCtx, plot, maxStep, dpr);
   drawTraceLabels(traceCtx, plot, dpr);
@@ -1581,9 +1664,14 @@ function drawTraceGrid(traceCtx, plot, dpr) {
   traceCtx.strokeRect(plot.x, plot.y, plot.width, plot.height);
 }
 
-function drawTraceLine(traceCtx, plot, samples, maxStep, metric) {
+function drawTraceLine(traceCtx, plot, samples, maxStep, metric, dpr, options = {}) {
+  traceCtx.save();
   traceCtx.strokeStyle = metric.color;
-  traceCtx.lineWidth = 2;
+  traceCtx.globalAlpha = options.alpha ?? 1;
+  traceCtx.lineWidth = (options.lineWidth ?? 2) * dpr;
+  if (options.dashed) {
+    traceCtx.setLineDash([6 * dpr, 4 * dpr]);
+  }
   traceCtx.beginPath();
   samples.forEach((sample, index) => {
     const x = plot.x + plot.width * clamp(sample.step / maxStep, 0, 1);
@@ -1595,6 +1683,7 @@ function drawTraceLine(traceCtx, plot, samples, maxStep, metric) {
     }
   });
   traceCtx.stroke();
+  traceCtx.restore();
 }
 
 function drawTraceLiveMarker(traceCtx, plot, maxStep, dpr) {
@@ -1623,13 +1712,43 @@ function drawTraceLabels(traceCtx, plot, dpr) {
 
 function updatePlanarianOutcomeReadout() {
   const scenario = scenarioInfo(planarian3dStats?.scenario_code);
+  const comparison = comparisonScenarioInfo();
+  const comparisonSample = planarian3dComparisonTrace
+    ? traceSampleAtStep(planarian3dComparisonTrace, planarian3dStats?.step || 0)
+    : null;
+  const deltaHead = comparisonSample
+    ? planarian3dStats.posterior_head_identity - comparisonSample.posterior_head_identity
+    : null;
+  const deltaMemory = comparisonSample
+    ? planarian3dStats.posterior_memory - comparisonSample.posterior_memory
+    : null;
   controls.planarianOutcomeReadout.textContent = [
     `${scenario.label} trace`,
+    comparison ? `vs ${comparison.label}` : null,
     `live step ${Math.trunc(planarian3dStats?.step || 0)}`,
     `post memory ${formatNumber(planarian3dStats?.posterior_memory || 0)}`,
     `post head ${formatNumber(planarian3dStats?.posterior_head_identity || 0)}`,
+    deltaMemory === null ? null : `d memory ${signedFormatNumber(deltaMemory)}`,
+    deltaHead === null ? null : `d head ${signedFormatNumber(deltaHead)}`,
     `cut g ${formatNumber(planarian3dTrace?.cross_cut_conductance || 0)}`,
+    comparison ? `compare g ${formatNumber(planarian3dComparisonTrace?.cross_cut_conductance || 0)}` : null,
   ].join("  ");
+}
+
+function traceSampleAtStep(trace, step) {
+  if (!trace?.samples?.length) {
+    return null;
+  }
+  let best = trace.samples[0];
+  let bestDistance = Math.abs(best.step - step);
+  for (const sample of trace.samples) {
+    const distance = Math.abs(sample.step - step);
+    if (distance < bestDistance) {
+      best = sample;
+      bestDistance = distance;
+    }
+  }
+  return best;
 }
 
 function computeBounds(payload) {
@@ -1835,6 +1954,11 @@ function lerpColor(a, b, t) {
 
 function formatNumber(value) {
   return Number(value).toFixed(2);
+}
+
+function signedFormatNumber(value) {
+  const number = Number(value);
+  return `${number >= 0 ? "+" : ""}${number.toFixed(2)}`;
 }
 
 function clamp(value, min, max) {
