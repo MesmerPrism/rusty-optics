@@ -5,6 +5,17 @@ self-contained and free of private planning paths, downstream app names,
 platform-specific runtime handles, shader backend imports, and historical
 naming drift.
 
+Rusty Morphospace is the top-level project/platform umbrella. This repo remains
+the Optics lane inside that umbrella: morphology of appearance, projection,
+view, visual payload, debug visualization, and renderer-neutral evidence. Do
+not introduce `rusty.morphospace.*` schemas here; use `rusty.optics.*` for
+Optics contracts.
+
+Project-owned source in this repo is licensed `AGPL-3.0-or-later`. Keep
+third-party dependencies, screenshots, media, GLB or mesh assets, fonts,
+imported shaders, renderer backends, binary releases, and external tools under
+their own provenance and notice requirements; see `docs/LICENSING.md`.
+
 ## Purpose
 
 Rusty Optics owns renderer-neutral view, projection, appearance, animation
