@@ -66,8 +66,9 @@ Surface-field preview fixtures:
 - `fixtures/fields/planarian_bioelectric_interaction_intent.json`:
   renderer-neutral Optics interaction fixture with Planarian 3D node and
   conductance-edge pick selections, plus node-voltage and edge-gate edit
-  intents. It validates visual request shape and target binding only; Matter
-  still accepts, rejects, clamps, mutates, and advances revisions.
+  intents and an edit-feedback frame over recent edit events and affected
+  targets. It validates visual request/feedback shape and target binding only;
+  Matter still accepts, rejects, clamps, mutates, and advances revisions.
 
 The planarian fixture stays on the compact synthetic AP surface by design. Live
 Planarian 3D browser sessions import Matter Wasm and request Matter's
@@ -75,4 +76,6 @@ reviewed GLB-derived body surface at runtime, preserving Matter as the body
 geometry and simulation authority while keeping committed Optics fixtures small.
 The live outcome plot also uses Matter Wasm outcome traces and comparison trace
 sets at runtime rather than committing GLB-body trace caches into Optics
-fixtures.
+fixtures. Planarian 3D preview code refuses a low-count procedural body in this
+mode and displays the Matter-exported triangle body mesh underneath the sampled
+node and conductance-edge graph.

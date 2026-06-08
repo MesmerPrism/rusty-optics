@@ -18,9 +18,10 @@ use rusty_optics_model::Vec2;
 
 use crate::{
     BioelectricCircuitVisualFrame, MeshBrowserDebugFrame, MeshColliderVisual, MeshCoordinateVisual,
-    MeshDebugFrame, PlanarianBioelectricEditIntent, PlanarianBioelectricVisualSequence,
-    PlanarianPickSelection, SdfSliceVisual, SurfaceFieldVisualFrame,
-    SurfaceFieldVisualFrameSequence,
+    MeshDebugFrame, PlanarianBioelectricEditFeedbackFrame, PlanarianBioelectricEditIntent,
+    PlanarianBioelectricFeedbackEvent, PlanarianBioelectricFeedbackOperation,
+    PlanarianBioelectricFeedbackTarget, PlanarianBioelectricVisualSequence, PlanarianPickSelection,
+    SdfSliceVisual, SurfaceFieldVisualFrame, SurfaceFieldVisualFrameSequence,
 };
 
 #[test]
@@ -349,6 +350,100 @@ fn planarian_edge_pick_selection_builds_gate_edit_intent() {
         .validate_for_selection(&selection)
         .expect("gate intent references source edge selection");
     assert_eq!(intent.expected_revision, Some(21));
+}
+
+#[test]
+fn planarian_edit_feedback_frame_references_visible_targets() {
+    let source = sample_planarian_run();
+    let visual = PlanarianBioelectricVisualSequence::from_matter_planarian_run(
+        "fields.visual.planarian_ap.feedback",
+        &source,
+    )
+    .expect("planarian visual sequence");
+    let edge = &visual.frames[0].conductance_edges[2];
+    let feedback = PlanarianBioelectricEditFeedbackFrame::from_sequence_feedback(
+        "fields.planarian.feedback.fixture",
+        &visual,
+        Some(23),
+        vec![
+            PlanarianBioelectricFeedbackEvent::accepted(
+                0,
+                10,
+                0.33,
+                PlanarianBioelectricFeedbackOperation::AddNodeVoltage,
+                21,
+                22,
+                0,
+                1,
+                0,
+                0,
+            ),
+            PlanarianBioelectricFeedbackEvent::accepted(
+                1,
+                11,
+                0.36,
+                PlanarianBioelectricFeedbackOperation::SetEdgeGateThreshold,
+                22,
+                23,
+                0,
+                0,
+                1,
+                0,
+            ),
+        ],
+        vec![
+            PlanarianBioelectricFeedbackTarget::surface_node(0, 3, 1.0),
+            PlanarianBioelectricFeedbackTarget::conductance_edge(
+                1, 2, edge.from, edge.to, edge.tier, 0.82,
+            ),
+        ],
+    )
+    .expect("feedback frame");
+
+    feedback
+        .validate_for_sequence(&visual)
+        .expect("feedback validates against visual sequence");
+    assert_eq!(feedback.events.len(), 2);
+    assert_eq!(feedback.targets.len(), 2);
+    assert_eq!(feedback.view_revision, Some(23));
+}
+
+#[test]
+fn damaged_planarian_feedback_target_is_rejected() {
+    let source = sample_planarian_run();
+    let visual = PlanarianBioelectricVisualSequence::from_matter_planarian_run(
+        "fields.visual.planarian_ap.bad_feedback",
+        &source,
+    )
+    .expect("planarian visual sequence");
+    let error = PlanarianBioelectricEditFeedbackFrame::from_sequence_feedback(
+        "fields.planarian.feedback.bad",
+        &visual,
+        Some(2),
+        vec![PlanarianBioelectricFeedbackEvent::accepted(
+            0,
+            4,
+            0.13,
+            PlanarianBioelectricFeedbackOperation::AddNodeVoltage,
+            1,
+            2,
+            0,
+            1,
+            0,
+            0,
+        )],
+        vec![PlanarianBioelectricFeedbackTarget::surface_node(
+            0,
+            visual.frames[0].nodes.len(),
+            1.0,
+        )],
+    )
+    .expect_err("bad feedback target rejects");
+
+    assert!(matches!(
+        error,
+        rusty_optics_model::OpticsError::InvalidPayload(_)
+    ));
 }
 
 #[test]

@@ -5,6 +5,12 @@ self-contained and free of private planning paths, downstream app names,
 platform-specific runtime handles, shader backend imports, and historical
 naming drift.
 
+Rusty Morphospace is the top-level project/platform umbrella. This repo remains
+the Optics lane inside that umbrella: morphology of appearance, projection,
+view, visual payload, debug visualization, and renderer-neutral evidence. Do
+not introduce `rusty.morphospace.*` schemas here; use `rusty.optics.*` for
+Optics contracts.
+
 ## Purpose
 
 Rusty Optics owns renderer-neutral view, projection, appearance, animation
@@ -78,7 +84,9 @@ Current crate-root maps:
   `vec2`.
 - `rusty-optics-mesh/src/lib.rs`: facade over `browser_frame`,
   `circuit_frame`, `collider`, `coordinate`, `field_frame`, `mesh_frame`,
-  `planarian_frame`, `planarian_interaction`, `sdf_slice`, and tests.
+  `planarian_frame`, `planarian_interaction`, `sdf_slice`, and tests. The
+  `planarian_interaction` module owns pick-selection, edit-intent, and
+  edit-feedback frame contracts for Planarian 3D renderer adapters.
 - `rusty-optics-particles/src/lib.rs`: facade over `animation`, `appearance`,
   `billboard`, `mask`, `projection`, `tests`, and `visual_frame`.
 - `rusty-optics-fixtures/src/main.rs`: dispatch-only binary over `cli`, `error`,

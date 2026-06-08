@@ -51,11 +51,13 @@ const wasmBaseUrl = params.get("wasm") || "/local-artifacts/matter_surface_field
 const threeModuleUrl = params.get("three")
   || new URL("/local-artifacts/web3d/three.module.js", window.location.href).href;
 const planarian3dModuleUrl = params.get("planarian3d")
-  || "./planarian-3d.js?v=planarian-edit-targets-1";
+  || "./planarian-3d.js?v=planarian-glb-surface-1";
+const PLANARIAN_EDIT_FEEDBACK_FRAME_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.edit_feedback_frame.v1";
 const PLANARIAN_EDIT_INTENT_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.edit_intent.v1";
 const PLANARIAN_3D_VISUAL_ID = "fields.visual.planarian3d.live";
 const PLANARIAN_3D_SURFACE_ID = "mesh.planarian_ap.sketchfab_educational_surface";
 const PLANARIAN_3D_SUBSTRATE_ID = "fields.substrate.planarian_ap.sketchfab_educational";
+const PLANARIAN_3D_SOURCE_KIND = "sketchfab_educational_glb_matter_surface";
 const PLANARIAN_SCENARIOS = new Map([
   [0, { label: "baseline", outcome: "stable AP identity" }],
   [1, { label: "wound", outcome: "cut-band depolarization" }],
@@ -503,6 +505,8 @@ async function initPlanarian3D() {
       visualId: PLANARIAN_3D_VISUAL_ID,
       surfaceId: PLANARIAN_3D_SURFACE_ID,
       substrateId: PLANARIAN_3D_SUBSTRATE_ID,
+      sourceKind: PLANARIAN_3D_SOURCE_KIND,
+      minimumBodyVertexCount: 1000,
       getViewRevision: () => planarian3dStats?.revision ?? null,
       onSelectNode: (selection) => {
         selectPlanarian3DTarget(selection);
@@ -515,6 +519,7 @@ async function initPlanarian3D() {
     planarian3dTrace = readPlanarian3DOutcomeTrace();
     syncPlanarianComparisonSelect();
     controls.planarianScenario.value = String(Math.trunc(planarian3dStats.scenario_code || 3));
+    controls.tier2.checked = false;
     updatePlanarian3DView();
     planarian3dError = null;
   } catch (error) {
@@ -829,6 +834,7 @@ function updatePlanarian3DStats() {
   stats.textContent = [
     "planarian 3D",
     scenario.label,
+    "GLB-derived Matter mesh",
     `${Math.trunc(planarian3dStats?.body_vertex_count || 0)} body vertices`,
     `${Math.trunc(planarian3dStats?.body_triangle_count || 0)} body triangles`,
     `${Math.trunc(planarian3dStats?.node_count || 0)} nodes`,
@@ -1534,8 +1540,27 @@ function readPlanarianEditTargets() {
   return targets;
 }
 
+function readPlanarianEditFeedbackFrame() {
+  const revision = Math.trunc(planarian3dStats?.revision ?? 0);
+  return {
+    schema_id: PLANARIAN_EDIT_FEEDBACK_FRAME_SCHEMA_ID,
+    feedback_id: [
+      PLANARIAN_3D_VISUAL_ID,
+      "feedback",
+      `r${revision}`,
+    ].join("."),
+    visual_id: PLANARIAN_3D_VISUAL_ID,
+    surface_id: PLANARIAN_3D_SURFACE_ID,
+    substrate_id: PLANARIAN_3D_SUBSTRATE_ID,
+    view_revision: revision,
+    events: readPlanarianEditEvents(),
+    targets: readPlanarianEditTargets(),
+  };
+}
+
 function recentPlanarianEditTargets() {
-  const targets = readPlanarianEditTargets().filter((target) => target.accepted);
+  const targets = readPlanarianEditFeedbackFrame().targets
+    .filter((target) => target.accepted);
   if (targets.length === 0) {
     return [];
   }
@@ -1810,7 +1835,7 @@ function updatePlanarian3DEventReadout() {
     controls.planarianEventReadout.textContent = "events none";
     return;
   }
-  const events = readPlanarianEditEvents();
+  const events = readPlanarianEditFeedbackFrame().events;
   if (events.length === 0) {
     controls.planarianEventReadout.textContent = "events none";
     return;

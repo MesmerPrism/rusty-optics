@@ -51,20 +51,25 @@ uses the Matter Wasm runtime and receives the reviewed GLB-derived body surface
 from Matter at runtime.
 
 The interaction-intent fixture records renderer-neutral Planarian 3D node and
-conductance-edge picks, plus node-voltage and edge-gate edit intents. It
-validates Optics' request shape only; Matter remains the authority that
+conductance-edge picks, node-voltage and edge-gate edit intents, and an
+edit-feedback frame over recent edit events and affected targets. It validates
+Optics' request and feedback shapes only; Matter remains the authority that
 accepts, rejects, clamps, mutates, and advances revisions.
 
 The live Planarian 3D scenario selector is a browser smoke-test surface over
 Matter reset codes. It should show the GLB-derived body vertex/triangle counts,
-switch among baseline, wound, gap-block, memory, and no-memory presets, render
-the Matter-exported outcome trace panel, compare against alternate Matter
-scenario traces, pick both surface nodes and conductance edges, apply a node
-voltage edit and an edge gate-threshold edit, show the Matter-exported
-selection inspector for both targets, show the Matter-exported recent edit
-event trail, highlight recently affected nodes and conductance edges from
-Matter-exported target rows, and keep those intents routed back into Matter
-Wasm after switching.
+render the converted body as a solid Matter-exported triangle mesh rather than
+a procedural fallback, switch among baseline, wound, gap-block, memory, and
+no-memory presets, render the Matter-exported outcome trace panel, compare
+against alternate Matter scenario traces, pick both surface nodes and
+conductance edges, apply a node voltage edit and an edge gate-threshold edit,
+show the Matter-exported selection inspector for both targets, show the
+Matter-exported recent edit event trail, highlight recently affected nodes and
+conductance edges from Matter-exported target rows through the Optics
+feedback-frame shape, and keep those intents routed back into Matter Wasm after
+switching. The Planarian 3D browser adapter intentionally rejects a low-count
+body surface in this mode so a stale synthetic/procedural body cannot be
+mistaken for the reviewed GLB-derived Matter surface.
 
 Start the static browser preview with:
 

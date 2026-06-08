@@ -25,6 +25,8 @@ The first source slices focus on visual particles and mesh diagnostics:
   planarian scenario runs;
 - planarian 3D pick selections and edit intents for renderer adapters that
   request Matter-owned node, conductance, and gate mutations;
+- planarian 3D edit-feedback frames for renderer adapters that display
+  Matter-owned recent edit events and affected targets;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over that same
   source surface;
 - a browser preview that renders generated mesh debug JSON and, for animated
@@ -87,7 +89,7 @@ AP region bands, voltage, memory, readout layers, conductance edges, and
 current-region highlights. Browser JavaScript only projects and draws the
 validated Optics sequence.
 
-The `Planarian 3D` view imports Matter Wasm for the live GLB-backed body mesh
+The `Planarian 3D` view imports Matter Wasm for the live GLB-derived body mesh
 and circuit state. Browser raycasts become Optics pick-selection payloads, UI
 node and conductance-edge edits become Optics edit-intent payloads, and Matter
 remains the authority that accepts or rejects those edits and advances
@@ -100,7 +102,11 @@ inspector reads Matter-exported node and conductance-edge state accessors and
 only formats those values for feedback. The same inspector displays a bounded
 Matter-exported recent edit-event trail for accepted or rejected node and edge
 mutations, and the 3D view highlights recently affected nodes or conductance
-edges using Matter-exported affected-target rows.
+edges using Matter-exported affected-target rows. The browser wraps those
+Matter reads in an Optics edit-feedback frame shape before drawing them. The
+browser preview refuses a low-count procedural body in this mode and renders
+the converted Matter triangle mesh as the visible source body, with the sampled
+node/edge graph overlaid as simulation state.
 
 For animated hand-mesh sequence previews, build the Matter Wasm runtime into
 Optics local artifacts before launching:

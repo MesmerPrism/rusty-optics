@@ -3,6 +3,7 @@ const SNAPSHOT_STRIDE = 4;
 const EDGE_STRIDE = 4;
 const CONDUCTANCE_STRIDE = 6;
 const PICK_SELECTION_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.pick_selection.v1";
+const PLANARIAN_GLB_MIN_BODY_VERTICES = 1000;
 
 export async function createPlanarianBioelectric3DView(options) {
   const three = await import(options.threeModuleUrl);
@@ -19,6 +20,10 @@ class PlanarianBioelectric3DView {
     this.visualId = options.visualId || "fields.visual.planarian3d.live";
     this.surfaceId = options.surfaceId || "mesh.planarian_ap.sketchfab_educational_surface";
     this.substrateId = options.substrateId || "fields.substrate.planarian_ap.sketchfab_educational";
+    this.sourceKind = options.sourceKind || "sketchfab_educational_glb_matter_surface";
+    this.minimumBodyVertexCount = Number.isFinite(options.minimumBodyVertexCount)
+      ? Math.max(0, Math.trunc(options.minimumBodyVertexCount))
+      : PLANARIAN_GLB_MIN_BODY_VERTICES;
     this.getViewRevision = options.getViewRevision || (() => null);
     this.onSelectNode = options.onSelectNode || (() => {});
     this.onSelectEdge = options.onSelectEdge || (() => {});
@@ -58,6 +63,18 @@ class PlanarianBioelectric3DView {
     const bodyTriangles = this.runtime.body_triangles();
     this.bodyVertices = bodyVertices;
     this.bodyTriangles = bodyTriangles;
+    this.bodyVertexCount = Math.floor(bodyVertices.length / 3);
+    this.bodyTriangleCount = Math.floor(bodyTriangles.length / 3);
+    if (this.bodyVertexCount < this.minimumBodyVertexCount || this.bodyTriangleCount <= 0) {
+      throw new Error([
+        "Planarian 3D requires a GLB-derived Matter body surface",
+        `got ${this.bodyVertexCount} vertices and ${this.bodyTriangleCount} triangles`,
+      ].join("; "));
+    }
+    this.container.dataset.bodySourceKind = this.sourceKind;
+    this.container.dataset.bodySurfaceId = this.surfaceId;
+    this.container.dataset.bodyVertexCount = String(this.bodyVertexCount);
+    this.container.dataset.bodyTriangleCount = String(this.bodyTriangleCount);
 
     const nodeData = this.runtime.nodes();
     const nodeCount = nodeData.length / NODE_STRIDE;
@@ -144,19 +161,22 @@ class PlanarianBioelectric3DView {
       roughness: 0.82,
       metalness: 0.02,
       transparent: true,
-      opacity: 0.42,
+      opacity: 0.78,
       side: THREE.DoubleSide,
     });
     this.bodyMesh = new THREE.Mesh(geometry, material);
+    this.bodyMesh.userData.sourceKind = this.sourceKind;
+    this.bodyMesh.userData.surfaceId = this.surfaceId;
     this.scene.add(this.bodyMesh);
 
     const wire = new THREE.WireframeGeometry(geometry);
     const wireMaterial = new THREE.LineBasicMaterial({
       color: 0xb7c4cf,
       transparent: true,
-      opacity: 0.22,
+      opacity: 0.03,
     });
     this.bodyWire = new THREE.LineSegments(wire, wireMaterial);
+    this.bodyWire.visible = false;
     this.scene.add(this.bodyWire);
   }
 
@@ -187,8 +207,8 @@ class PlanarianBioelectric3DView {
       const material = new THREE.LineBasicMaterial({
         vertexColors: true,
         transparent: true,
-        opacity: group.tier === 1 ? 0.78 : 0.42,
-        depthTest: false,
+        opacity: group.tier === 1 ? 0.44 : 0.16,
+        depthTest: true,
         depthWrite: false,
       });
       const lines = new THREE.LineSegments(geometry, material);

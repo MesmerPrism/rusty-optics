@@ -12,7 +12,9 @@ use rusty_matter_fields::{
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
 use rusty_optics_mesh::{
-    BioelectricCircuitVisualFrame, PlanarianBioelectricEditIntent,
+    BioelectricCircuitVisualFrame, PlanarianBioelectricEditFeedbackFrame,
+    PlanarianBioelectricEditIntent, PlanarianBioelectricFeedbackEvent,
+    PlanarianBioelectricFeedbackOperation, PlanarianBioelectricFeedbackTarget,
     PlanarianBioelectricVisualSequence, PlanarianPickSelection, SurfaceFieldVisualFrame,
     SurfaceFieldVisualFrameSequence,
 };
@@ -115,15 +117,67 @@ pub fn planarian_bioelectric_interaction_intent_json() -> Result<String, Fixture
         None,
     )
     .map_err(|error| FixtureError::Optics(error.to_string()))?;
+    let edge = match &edge_edit_intent.target {
+        rusty_optics_mesh::PlanarianBioelectricEditTarget::ConductanceEdge {
+            edge_index,
+            from,
+            to,
+            tier,
+        } => (*edge_index, *from, *to, *tier),
+        rusty_optics_mesh::PlanarianBioelectricEditTarget::SurfaceNode { .. } => {
+            return Err(FixtureError::Optics(
+                "edge edit intent target should be a conductance edge".to_owned(),
+            ));
+        }
+    };
+    let feedback_frame = PlanarianBioelectricEditFeedbackFrame::from_sequence_feedback(
+        "fields.planarian.feedback.fixture.recent_edits",
+        &visual,
+        Some(2),
+        vec![
+            PlanarianBioelectricFeedbackEvent::accepted(
+                0,
+                12,
+                0.40,
+                PlanarianBioelectricFeedbackOperation::AddNodeVoltage,
+                0,
+                1,
+                0,
+                1,
+                0,
+                0,
+            ),
+            PlanarianBioelectricFeedbackEvent::accepted(
+                1,
+                18,
+                0.60,
+                PlanarianBioelectricFeedbackOperation::SetEdgeGateThreshold,
+                1,
+                2,
+                0,
+                0,
+                1,
+                0,
+            ),
+        ],
+        vec![
+            PlanarianBioelectricFeedbackTarget::surface_node(0, 7, 1.0),
+            PlanarianBioelectricFeedbackTarget::conductance_edge(
+                1, edge.0, edge.1, edge.2, edge.3, 0.82,
+            ),
+        ],
+    )
+    .map_err(|error| FixtureError::Optics(error.to_string()))?;
     let fixture = PlanarianBioelectricInteractionFixture {
         schema_version: 1,
         source_visual_sequence_id: visual.sequence_id,
         authority_note:
-            "Optics validates pick/edit intent shape; Matter accepts or rejects mutations.",
+            "Optics validates pick/edit/feedback shape; Matter accepts or rejects mutations.",
         pick_selection: selection,
         edit_intent,
         edge_pick_selection: edge_selection,
         edge_edit_intent,
+        feedback_frame,
     };
     let mut json = serde_json::to_string_pretty(&fixture)?;
     json.push('\n');
@@ -139,6 +193,7 @@ struct PlanarianBioelectricInteractionFixture {
     edit_intent: PlanarianBioelectricEditIntent,
     edge_pick_selection: PlanarianPickSelection,
     edge_edit_intent: PlanarianBioelectricEditIntent,
+    feedback_frame: PlanarianBioelectricEditFeedbackFrame,
 }
 
 fn build_planarian_visual_sequence() -> Result<PlanarianBioelectricVisualSequence, FixtureError> {

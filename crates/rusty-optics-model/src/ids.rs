@@ -53,10 +53,13 @@ pub const PLANARIAN_BIOELECTRIC_PICK_SELECTION_SCHEMA_ID: &str =
 /// Planarian bioelectric edit intent schema.
 pub const PLANARIAN_BIOELECTRIC_EDIT_INTENT_SCHEMA_ID: &str =
     "rusty.optics.fields.planarian_bioelectric.edit_intent.v1";
+/// Planarian bioelectric edit feedback visual frame schema.
+pub const PLANARIAN_BIOELECTRIC_EDIT_FEEDBACK_FRAME_SCHEMA_ID: &str =
+    "rusty.optics.fields.planarian_bioelectric.edit_feedback_frame.v1";
 
 /// Returns the schema IDs currently emitted by Rusty Optics.
 #[must_use]
-pub const fn optics_schema_ids() -> [&'static str; 22] {
+pub const fn optics_schema_ids() -> [&'static str; 23] {
     [
         COLOR_RGBA_SCHEMA_ID,
         PARTICLE_VISUAL_SAMPLE_SCHEMA_ID,
@@ -80,5 +83,6 @@ pub const fn optics_schema_ids() -> [&'static str; 22] {
         PLANARIAN_BIOELECTRIC_VISUAL_SEQUENCE_SCHEMA_ID,
         PLANARIAN_BIOELECTRIC_PICK_SELECTION_SCHEMA_ID,
         PLANARIAN_BIOELECTRIC_EDIT_INTENT_SCHEMA_ID,
+        PLANARIAN_BIOELECTRIC_EDIT_FEEDBACK_FRAME_SCHEMA_ID,
     ]
 }

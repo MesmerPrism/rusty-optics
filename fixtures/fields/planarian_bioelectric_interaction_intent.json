@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source_visual_sequence_id": "fields.visual.planarian_ap.transient_memory",
-  "authority_note": "Optics validates pick/edit intent shape; Matter accepts or rejects mutations.",
+  "authority_note": "Optics validates pick/edit/feedback shape; Matter accepts or rejects mutations.",
   "pick_selection": {
     "schema_id": "rusty.optics.fields.planarian_bioelectric.pick_selection.v1",
     "selection_id": "fields.planarian.pick.fixture.node_0007",
@@ -87,5 +87,60 @@
         "slope": null
       }
     }
+  },
+  "feedback_frame": {
+    "schema_id": "rusty.optics.fields.planarian_bioelectric.edit_feedback_frame.v1",
+    "feedback_id": "fields.planarian.feedback.fixture.recent_edits",
+    "visual_id": "fields.visual.planarian_ap.transient_memory",
+    "surface_id": "mesh.planarian_ap.synthetic_surface",
+    "substrate_id": "fields.substrate.planarian_ap.synthetic",
+    "view_revision": 2,
+    "events": [
+      {
+        "event_index": 0,
+        "step_index": 12,
+        "time_seconds": 0.4,
+        "operation": "AddNodeVoltage",
+        "accepted": true,
+        "revision_before": 0,
+        "revision_after": 1,
+        "clamped_values": 0,
+        "affected_node_count": 1,
+        "affected_edge_count": 0,
+        "affected_current_count": 0
+      },
+      {
+        "event_index": 1,
+        "step_index": 18,
+        "time_seconds": 0.6,
+        "operation": "SetEdgeGateThreshold",
+        "accepted": true,
+        "revision_before": 1,
+        "revision_after": 2,
+        "clamped_values": 0,
+        "affected_node_count": 0,
+        "affected_edge_count": 1,
+        "affected_current_count": 0
+      }
+    ],
+    "targets": [
+      {
+        "SurfaceNode": {
+          "event_index": 0,
+          "node_index": 7,
+          "intensity": 1.0
+        }
+      },
+      {
+        "ConductanceEdge": {
+          "event_index": 1,
+          "edge_index": 8,
+          "from": 1,
+          "to": 27,
+          "tier": 1,
+          "intensity": 0.82
+        }
+      }
+    ]
   }
 }

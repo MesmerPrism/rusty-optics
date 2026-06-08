@@ -1,6 +1,6 @@
 use rusty_optics_model::{
-    OpticsError, Vec2, PLANARIAN_BIOELECTRIC_EDIT_INTENT_SCHEMA_ID,
-    PLANARIAN_BIOELECTRIC_PICK_SELECTION_SCHEMA_ID,
+    OpticsError, Vec2, PLANARIAN_BIOELECTRIC_EDIT_FEEDBACK_FRAME_SCHEMA_ID,
+    PLANARIAN_BIOELECTRIC_EDIT_INTENT_SCHEMA_ID, PLANARIAN_BIOELECTRIC_PICK_SELECTION_SCHEMA_ID,
 };
 
 use crate::PlanarianBioelectricVisualSequence;
@@ -589,6 +589,362 @@ impl PlanarianBioelectricEditIntent {
     }
 }
 
+/// Renderer-neutral edit feedback operation label.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PlanarianBioelectricFeedbackOperation {
+    /// Matter set one node voltage.
+    SetNodeVoltage,
+    /// Matter added a voltage delta to one node.
+    AddNodeVoltage,
+    /// Matter set one node memory value.
+    SetNodeMemory,
+    /// Matter scaled incident conductance for one node.
+    ScaleIncidentConductance,
+    /// Matter set one conductance-edge gate threshold.
+    SetEdgeGateThreshold,
+    /// Matter set one conductance-edge gate multiplier range.
+    SetEdgeGateMultiplierBounds,
+    /// Matter added a transient current term.
+    AddTransientCurrent,
+}
+
+/// Renderer-neutral recent edit event for Planarian 3D feedback.
+///
+/// Matter owns the event semantics and revision changes. Optics owns this
+/// checked visual feedback shape so renderers can present a consistent event
+/// trail without becoming simulation authority.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianBioelectricFeedbackEvent {
+    /// Monotonic event index from the Matter feedback stream.
+    pub event_index: u64,
+    /// Matter fixed step when the edit attempt was recorded.
+    pub step_index: u32,
+    /// Matter simulation time when the edit attempt was recorded.
+    pub time_seconds: f32,
+    /// Operation label.
+    pub operation: PlanarianBioelectricFeedbackOperation,
+    /// Whether Matter accepted and applied the edit.
+    pub accepted: bool,
+    /// Matter revision before the edit attempt.
+    pub revision_before: u64,
+    /// Matter revision after the edit attempt.
+    pub revision_after: u64,
+    /// Number of values Matter clamped while applying the edit.
+    pub clamped_values: usize,
+    /// Number of affected surface nodes reported by Matter.
+    pub affected_node_count: usize,
+    /// Number of affected conductance edges reported by Matter.
+    pub affected_edge_count: usize,
+    /// Number of affected current terms reported by Matter.
+    pub affected_current_count: usize,
+}
+
+impl PlanarianBioelectricFeedbackEvent {
+    /// Builds an accepted event.
+    #[must_use]
+    pub const fn accepted(
+        event_index: u64,
+        step_index: u32,
+        time_seconds: f32,
+        operation: PlanarianBioelectricFeedbackOperation,
+        revision_before: u64,
+        revision_after: u64,
+        clamped_values: usize,
+        affected_node_count: usize,
+        affected_edge_count: usize,
+        affected_current_count: usize,
+    ) -> Self {
+        Self {
+            event_index,
+            step_index,
+            time_seconds,
+            operation,
+            accepted: true,
+            revision_before,
+            revision_after,
+            clamped_values,
+            affected_node_count,
+            affected_edge_count,
+            affected_current_count,
+        }
+    }
+
+    /// Builds a rejected event.
+    #[must_use]
+    pub const fn rejected(
+        event_index: u64,
+        step_index: u32,
+        time_seconds: f32,
+        operation: PlanarianBioelectricFeedbackOperation,
+        revision: u64,
+    ) -> Self {
+        Self {
+            event_index,
+            step_index,
+            time_seconds,
+            operation,
+            accepted: false,
+            revision_before: revision,
+            revision_after: revision,
+            clamped_values: 0,
+            affected_node_count: 0,
+            affected_edge_count: 0,
+            affected_current_count: 0,
+        }
+    }
+
+    fn validate(&self) -> Result<(), OpticsError> {
+        validate_non_negative_finite(self.time_seconds, "planarian feedback event time")?;
+        if self.accepted {
+            if self.revision_after <= self.revision_before {
+                return Err(OpticsError::InvalidPayload(
+                    "accepted planarian feedback event must advance revision",
+                ));
+            }
+        } else if self.revision_after != self.revision_before
+            || self.clamped_values != 0
+            || self.affected_node_count != 0
+            || self.affected_edge_count != 0
+            || self.affected_current_count != 0
+        {
+            return Err(OpticsError::InvalidPayload(
+                "rejected planarian feedback event must preserve revision and affect no targets",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Renderer-neutral target affected by a recent Matter edit.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub enum PlanarianBioelectricFeedbackTarget {
+    /// A sampled Matter surface-field node affected by an edit.
+    SurfaceNode {
+        /// Source event index.
+        event_index: u64,
+        /// Source node index.
+        node_index: usize,
+        /// Renderer-neutral highlight intensity in 0..=1.
+        intensity: f32,
+    },
+    /// A conductance edge affected by an edit.
+    ConductanceEdge {
+        /// Source event index.
+        event_index: u64,
+        /// Source conductance edge index.
+        edge_index: usize,
+        /// Source node index.
+        from: usize,
+        /// Target node index.
+        to: usize,
+        /// Neighbor tier, starting at 1.
+        tier: u8,
+        /// Renderer-neutral highlight intensity in 0..=1.
+        intensity: f32,
+    },
+}
+
+impl PlanarianBioelectricFeedbackTarget {
+    /// Builds a surface-node feedback target.
+    #[must_use]
+    pub const fn surface_node(event_index: u64, node_index: usize, intensity: f32) -> Self {
+        Self::SurfaceNode {
+            event_index,
+            node_index,
+            intensity,
+        }
+    }
+
+    /// Builds a conductance-edge feedback target.
+    #[must_use]
+    pub const fn conductance_edge(
+        event_index: u64,
+        edge_index: usize,
+        from: usize,
+        to: usize,
+        tier: u8,
+        intensity: f32,
+    ) -> Self {
+        Self::ConductanceEdge {
+            event_index,
+            edge_index,
+            from,
+            to,
+            tier,
+            intensity,
+        }
+    }
+
+    const fn event_index(&self) -> u64 {
+        match self {
+            Self::SurfaceNode { event_index, .. } | Self::ConductanceEdge { event_index, .. } => {
+                *event_index
+            }
+        }
+    }
+
+    fn validate(&self, sequence: &PlanarianBioelectricVisualSequence) -> Result<(), OpticsError> {
+        match self {
+            Self::SurfaceNode {
+                node_index,
+                intensity,
+                ..
+            } => {
+                validate_highlight_intensity(*intensity)?;
+                if sequence.frames[0].nodes.get(*node_index).is_none() {
+                    return Err(OpticsError::InvalidPayload(
+                        "planarian feedback node target",
+                    ));
+                }
+            }
+            Self::ConductanceEdge {
+                edge_index,
+                from,
+                to,
+                tier,
+                intensity,
+                ..
+            } => {
+                validate_highlight_intensity(*intensity)?;
+                let Some(edge) = sequence.frames[0].conductance_edges.get(*edge_index) else {
+                    return Err(OpticsError::InvalidPayload(
+                        "planarian feedback edge target",
+                    ));
+                };
+                if edge.from != *from || edge.to != *to || edge.tier != *tier {
+                    return Err(OpticsError::InvalidPayload(
+                        "planarian feedback edge metadata must match sequence",
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Renderer-neutral Planarian 3D edit feedback frame.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianBioelectricEditFeedbackFrame {
+    /// Schema identifier.
+    pub schema_id: String,
+    /// Stable feedback frame identifier.
+    pub feedback_id: String,
+    /// Source visual sequence or live visual context identifier.
+    pub visual_id: String,
+    /// Source Matter surface identifier.
+    pub surface_id: String,
+    /// Source Matter substrate identifier.
+    pub substrate_id: String,
+    /// Matter circuit revision visible while this feedback frame was prepared.
+    pub view_revision: Option<u64>,
+    /// Bounded event trail derived from Matter edit results.
+    pub events: Vec<PlanarianBioelectricFeedbackEvent>,
+    /// Renderer-neutral target highlights derived from Matter affected targets.
+    pub targets: Vec<PlanarianBioelectricFeedbackTarget>,
+}
+
+impl PlanarianBioelectricEditFeedbackFrame {
+    /// Builds and validates a feedback frame for a checked Planarian visual
+    /// sequence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpticsError`] when IDs, events, or affected targets are
+    /// invalid or do not reference visible sequence targets.
+    pub fn from_sequence_feedback(
+        feedback_id: impl Into<String>,
+        sequence: &PlanarianBioelectricVisualSequence,
+        view_revision: Option<u64>,
+        events: Vec<PlanarianBioelectricFeedbackEvent>,
+        targets: Vec<PlanarianBioelectricFeedbackTarget>,
+    ) -> Result<Self, OpticsError> {
+        sequence.validate()?;
+        let feedback = Self {
+            schema_id: PLANARIAN_BIOELECTRIC_EDIT_FEEDBACK_FRAME_SCHEMA_ID.to_owned(),
+            feedback_id: feedback_id.into(),
+            visual_id: sequence.sequence_id.clone(),
+            surface_id: sequence.surface_id.clone(),
+            substrate_id: sequence.substrate_id.clone(),
+            view_revision,
+            events,
+            targets,
+        };
+        feedback.validate_for_sequence(sequence)?;
+        Ok(feedback)
+    }
+
+    /// Validates feedback shape without requiring a source visual sequence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpticsError`] when schema, IDs, events, or target/event
+    /// bindings are invalid.
+    pub fn validate(&self) -> Result<(), OpticsError> {
+        if self.schema_id != PLANARIAN_BIOELECTRIC_EDIT_FEEDBACK_FRAME_SCHEMA_ID {
+            return Err(OpticsError::UnexpectedSchema {
+                expected: PLANARIAN_BIOELECTRIC_EDIT_FEEDBACK_FRAME_SCHEMA_ID,
+                actual: self.schema_id.clone(),
+            });
+        }
+        validate_context_ids(
+            &self.feedback_id,
+            &self.visual_id,
+            &self.surface_id,
+            &self.substrate_id,
+            "planarian edit feedback frame",
+        )?;
+        if self.events.is_empty() && !self.targets.is_empty() {
+            return Err(OpticsError::InvalidPayload(
+                "planarian feedback targets require events",
+            ));
+        }
+        for event in &self.events {
+            event.validate()?;
+        }
+        for target in &self.targets {
+            if !self
+                .events
+                .iter()
+                .any(|event| event.event_index == target.event_index())
+            {
+                return Err(OpticsError::InvalidPayload(
+                    "planarian feedback target must reference an event",
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// Validates feedback against a checked Planarian visual sequence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpticsError`] when the feedback does not reference the
+    /// sequence or affected targets are not visible in the sequence.
+    pub fn validate_for_sequence(
+        &self,
+        sequence: &PlanarianBioelectricVisualSequence,
+    ) -> Result<(), OpticsError> {
+        self.validate()?;
+        sequence.validate()?;
+        validate_sequence_context(
+            &self.visual_id,
+            &self.surface_id,
+            &self.substrate_id,
+            sequence,
+            "planarian edit feedback frame",
+        )?;
+        for target in &self.targets {
+            target.validate(sequence)?;
+        }
+        Ok(())
+    }
+}
+
 impl PlanarianPickTarget {
     fn validate(&self) -> Result<(), OpticsError> {
         match self {
@@ -902,6 +1258,15 @@ fn validate_pointer(pointer: Option<Vec2>, label: &'static str) -> Result<(), Op
 fn validate_non_negative_finite(value: f32, label: &'static str) -> Result<(), OpticsError> {
     if !value.is_finite() || value < 0.0 {
         return Err(OpticsError::InvalidValue(label));
+    }
+    Ok(())
+}
+
+fn validate_highlight_intensity(value: f32) -> Result<(), OpticsError> {
+    if !value.is_finite() || !(0.0..=1.0).contains(&value) {
+        return Err(OpticsError::InvalidValue(
+            "planarian feedback highlight intensity",
+        ));
     }
     Ok(())
 }
