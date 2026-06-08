@@ -10740,6 +10740,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.27071983,
       "lateral_coordinate": 0.17120801,
+      "surface_anchor": {
+        "triangle_index": 136,
+        "barycentric": [
+          0.05089426,
+          0.1663331,
+          0.78277266
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -10752,6 +10760,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.6815608,
       "lateral_coordinate": 0.6281292,
+      "surface_anchor": {
+        "triangle_index": 316,
+        "barycentric": [
+          0.18184322,
+          0.07671761,
+          0.74143916
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -10764,6 +10780,14 @@
       "region_id": "region_tail",
       "ap_coordinate": 0.16537876,
       "lateral_coordinate": -0.53068477,
+      "surface_anchor": {
+        "triangle_index": 82,
+        "barycentric": [
+          0.45802802,
+          0.36887306,
+          0.1730989
+        ]
+      },
       "color": {
         "r": 0.24,
         "g": 0.54,
@@ -10776,6 +10800,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.57830364,
       "lateral_coordinate": 0.6826815,
+      "surface_anchor": {
+        "triangle_index": 269,
+        "barycentric": [
+          0.6654041,
+          0.27500156,
+          0.059594408
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -10788,6 +10820,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.3932844,
       "lateral_coordinate": -0.24619983,
+      "surface_anchor": {
+        "triangle_index": 182,
+        "barycentric": [
+          0.5474945,
+          0.4211863,
+          0.031319227
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -10800,6 +10840,14 @@
       "region_id": "region_head",
       "ap_coordinate": 0.85010856,
       "lateral_coordinate": -0.39646238,
+      "surface_anchor": {
+        "triangle_index": 371,
+        "barycentric": [
+          0.44729137,
+          0.28030276,
+          0.27240586
+        ]
+      },
       "color": {
         "r": 0.78,
         "g": 0.38,
@@ -10812,6 +10860,14 @@
       "region_id": "region_tail",
       "ap_coordinate": 0.101067685,
       "lateral_coordinate": -0.53985506,
+      "surface_anchor": {
+        "triangle_index": 49,
+        "barycentric": [
+          0.33898628,
+          0.48225027,
+          0.17876343
+        ]
+      },
       "color": {
         "r": 0.24,
         "g": 0.54,
@@ -10824,6 +10880,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.5579093,
       "lateral_coordinate": -0.17721875,
+      "surface_anchor": {
+        "triangle_index": 247,
+        "barycentric": [
+          0.20700026,
+          0.7062875,
+          0.086712226
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -10836,6 +10900,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.34370947,
       "lateral_coordinate": -0.8842596,
+      "surface_anchor": {
+        "triangle_index": 160,
+        "barycentric": [
+          0.544864,
+          0.10466181,
+          0.35047418
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -10848,6 +10920,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.779281,
       "lateral_coordinate": -0.1553716,
+      "surface_anchor": {
+        "triangle_index": 342,
+        "barycentric": [
+          0.11890668,
+          0.67179734,
+          0.20929596
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -10860,6 +10940,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.20127065,
       "lateral_coordinate": 0.65807986,
+      "surface_anchor": {
+        "triangle_index": 110,
+        "barycentric": [
+          0.3825069,
+          0.3220245,
+          0.2954686
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -10872,6 +10960,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.6640893,
       "lateral_coordinate": -0.41864294,
+      "surface_anchor": {
+        "triangle_index": 292,
+        "barycentric": [
+          0.1803571,
+          0.6127423,
+          0.20690057
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -10884,6 +10980,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.4488443,
       "lateral_coordinate": 0.30741993,
+      "surface_anchor": {
+        "triangle_index": 203,
+        "barycentric": [
+          0.103352666,
+          0.79700845,
+          0.09963886
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -10896,6 +11000,14 @@
       "region_id": "region_head",
       "ap_coordinate": 0.90493214,
       "lateral_coordinate": -0.20047258,
+      "surface_anchor": {
+        "triangle_index": 404,
+        "barycentric": [
+          0.31477356,
+          0.0086171515,
+          0.6766093
+        ]
+      },
       "color": {
         "r": 0.78,
         "g": 0.38,
@@ -10908,6 +11020,14 @@
       "region_id": "region_tail",
       "ap_coordinate": 0.016079249,
       "lateral_coordinate": 0.19861157,
+      "surface_anchor": {
+        "triangle_index": 27,
+        "barycentric": [
+          0.5959581,
+          0.124138266,
+          0.27990362
+        ]
+      },
       "color": {
         "r": 0.24,
         "g": 0.54,
@@ -10920,6 +11040,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.5041599,
       "lateral_coordinate": 0.52216846,
+      "surface_anchor": {
+        "triangle_index": 236,
+        "barycentric": [
+          0.5730601,
+          0.3656212,
+          0.06131869
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -10932,6 +11060,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.3148145,
       "lateral_coordinate": -0.41807115,
+      "surface_anchor": {
+        "triangle_index": 148,
+        "barycentric": [
+          0.4487067,
+          0.33732167,
+          0.21397164
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -10944,6 +11080,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.7328834,
       "lateral_coordinate": 0.15461974,
+      "surface_anchor": {
+        "triangle_index": 329,
+        "barycentric": [
+          0.560349,
+          0.28264952,
+          0.15700147
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -10956,6 +11100,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.2139546,
       "lateral_coordinate": -0.64519066,
+      "surface_anchor": {
+        "triangle_index": 97,
+        "barycentric": [
+          0.34113705,
+          0.16323482,
+          0.49562812
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -10968,6 +11120,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.6287308,
       "lateral_coordinate": 0.04767582,
+      "surface_anchor": {
+        "triangle_index": 280,
+        "barycentric": [
+          0.13513005,
+          0.6737508,
+          0.1911191
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -10980,6 +11140,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.44807217,
       "lateral_coordinate": -0.89077413,
+      "surface_anchor": {
+        "triangle_index": 193,
+        "barycentric": [
+          0.12385851,
+          0.48706537,
+          0.3890761
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -10992,6 +11160,14 @@
       "region_id": "region_head",
       "ap_coordinate": 0.88628656,
       "lateral_coordinate": -0.3519374,
+      "surface_anchor": {
+        "triangle_index": 387,
+        "barycentric": [
+          0.48653817,
+          0.21591736,
+          0.29754448
+        ]
+      },
       "color": {
         "r": 0.78,
         "g": 0.38,
@@ -11004,6 +11180,14 @@
       "region_id": "region_tail",
       "ap_coordinate": 0.122536376,
       "lateral_coordinate": -0.40229425,
+      "surface_anchor": {
+        "triangle_index": 66,
+        "barycentric": [
+          0.17490655,
+          0.23114054,
+          0.5939529
+        ]
+      },
       "color": {
         "r": 0.24,
         "g": 0.54,
@@ -11016,6 +11200,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.5958255,
       "lateral_coordinate": -0.7426639,
+      "surface_anchor": {
+        "triangle_index": 258,
+        "barycentric": [
+          0.17386305,
+          0.7999108,
+          0.026226174
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -11028,6 +11220,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.36028668,
       "lateral_coordinate": 0.4683918,
+      "surface_anchor": {
+        "triangle_index": 171,
+        "barycentric": [
+          0.4551093,
+          0.102267236,
+          0.44262347
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11040,6 +11240,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.79487944,
       "lateral_coordinate": -0.33552456,
+      "surface_anchor": {
+        "triangle_index": 356,
+        "barycentric": [
+          0.6472088,
+          0.086031966,
+          0.26675925
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -11052,6 +11260,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.25265637,
       "lateral_coordinate": 0.36167058,
+      "surface_anchor": {
+        "triangle_index": 123,
+        "barycentric": [
+          0.3133645,
+          0.31447837,
+          0.37215713
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11064,6 +11280,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.675876,
       "lateral_coordinate": 0.7322894,
+      "surface_anchor": {
+        "triangle_index": 303,
+        "barycentric": [
+          0.07424796,
+          0.82814527,
+          0.09760679
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -11076,6 +11300,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.4830153,
       "lateral_coordinate": -0.21298596,
+      "surface_anchor": {
+        "triangle_index": 214,
+        "barycentric": [
+          0.034771025,
+          0.8040997,
+          0.16112931
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -11088,6 +11320,14 @@
       "region_id": "region_head",
       "ap_coordinate": 0.95780575,
       "lateral_coordinate": 0.058569472,
+      "surface_anchor": {
+        "triangle_index": 424,
+        "barycentric": [
+          0.15490413,
+          0.41273883,
+          0.43235704
+        ]
+      },
       "color": {
         "r": 0.78,
         "g": 0.38,
@@ -11100,6 +11340,14 @@
       "region_id": "region_tail",
       "ap_coordinate": 0.0,
       "lateral_coordinate": 0.3814179,
+      "surface_anchor": {
+        "triangle_index": 15,
+        "barycentric": [
+          0.022962868,
+          0.09747155,
+          0.8795656
+        ]
+      },
       "color": {
         "r": 0.24,
         "g": 0.54,
@@ -11112,6 +11360,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.5235048,
       "lateral_coordinate": -0.18045017,
+      "surface_anchor": {
+        "triangle_index": 231,
+        "barycentric": [
+          0.12065232,
+          0.71500605,
+          0.16434161
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -11124,6 +11380,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.26899096,
       "lateral_coordinate": 0.8335608,
+      "surface_anchor": {
+        "triangle_index": 142,
+        "barycentric": [
+          0.086904764,
+          0.120421,
+          0.79267424
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11136,6 +11400,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.7164988,
       "lateral_coordinate": -0.4868602,
+      "surface_anchor": {
+        "triangle_index": 322,
+        "barycentric": [
+          0.22848266,
+          0.004537946,
+          0.7669794
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -11148,6 +11420,14 @@
       "region_id": "region_tail",
       "ap_coordinate": 0.17595266,
       "lateral_coordinate": 0.066340536,
+      "surface_anchor": {
+        "triangle_index": 89,
+        "barycentric": [
+          0.35032427,
+          0.63676804,
+          0.01290769
+        ]
+      },
       "color": {
         "r": 0.24,
         "g": 0.54,
@@ -11160,6 +11440,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.6389274,
       "lateral_coordinate": -0.5300571,
+      "surface_anchor": {
+        "triangle_index": 275,
+        "barycentric": [
+          0.055464447,
+          0.1915765,
+          0.7529591
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -11172,6 +11460,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.4046381,
       "lateral_coordinate": 0.43556386,
+      "surface_anchor": {
+        "triangle_index": 187,
+        "barycentric": [
+          0.27730262,
+          0.29366454,
+          0.42903283
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11184,6 +11480,14 @@
       "region_id": "region_head",
       "ap_coordinate": 0.8403431,
       "lateral_coordinate": 0.35028142,
+      "surface_anchor": {
+        "triangle_index": 379,
+        "barycentric": [
+          0.7066238,
+          0.04146093,
+          0.25191525
+        ]
+      },
       "color": {
         "r": 0.78,
         "g": 0.38,
@@ -11196,6 +11500,14 @@
       "region_id": "region_tail",
       "ap_coordinate": 0.08310374,
       "lateral_coordinate": 0.24813601,
+      "surface_anchor": {
+        "triangle_index": 58,
+        "barycentric": [
+          0.07345247,
+          0.1839586,
+          0.74258894
+        ]
+      },
       "color": {
         "r": 0.24,
         "g": 0.54,
@@ -11208,6 +11520,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.5632774,
       "lateral_coordinate": 0.63095367,
+      "surface_anchor": {
+        "triangle_index": 253,
+        "barycentric": [
+          0.064444125,
+          0.48652256,
+          0.44903332
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -11220,6 +11540,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.36826378,
       "lateral_coordinate": -0.36611572,
+      "surface_anchor": {
+        "triangle_index": 165,
+        "barycentric": [
+          0.24326742,
+          0.4626533,
+          0.29407927
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11232,6 +11560,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.77896315,
       "lateral_coordinate": 0.5066049,
+      "surface_anchor": {
+        "triangle_index": 349,
+        "barycentric": [
+          0.3366443,
+          0.45914412,
+          0.20421161
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -11244,6 +11580,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.25095266,
       "lateral_coordinate": -0.29862243,
+      "surface_anchor": {
+        "triangle_index": 117,
+        "barycentric": [
+          0.358608,
+          0.3835963,
+          0.2577957
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11256,6 +11600,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.65456706,
       "lateral_coordinate": 0.38722214,
+      "surface_anchor": {
+        "triangle_index": 298,
+        "barycentric": [
+          0.019032538,
+          0.35986617,
+          0.62110126
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -11268,6 +11620,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.47533846,
       "lateral_coordinate": -0.8081733,
+      "surface_anchor": {
+        "triangle_index": 209,
+        "barycentric": [
+          0.3997684,
+          0.17694873,
+          0.42328286
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -11280,6 +11640,14 @@
       "region_id": "region_head",
       "ap_coordinate": 0.9049317,
       "lateral_coordinate": 0.4799939,
+      "surface_anchor": {
+        "triangle_index": 414,
+        "barycentric": [
+          0.8244369,
+          0.008605526,
+          0.16695756
+        ]
+      },
       "color": {
         "r": 0.78,
         "g": 0.38,
@@ -11292,6 +11660,14 @@
       "region_id": "region_tail",
       "ap_coordinate": 0.0634327,
       "lateral_coordinate": -0.122439526,
+      "surface_anchor": {
+        "triangle_index": 38,
+        "barycentric": [
+          0.24915117,
+          0.6615702,
+          0.08927865
+        ]
+      },
       "color": {
         "r": 0.24,
         "g": 0.54,
@@ -11304,6 +11680,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.5512715,
       "lateral_coordinate": -0.6903691,
+      "surface_anchor": {
+        "triangle_index": 242,
+        "barycentric": [
+          0.1294586,
+          0.61672515,
+          0.25381625
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -11316,6 +11700,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.32554772,
       "lateral_coordinate": 0.26977324,
+      "surface_anchor": {
+        "triangle_index": 154,
+        "barycentric": [
+          0.23422486,
+          0.62235534,
+          0.1434198
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11328,6 +11720,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.74724996,
       "lateral_coordinate": 0.68820864,
+      "surface_anchor": {
+        "triangle_index": 335,
+        "barycentric": [
+          0.17882669,
+          0.70645213,
+          0.11472119
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -11340,6 +11740,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.2083462,
       "lateral_coordinate": -0.057251155,
+      "surface_anchor": {
+        "triangle_index": 103,
+        "barycentric": [
+          0.4900747,
+          0.27581328,
+          0.23411202
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11352,6 +11760,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.6056774,
       "lateral_coordinate": 0.9396061,
+      "surface_anchor": {
+        "triangle_index": 286,
+        "barycentric": [
+          0.16591859,
+          0.061541013,
+          0.7725404
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -11364,6 +11780,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.41655654,
       "lateral_coordinate": -0.06304262,
+      "surface_anchor": {
+        "triangle_index": 198,
+        "barycentric": [
+          0.20655298,
+          0.039205812,
+          0.7542412
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -11376,6 +11800,14 @@
       "region_id": "region_head",
       "ap_coordinate": 0.89984983,
       "lateral_coordinate": 0.26962674,
+      "surface_anchor": {
+        "triangle_index": 395,
+        "barycentric": [
+          0.12634939,
+          0.24961434,
+          0.62403625
+        ]
+      },
       "color": {
         "r": 0.78,
         "g": 0.38,
@@ -11388,6 +11820,14 @@
       "region_id": "region_tail",
       "ap_coordinate": 0.11418639,
       "lateral_coordinate": 0.20408666,
+      "surface_anchor": {
+        "triangle_index": 74,
+        "barycentric": [
+          0.7254361,
+          0.009396488,
+          0.26516742
+        ]
+      },
       "color": {
         "r": 0.24,
         "g": 0.54,
@@ -11400,6 +11840,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.56811565,
       "lateral_coordinate": 0.012659079,
+      "surface_anchor": {
+        "triangle_index": 264,
+        "barycentric": [
+          0.8855056,
+          0.06404292,
+          0.050451487
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -11412,6 +11860,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.39792117,
       "lateral_coordinate": -0.91797847,
+      "surface_anchor": {
+        "triangle_index": 176,
+        "barycentric": [
+          0.056443036,
+          0.5443207,
+          0.39923626
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11424,6 +11880,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.8279942,
       "lateral_coordinate": 0.31490207,
+      "surface_anchor": {
+        "triangle_index": 363,
+        "barycentric": [
+          0.034564555,
+          0.284225,
+          0.68121046
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -11436,6 +11900,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.28809693,
       "lateral_coordinate": -0.7192747,
+      "surface_anchor": {
+        "triangle_index": 129,
+        "barycentric": [
+          0.3721969,
+          0.18323082,
+          0.44457227
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11448,6 +11920,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.7000158,
       "lateral_coordinate": -0.21675864,
+      "surface_anchor": {
+        "triangle_index": 310,
+        "barycentric": [
+          0.4053378,
+          0.56681234,
+          0.027849836
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -11460,6 +11940,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.4566469,
       "lateral_coordinate": 0.6992615,
+      "surface_anchor": {
+        "triangle_index": 220,
+        "barycentric": [
+          0.15592927,
+          0.10385383,
+          0.7402169
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -11472,6 +11960,14 @@
       "region_id": "region_head",
       "ap_coordinate": 1.0,
       "lateral_coordinate": -0.2721699,
+      "surface_anchor": {
+        "triangle_index": 435,
+        "barycentric": [
+          0.46674055,
+          0.4951971,
+          0.038062353
+        ]
+      },
       "color": {
         "r": 0.78,
         "g": 0.38,
@@ -11484,6 +11980,14 @@
       "region_id": "region_tail",
       "ap_coordinate": 0.00041135302,
       "lateral_coordinate": -0.09517637,
+      "surface_anchor": {
+        "triangle_index": 7,
+        "barycentric": [
+          0.0120379925,
+          0.9689156,
+          0.019046452
+        ]
+      },
       "color": {
         "r": 0.24,
         "g": 0.54,
@@ -11496,6 +12000,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.49330008,
       "lateral_coordinate": -0.32281253,
+      "surface_anchor": {
+        "triangle_index": 228,
+        "barycentric": [
+          0.1954034,
+          0.07722373,
+          0.7273729
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -11508,6 +12020,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.2948621,
       "lateral_coordinate": 0.3634416,
+      "surface_anchor": {
+        "triangle_index": 139,
+        "barycentric": [
+          0.19253922,
+          0.4002353,
+          0.4072255
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11520,6 +12040,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.71416754,
       "lateral_coordinate": 0.84661806,
+      "surface_anchor": {
+        "triangle_index": 319,
+        "barycentric": [
+          0.057371736,
+          0.13047916,
+          0.8121491
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -11532,6 +12060,14 @@
       "region_id": "region_tail",
       "ap_coordinate": 0.16578086,
       "lateral_coordinate": -0.102358885,
+      "surface_anchor": {
+        "triangle_index": 86,
+        "barycentric": [
+          0.15266901,
+          0.3795508,
+          0.46778017
+        ]
+      },
       "color": {
         "r": 0.24,
         "g": 0.54,
@@ -11544,6 +12080,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.6255576,
       "lateral_coordinate": -0.9246386,
+      "surface_anchor": {
+        "triangle_index": 272,
+        "barycentric": [
+          0.19275266,
+          0.5894843,
+          0.21776305
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -11556,6 +12100,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.405061,
       "lateral_coordinate": 0.022760855,
+      "surface_anchor": {
+        "triangle_index": 184,
+        "barycentric": [
+          0.17580986,
+          0.73392785,
+          0.09026232
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11568,6 +12120,14 @@
       "region_id": "region_head",
       "ap_coordinate": 0.8412148,
       "lateral_coordinate": -0.029461186,
+      "surface_anchor": {
+        "triangle_index": 375,
+        "barycentric": [
+          0.6834762,
+          0.1754422,
+          0.14108159
+        ]
+      },
       "color": {
         "r": 0.78,
         "g": 0.38,
@@ -11580,6 +12140,14 @@
       "region_id": "region_tail",
       "ap_coordinate": 0.09635618,
       "lateral_coordinate": -0.17706811,
+      "surface_anchor": {
+        "triangle_index": 53,
+        "barycentric": [
+          0.46410674,
+          0.15914243,
+          0.37675083
+        ]
+      },
       "color": {
         "r": 0.24,
         "g": 0.54,
@@ -11592,6 +12160,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.5343293,
       "lateral_coordinate": 0.3241626,
+      "surface_anchor": {
+        "triangle_index": 250,
+        "barycentric": [
+          0.54778486,
+          0.16680574,
+          0.2854094
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -11604,6 +12180,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.3565632,
       "lateral_coordinate": -0.6223052,
+      "surface_anchor": {
+        "triangle_index": 162,
+        "barycentric": [
+          0.07411474,
+          0.44600925,
+          0.479876
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11616,6 +12200,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.7818109,
       "lateral_coordinate": 0.1064053,
+      "surface_anchor": {
+        "triangle_index": 345,
+        "barycentric": [
+          0.26101792,
+          0.46926084,
+          0.26972124
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -11628,6 +12220,14 @@
       "region_id": "region_postpharyngeal_trunk",
       "ap_coordinate": 0.25845522,
       "lateral_coordinate": -0.8174881,
+      "surface_anchor": {
+        "triangle_index": 113,
+        "barycentric": [
+          0.15936917,
+          0.7619701,
+          0.07866073
+        ]
+      },
       "color": {
         "r": 0.28,
         "g": 0.62,
@@ -11640,6 +12240,14 @@
       "region_id": "region_prepharyngeal_trunk",
       "ap_coordinate": 0.6677031,
       "lateral_coordinate": -0.016861755,
+      "surface_anchor": {
+        "triangle_index": 295,
+        "barycentric": [
+          0.29129118,
+          0.073382966,
+          0.63532585
+        ]
+      },
       "color": {
         "r": 0.74,
         "g": 0.48,
@@ -11652,6 +12260,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.4165671,
       "lateral_coordinate": 1.0,
+      "surface_anchor": {
+        "triangle_index": 206,
+        "barycentric": [
+          0.06508124,
+          0.039484918,
+          0.89543384
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,
@@ -11664,6 +12280,14 @@
       "region_id": "region_head",
       "ap_coordinate": 0.9232998,
       "lateral_coordinate": 0.10165958,
+      "surface_anchor": {
+        "triangle_index": 409,
+        "barycentric": [
+          0.5036074,
+          0.30989012,
+          0.18650244
+        ]
+      },
       "color": {
         "r": 0.78,
         "g": 0.38,
@@ -11676,6 +12300,14 @@
       "region_id": "region_tail",
       "ap_coordinate": 0.0576215,
       "lateral_coordinate": -0.4549758,
+      "surface_anchor": {
+        "triangle_index": 33,
+        "barycentric": [
+          0.49275392,
+          0.46683228,
+          0.040413782
+        ]
+      },
       "color": {
         "r": 0.24,
         "g": 0.54,
@@ -11688,6 +12320,14 @@
       "region_id": "region_pharyngeal_trunk",
       "ap_coordinate": 0.51729095,
       "lateral_coordinate": 0.9037938,
+      "surface_anchor": {
+        "triangle_index": 239,
+        "barycentric": [
+          0.28566903,
+          0.42546558,
+          0.2888654
+        ]
+      },
       "color": {
         "r": 0.7,
         "g": 0.64,

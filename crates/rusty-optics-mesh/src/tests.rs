@@ -206,6 +206,12 @@ fn planarian_visual_sequence_preserves_ap_regions_and_memory_readout() {
         source.source_surface.triangle_count()
     );
     assert_eq!(visual.diagnostic_count, source.sequence.diagnostics.len());
+    assert!(visual.node_regions.iter().all(|node_region| {
+        node_region.surface_anchor.is_some_and(|anchor| {
+            anchor.triangle_index < visual.body_surface.triangles.len()
+                && (anchor.barycentric.iter().sum::<f32>() - 1.0).abs() < 1.0e-4
+        })
+    }));
     assert!(visual
         .region_bands
         .iter()
@@ -294,6 +300,11 @@ fn planarian_pick_selection_and_edit_intent_reference_visual_targets() {
         .validate_for_sequence(&visual)
         .expect("selection validates against visual sequence");
     assert_eq!(selection.node_index(), Some(3));
+    if let crate::PlanarianPickTarget::SurfaceNode { surface_anchor, .. } = &selection.target {
+        assert_eq!(*surface_anchor, visual.node_regions[3].surface_anchor);
+    } else {
+        panic!("expected node pick target");
+    }
 
     let intent = PlanarianBioelectricEditIntent::add_node_voltage(
         "fields.planarian.intent.add_voltage.node_0003",
@@ -473,6 +484,40 @@ fn damaged_planarian_pick_selection_metadata_is_rejected() {
     assert!(matches!(
         error,
         rusty_optics_model::OpticsError::InvalidPayload(_)
+    ));
+}
+
+#[test]
+fn damaged_planarian_pick_selection_surface_anchor_is_rejected() {
+    let source = sample_planarian_run();
+    let visual = PlanarianBioelectricVisualSequence::from_matter_planarian_run(
+        "fields.visual.planarian_ap.anchor_invalid",
+        &source,
+    )
+    .expect("planarian visual sequence");
+    let mut selection = PlanarianPickSelection::from_sequence_node(
+        "fields.planarian.pick.invalid_anchor",
+        &visual,
+        4,
+        Some(Vec2::ZERO),
+        0.40,
+        None,
+    )
+    .expect("pick selection");
+    if let crate::PlanarianPickTarget::SurfaceNode { surface_anchor, .. } = &mut selection.target {
+        *surface_anchor = Some(crate::PlanarianSurfaceNodeAnchor {
+            triangle_index: visual.body_surface.triangles.len(),
+            barycentric: [0.75, 0.75, 0.0],
+        });
+    }
+    let error = selection
+        .validate_for_sequence(&visual)
+        .expect_err("bad surface anchor rejects");
+
+    assert!(matches!(
+        error,
+        rusty_optics_model::OpticsError::InvalidValue(_)
+            | rusty_optics_model::OpticsError::InvalidPayload(_)
     ));
 }
 

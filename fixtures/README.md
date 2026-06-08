@@ -61,12 +61,14 @@ Surface-field preview fixtures:
 - `fixtures/fields/planarian_bioelectric_visual_sequence.json`:
   renderer-neutral Optics visual sequence over a Matter-owned synthetic
   planarian AP bioelectric scenario. It contains AP region bands, node-region
-  colors, voltage/memory/readout playback frames, conductance edges, current
-  regions, and diagnostics for browser inspection.
+  colors, Matter surface anchors for sampled nodes, voltage/memory/readout
+  playback frames, conductance edges, current regions, and diagnostics for
+  browser inspection.
 - `fixtures/fields/planarian_bioelectric_interaction_intent.json`:
   renderer-neutral Optics interaction fixture with Planarian 3D node and
-  conductance-edge pick selections, plus node-voltage and edge-gate edit
-  intents and an edit-feedback frame over recent edit events and affected
+  conductance-edge pick selections. Node picks preserve the Matter body
+  triangle plus barycentric anchor before proposing node-voltage and edge-gate
+  edit intents and an edit-feedback frame over recent edit events and affected
   targets. It validates visual request/feedback shape and target binding only;
   Matter still accepts, rejects, clamps, mutates, and advances revisions.
 

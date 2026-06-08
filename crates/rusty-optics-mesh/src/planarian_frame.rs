@@ -35,8 +35,24 @@ pub struct PlanarianAxisNodeVisualRegion {
     pub ap_coordinate: f32,
     /// Lateral coordinate normalized by local half-width.
     pub lateral_coordinate: f32,
+    /// Source surface anchor for this sampled Matter node, when available.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub surface_anchor: Option<PlanarianSurfaceNodeAnchor>,
     /// Region color.
     pub color: ColorRgba,
+}
+
+/// Source body-surface anchor for a sampled Matter node.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PlanarianSurfaceNodeAnchor {
+    /// Source body triangle index.
+    pub triangle_index: usize,
+    /// Barycentric weights over the source triangle vertices.
+    pub barycentric: [f32; 3],
 }
 
 /// One renderer-neutral planarian body-surface vertex.
@@ -181,7 +197,11 @@ impl PlanarianBioelectricVisualSequence {
             literature_anchors: source.literature_anchors.clone(),
             body_surface: visual_body_surface(source)?,
             region_bands: visual_region_bands(&source.axis_map)?,
-            node_regions: visual_node_regions(&source.axis_map)?,
+            node_regions: visual_node_regions(
+                &source.axis_map,
+                &source.substrate,
+                source.source_surface.triangles.len(),
+            )?,
             frames,
         };
         sequence.validate()?;
@@ -239,7 +259,11 @@ impl PlanarianBioelectricVisualSequence {
         }
         validate_body_surface(&self.body_surface)?;
         for (expected_index, node_region) in self.node_regions.iter().enumerate() {
-            validate_node_region(node_region, expected_index)?;
+            validate_node_region(
+                node_region,
+                expected_index,
+                self.body_surface.triangles.len(),
+            )?;
         }
         let mut previous_step = None::<u32>;
         for frame in &self.frames {
@@ -406,20 +430,35 @@ fn visual_region_bands(
 
 fn visual_node_regions(
     axis_map: &PlanarianAxisMap,
+    substrate: &rusty_matter_fields::SurfaceFieldSubstrate,
+    triangle_count: usize,
 ) -> Result<Vec<PlanarianAxisNodeVisualRegion>, OpticsError> {
     axis_map
         .node_regions
         .iter()
         .enumerate()
         .map(|(expected_index, node)| {
+            let Some(substrate_node) = substrate.nodes.get(expected_index) else {
+                return Err(OpticsError::InvalidPayload("planarian node region anchor"));
+            };
+            if substrate_node.node_index != node.node_index {
+                return Err(OpticsError::InvalidPayload(
+                    "planarian node region anchor index",
+                ));
+            }
+            let surface_anchor = Some(PlanarianSurfaceNodeAnchor {
+                triangle_index: substrate_node.triangle_index,
+                barycentric: substrate_node.barycentric,
+            });
             let visual = PlanarianAxisNodeVisualRegion {
                 node_index: node.node_index,
                 region_id: node.region_id.clone(),
                 ap_coordinate: node.ap_coordinate,
                 lateral_coordinate: node.lateral_coordinate,
+                surface_anchor,
                 color: region_color(node.region),
             };
-            validate_node_region(&visual, expected_index)?;
+            validate_node_region(&visual, expected_index, triangle_count)?;
             Ok(visual)
         })
         .collect()
@@ -563,6 +602,7 @@ fn validate_body_triangle(
 fn validate_node_region(
     node_region: &PlanarianAxisNodeVisualRegion,
     expected_index: usize,
+    triangle_count: usize,
 ) -> Result<(), OpticsError> {
     if node_region.node_index != expected_index || node_region.region_id.trim().is_empty() {
         return Err(OpticsError::InvalidPayload("planarian node region"));
@@ -575,6 +615,38 @@ fn validate_node_region(
     }
     if !node_region.color.is_finite() {
         return Err(OpticsError::NonFiniteColor("planarian node region"));
+    }
+    if let Some(anchor) = &node_region.surface_anchor {
+        validate_surface_anchor(anchor, triangle_count, "planarian node region anchor")?;
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_surface_anchor(
+    anchor: &PlanarianSurfaceNodeAnchor,
+    triangle_count: usize,
+    label: &'static str,
+) -> Result<(), OpticsError> {
+    if anchor.triangle_index >= triangle_count {
+        return Err(OpticsError::InvalidPayload(label));
+    }
+    validate_surface_anchor_shape(anchor, label)
+}
+
+pub(crate) fn validate_surface_anchor_shape(
+    anchor: &PlanarianSurfaceNodeAnchor,
+    label: &'static str,
+) -> Result<(), OpticsError> {
+    if !anchor
+        .barycentric
+        .iter()
+        .all(|value| value.is_finite() && *value >= -1.0e-5 && *value <= 1.0 + 1.0e-5)
+    {
+        return Err(OpticsError::InvalidValue(label));
+    }
+    let sum = anchor.barycentric.iter().sum::<f32>();
+    if (sum - 1.0).abs() > 1.0e-4 {
+        return Err(OpticsError::InvalidValue(label));
     }
     Ok(())
 }

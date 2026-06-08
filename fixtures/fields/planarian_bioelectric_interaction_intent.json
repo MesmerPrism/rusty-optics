@@ -14,7 +14,15 @@
         "node_id": "fields.substrate.planarian_ap.synthetic.node.0007",
         "region_id": "region_pharyngeal_trunk",
         "ap_coordinate": 0.5579093,
-        "lateral_coordinate": -0.17721875
+        "lateral_coordinate": -0.17721875,
+        "surface_anchor": {
+          "triangle_index": 247,
+          "barycentric": [
+            0.20700026,
+            0.7062875,
+            0.086712226
+          ]
+        }
       }
     },
     "normalized_pointer": {

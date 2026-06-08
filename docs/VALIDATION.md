@@ -37,9 +37,12 @@ That command writes both `fixtures/fields/surface_field_visual_frame.json` and
 `fixtures/fields/planarian_bioelectric_interaction_intent.json`. The browser
 preview defaults to the sequence for dynamic playback and can switch to the
 circuit frame for voltage/conductance/memory/readout inspection, the planarian
-sequence for AP-region bioelectric playback, or the live Planarian 3D view for
-Matter-Wasm-backed scenario switching, node/edge picking, and edit-intent
-requests.
+sequence for AP-region bioelectric playback with sampled-node surface anchors,
+or the live Planarian 3D view for Matter-Wasm-backed scenario switching,
+node/edge picking, GLB triangle-anchor readout, and edit-intent requests.
+The live 3D browser preview loops the unedited educational scenario at the
+Matter trace horizon so transient dynamics remain visible; selecting or editing
+a target disables that loop until reset so inspected state is stable.
 The live Planarian 3D path also exposes the Matter comparison trace set through
 the browser comparison selector; Optics validates selector wiring and drawing,
 not the metrics themselves.

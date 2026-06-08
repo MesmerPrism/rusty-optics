@@ -55,13 +55,14 @@ const wasmBaseUrl = params.get("wasm") || "/local-artifacts/matter_surface_field
 const threeModuleUrl = params.get("three")
   || new URL("/local-artifacts/web3d/three.module.js", window.location.href).href;
 const planarian3dModuleUrl = params.get("planarian3d")
-  || "./planarian-3d.js?v=planarian-glb-anchors-1";
+  || "./planarian-3d.js?v=planarian-glb-dynamics-1";
 const PLANARIAN_EDIT_FEEDBACK_FRAME_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.edit_feedback_frame.v1";
 const PLANARIAN_EDIT_INTENT_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.edit_intent.v1";
 const PLANARIAN_3D_VISUAL_ID = "fields.visual.planarian3d.live";
 const PLANARIAN_3D_SURFACE_ID = "mesh.planarian_ap.sketchfab_educational_surface";
 const PLANARIAN_3D_SUBSTRATE_ID = "fields.substrate.planarian_ap.sketchfab_educational";
 const PLANARIAN_3D_SOURCE_KIND = "sketchfab_educational_glb_matter_surface";
+const PLANARIAN_3D_AUTO_LOOP = true;
 const PLANARIAN_SCENARIOS = new Map([
   [0, { label: "baseline", outcome: "stable AP identity" }],
   [1, { label: "wound", outcome: "cut-band depolarization" }],
@@ -526,7 +527,7 @@ async function initPlanarian3D() {
     planarian3dTrace = readPlanarian3DOutcomeTrace();
     syncPlanarianComparisonSelect();
     controls.planarianScenario.value = String(Math.trunc(planarian3dStats.scenario_code || 3));
-    controls.edges.checked = false;
+    controls.edges.checked = true;
     controls.tier2.checked = false;
     controls.body.checked = true;
     controls.nodes.checked = true;
@@ -562,7 +563,11 @@ function animationLoop(timestamp) {
         if (steps > 0) {
           frameAccumulatorMs -= steps * intervalMs;
           const started = performance.now();
-          planarian3dRuntime.step(steps);
+          if (shouldAutoLoopPlanarian3D() && planarian3DReachedLoopHorizon()) {
+            planarian3dRuntime.reset();
+          } else {
+            planarian3dRuntime.step(steps);
+          }
           planarian3dStepMs = performance.now() - started;
           updatePlanarian3DView();
           updateTimelineControls();
@@ -846,6 +851,7 @@ function updatePlanarian3DStats() {
   const scenario = scenarioInfo(planarian3dStats?.scenario_code);
   const cutConductance = planarian3dTrace?.cross_cut_conductance ?? 0;
   const comparison = comparisonScenarioInfo();
+  const loopHorizon = planarian3DLoopHorizonStep();
   stats.textContent = [
     "planarian 3D",
     scenario.label,
@@ -856,9 +862,13 @@ function updatePlanarian3DStats() {
     `${Math.trunc(planarian3dStats?.sample_anchor_count || 0)} mesh anchors`,
     `${Math.trunc(planarian3dStats?.edge_count || 0)} conductance edges`,
     `step ${Math.trunc(planarian3dStats?.step || 0)}`,
+    shouldAutoLoopPlanarian3D()
+      ? `loop ${Math.trunc(planarian3dStats?.step || 0)}/${loopHorizon}`
+      : null,
     `revision ${Math.trunc(planarian3dStats?.revision || 0)}`,
     `t ${formatNumber(planarian3dStats?.time_seconds || 0)}s`,
     `${formatNumber(planarian3dStepMs)}ms`,
+    `dV ${formatNumber(planarian3dStats?.max_voltage_delta || 0)}`,
     `${Math.trunc(planarian3dStats?.active_gates || 0)} gates`,
     `post memory ${formatNumber(planarian3dStats?.posterior_memory || 0)}`,
     `post head ${formatNumber(planarian3dStats?.posterior_head_identity || 0)}`,
@@ -1647,6 +1657,24 @@ function setPlanarian3DScenario(scenarioCode) {
   draw();
 }
 
+function shouldAutoLoopPlanarian3D() {
+  return PLANARIAN_3D_AUTO_LOOP
+    && Boolean(planarian3dRuntime)
+    && Boolean(planarian3dTrace?.samples?.length)
+    && selectedPlanarianPick === null
+    && lastPlanarianEdit === null
+    && lastPlanarianIntent === null;
+}
+
+function planarian3DLoopHorizonStep() {
+  const samples = planarian3dTrace?.samples || [];
+  return Math.max(1, Math.trunc(samples[samples.length - 1]?.step || 0));
+}
+
+function planarian3DReachedLoopHorizon() {
+  return Math.trunc(planarian3dStats?.step || 0) >= planarian3DLoopHorizonStep();
+}
+
 function clearPlanarian3DInteractionState() {
   selectedPlanarianNode = null;
   selectedPlanarianEdge = null;
@@ -1777,6 +1805,7 @@ function selectedPlanarianNodeInfo() {
     region: regionLabelForCode(values[1]),
     ap_coordinate: values[2],
     lateral_coordinate: values[3],
+    surface_anchor: normalizePlanarianSurfaceAnchor(nodeTarget.surface_anchor),
     voltage: values[4],
     memory: values[5],
     head_identity: values[6],
@@ -1810,6 +1839,36 @@ function selectedPlanarianEdgeInfo() {
   };
 }
 
+function normalizePlanarianSurfaceAnchor(anchor) {
+  if (!anchor || !Array.isArray(anchor.barycentric) || anchor.barycentric.length < 3) {
+    return null;
+  }
+  const triangleIndex = Number(anchor.triangle_index);
+  const barycentric = anchor.barycentric.slice(0, 3).map((value) => Number(value));
+  if (!Number.isFinite(triangleIndex) || triangleIndex < 0 || !barycentric.every(Number.isFinite)) {
+    return null;
+  }
+  const sum = barycentric[0] + barycentric[1] + barycentric[2];
+  if (Math.abs(sum - 1) > 1.0e-4) {
+    return null;
+  }
+  return {
+    triangle_index: Math.trunc(triangleIndex),
+    barycentric,
+  };
+}
+
+function formatPlanarianSurfaceAnchor(anchor) {
+  const normalized = normalizePlanarianSurfaceAnchor(anchor);
+  if (!normalized) {
+    return null;
+  }
+  return [
+    `tri ${normalized.triangle_index}`,
+    `bc ${normalized.barycentric.map(formatNumber).join("/")}`,
+  ].join(" ");
+}
+
 function updatePlanarian3DSelectionReadout() {
   if (!controls.planarianSelectionReadout) {
     return;
@@ -1825,12 +1884,13 @@ function updatePlanarian3DSelectionReadout() {
       nodeInfo.region,
       `AP ${formatNumber(nodeInfo.ap_coordinate)}`,
       `lat ${signedFormatNumber(nodeInfo.lateral_coordinate)}`,
+      formatPlanarianSurfaceAnchor(nodeInfo.surface_anchor),
       `V ${signedFormatNumber(nodeInfo.voltage)}`,
       `memory ${formatNumber(nodeInfo.memory)}`,
       `head ${formatNumber(nodeInfo.head_identity)}`,
       `tail ${formatNumber(nodeInfo.tail_identity)}`,
       `edges ${nodeInfo.incident_edge_count}/${nodeInfo.outgoing_edge_count}`,
-    ].join("  ");
+    ].filter(Boolean).join("  ");
     return;
   }
   const edgeInfo = selectedPlanarianEdgeInfo();

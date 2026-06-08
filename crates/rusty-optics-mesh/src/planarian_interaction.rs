@@ -3,7 +3,10 @@ use rusty_optics_model::{
     PLANARIAN_BIOELECTRIC_EDIT_INTENT_SCHEMA_ID, PLANARIAN_BIOELECTRIC_PICK_SELECTION_SCHEMA_ID,
 };
 
-use crate::PlanarianBioelectricVisualSequence;
+use crate::{
+    planarian_frame::{validate_surface_anchor, validate_surface_anchor_shape},
+    PlanarianBioelectricVisualSequence, PlanarianSurfaceNodeAnchor,
+};
 
 /// Renderer-neutral target selected from a planarian 3D visual.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -21,6 +24,12 @@ pub enum PlanarianPickTarget {
         ap_coordinate: f32,
         /// Lateral coordinate normalized by Matter/Optics region metadata.
         lateral_coordinate: f32,
+        /// Source body-surface anchor for the sampled Matter node, when available.
+        #[cfg_attr(
+            feature = "serde",
+            serde(default, skip_serializing_if = "Option::is_none")
+        )]
+        surface_anchor: Option<PlanarianSurfaceNodeAnchor>,
     },
     /// A body mesh triangle from the Matter-owned source surface.
     BodyTriangle {
@@ -100,6 +109,7 @@ impl PlanarianPickSelection {
                 region_id: node_region.region_id.clone(),
                 ap_coordinate: node_region.ap_coordinate,
                 lateral_coordinate: node_region.lateral_coordinate,
+                surface_anchor: node_region.surface_anchor,
             },
             normalized_pointer,
             distance,
@@ -953,6 +963,7 @@ impl PlanarianPickTarget {
                 region_id,
                 ap_coordinate,
                 lateral_coordinate,
+                surface_anchor,
                 ..
             } => {
                 if node_id.trim().is_empty() || region_id.trim().is_empty() {
@@ -963,6 +974,9 @@ impl PlanarianPickTarget {
                     || !lateral_coordinate.is_finite()
                 {
                     return Err(OpticsError::InvalidValue("planarian pick node target"));
+                }
+                if let Some(anchor) = surface_anchor {
+                    validate_surface_anchor_shape(anchor, "planarian pick node anchor")?;
                 }
             }
             Self::BodyTriangle { region_id, .. } => {
@@ -990,6 +1004,7 @@ impl PlanarianPickTarget {
                 region_id,
                 ap_coordinate,
                 lateral_coordinate,
+                surface_anchor,
             } => {
                 let Some(node_region) = sequence.node_regions.get(*node_index) else {
                     return Err(OpticsError::InvalidPayload("planarian pick node target"));
@@ -1005,6 +1020,30 @@ impl PlanarianPickTarget {
                     return Err(OpticsError::InvalidPayload(
                         "planarian pick node metadata must match sequence",
                     ));
+                }
+                match (node_region.surface_anchor, surface_anchor) {
+                    (Some(expected_anchor), Some(actual_anchor))
+                        if anchors_match(&expected_anchor, actual_anchor) =>
+                    {
+                        validate_surface_anchor(
+                            actual_anchor,
+                            sequence.body_surface.triangles.len(),
+                            "planarian pick node anchor",
+                        )?;
+                    }
+                    (Some(_), _) => {
+                        return Err(OpticsError::InvalidPayload(
+                            "planarian pick node anchor must match sequence",
+                        ));
+                    }
+                    (None, Some(actual_anchor)) => {
+                        validate_surface_anchor(
+                            actual_anchor,
+                            sequence.body_surface.triangles.len(),
+                            "planarian pick node anchor",
+                        )?;
+                    }
+                    (None, None) => {}
                 }
             }
             Self::BodyTriangle {
@@ -1207,6 +1246,15 @@ fn validate_edit_target_matches_pick(
             "planarian edit target must match pick target",
         )),
     }
+}
+
+fn anchors_match(left: &PlanarianSurfaceNodeAnchor, right: &PlanarianSurfaceNodeAnchor) -> bool {
+    left.triangle_index == right.triangle_index
+        && left
+            .barycentric
+            .iter()
+            .zip(right.barycentric.iter())
+            .all(|(left, right)| (left - right).abs() <= 1.0e-5)
 }
 
 fn validate_context_ids(

@@ -4,6 +4,8 @@ const EDGE_STRIDE = 4;
 const CONDUCTANCE_STRIDE = 6;
 const PICK_SELECTION_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.pick_selection.v1";
 const PLANARIAN_GLB_MIN_BODY_VERTICES = 1000;
+const NODE_SURFACE_OFFSET_SCALE = 0.45;
+const NODE_POINT_SIZE_SCALE = 0.92;
 
 export async function createPlanarianBioelectric3DView(options) {
   const three = await import(options.threeModuleUrl);
@@ -150,7 +152,9 @@ class PlanarianBioelectric3DView {
     this.bounds = computeBounds(this.THREE, bodyVertices, this.nodes);
     this.target.copy(this.bounds.center);
     this.distance = Math.max(0.001, this.bounds.radius * 1.55);
-    this.nodeRadius = Math.max(0.008, this.bounds.radius * 0.026);
+    this.nodeRadius = Math.max(0.006, this.bounds.radius * 0.018);
+    this.container.dataset.nodeSurfaceOffsetScale = String(NODE_SURFACE_OFFSET_SCALE);
+    this.container.dataset.nodePointSizeScale = String(NODE_POINT_SIZE_SCALE);
   }
 
   createScene() {
@@ -258,7 +262,10 @@ class PlanarianBioelectric3DView {
     const positions = new Float32Array(this.nodes.length * 3);
     const colors = new Float32Array(this.nodes.length * 3);
     for (const node of this.nodes) {
-      const renderPosition = node.position.clone().addScaledVector(node.normal, this.nodeRadius * 1.7);
+      const renderPosition = node.position.clone().addScaledVector(
+        node.normal,
+        this.nodeRadius * NODE_SURFACE_OFFSET_SCALE,
+      );
       node.renderPosition = renderPosition;
       const offset = node.nodeIndex * 3;
       positions[offset] = renderPosition.x;
@@ -276,7 +283,7 @@ class PlanarianBioelectric3DView {
       depthTest: true,
       depthWrite: false,
       map: createNodePointTexture(THREE),
-      size: this.nodeRadius * 1.28,
+      size: this.nodeRadius * NODE_POINT_SIZE_SCALE,
       sizeAttenuation: true,
       transparent: true,
       opacity: 0.9,
@@ -655,6 +662,12 @@ class PlanarianBioelectric3DView {
           region_id: regionIdForCode(node?.regionCode),
           ap_coordinate: node?.ap ?? 0,
           lateral_coordinate: node?.lateral ?? 0,
+          surface_anchor: node?.triangleIndex === null
+            ? null
+            : {
+              triangle_index: node.triangleIndex,
+              barycentric: [...node.barycentric],
+            },
         },
       },
       normalized_pointer: { x: this.mouse.x, y: this.mouse.y },
