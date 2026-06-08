@@ -1,5 +1,6 @@
 const NODE_STRIDE = 9;
 const SNAPSHOT_STRIDE = 4;
+const ACTIVITY_STRIDE = 2;
 const EDGE_STRIDE = 4;
 const CONDUCTANCE_STRIDE = 6;
 const PICK_SELECTION_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.pick_selection.v1";
@@ -407,10 +408,33 @@ class PlanarianBioelectric3DView {
     }, { passive: false });
   }
 
-  updateSnapshot(snapshot, conductanceValues, layer) {
+  updateSnapshot(snapshot, conductanceValues, layer, activityValues = null) {
     this.snapshot = snapshot;
+    this.activityValues = activityValues;
+    this.updateActivityDataset(activityValues);
     this.updateNodeColors(layer);
     this.updateConductanceColors(conductanceValues);
+  }
+
+  updateActivityDataset(activityValues) {
+    const activityCount = activityValues
+      ? Math.floor(activityValues.length / ACTIVITY_STRIDE)
+      : 0;
+    let maxDelta = 0;
+    let activeCount = 0;
+    if (activityValues) {
+      for (let offset = 0; offset < activityValues.length; offset += ACTIVITY_STRIDE) {
+        const delta = activityValues[offset];
+        maxDelta = Math.max(maxDelta, delta);
+        if (delta > 1.0e-6) {
+          activeCount += 1;
+        }
+      }
+    }
+    this.container.dataset.nodeActivityCount = String(activityCount);
+    this.container.dataset.nodeActivityActiveCount = String(activeCount);
+    this.container.dataset.nodeActivityStride = String(activityValues ? ACTIVITY_STRIDE : 0);
+    this.container.dataset.nodeActivityMaxDelta = String(maxDelta);
   }
 
   updateNodeColors(layer) {
@@ -418,7 +442,7 @@ class PlanarianBioelectric3DView {
       return;
     }
     for (let nodeIndex = 0; nodeIndex < this.nodes.length; nodeIndex += 1) {
-      const value = snapshotValue(this.snapshot, nodeIndex, layer);
+      const value = snapshotValue(this.snapshot, this.activityValues, nodeIndex, layer);
       colorForLayer(this.THREE, this.nodeColor, layer, value);
       const offset = nodeIndex * 3;
       this.nodeColors[offset] = this.nodeColor.r;
@@ -776,7 +800,13 @@ function bodyColorForZ(THREE, z, minZ, maxZ) {
   return color;
 }
 
-function snapshotValue(snapshot, nodeIndex, layer) {
+function snapshotValue(snapshot, activityValues, nodeIndex, layer) {
+  if (layer === "circuit.activity") {
+    const offset = nodeIndex * ACTIVITY_STRIDE;
+    return activityValues && offset + 1 < activityValues.length
+      ? activityValues[offset + 1]
+      : 0;
+  }
   const offset = nodeIndex * SNAPSHOT_STRIDE;
   if (layer === "circuit.memory") {
     return snapshot[offset + 1];
@@ -791,6 +821,17 @@ function snapshotValue(snapshot, nodeIndex, layer) {
 }
 
 function colorForLayer(THREE, color, layer, value) {
+  if (layer === "circuit.activity") {
+    const t = clamp(value, 0, 1);
+    if (t < 0.5) {
+      const u = t * 2;
+      color.setRGB(0.18 + u * 0.28, 0.24 + u * 0.38, 0.34 + u * 0.16);
+    } else {
+      const u = (t - 0.5) * 2;
+      color.setRGB(0.46 + u * 0.54, 0.62 + u * 0.22, 0.50 - u * 0.28);
+    }
+    return color;
+  }
   if (layer === "circuit.memory") {
     const t = clamp(value, 0, 1);
     color.setRGB(0.12 + t * 0.30, 0.34 + t * 0.62, 0.30 + t * 0.42);

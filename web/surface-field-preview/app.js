@@ -55,7 +55,7 @@ const wasmBaseUrl = params.get("wasm") || "/local-artifacts/matter_surface_field
 const threeModuleUrl = params.get("three")
   || new URL("/local-artifacts/web3d/three.module.js", window.location.href).href;
 const planarian3dModuleUrl = params.get("planarian3d")
-  || "./planarian-3d.js?v=planarian-glb-dynamics-1";
+  || "./planarian-3d.js?v=planarian-node-activity-1";
 const PLANARIAN_EDIT_FEEDBACK_FRAME_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.edit_feedback_frame.v1";
 const PLANARIAN_EDIT_INTENT_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.edit_intent.v1";
 const PLANARIAN_3D_VISUAL_ID = "fields.visual.planarian3d.live";
@@ -670,12 +670,15 @@ function fillLayerSelect() {
   const selected = controls.scalarLayer.value;
   controls.scalarLayer.innerHTML = "";
   if (isPlanarian3DMode()) {
+    addLayerOption("circuit.activity", "activity dV");
     addLayerOption("circuit.voltage", "voltage");
     addLayerOption("circuit.memory", "memory");
     addLayerOption("readout:readout.planarian_ap.head_identity", "planarian_ap.head_identity");
     addLayerOption("readout:readout.planarian_ap.tail_identity", "planarian_ap.tail_identity");
     if ([...controls.scalarLayer.options].some((option) => option.value === selected)) {
       controls.scalarLayer.value = selected;
+    } else {
+      controls.scalarLayer.value = "circuit.activity";
     }
     updatePlanarian3DView();
     return;
@@ -868,7 +871,10 @@ function updatePlanarian3DStats() {
     `revision ${Math.trunc(planarian3dStats?.revision || 0)}`,
     `t ${formatNumber(planarian3dStats?.time_seconds || 0)}s`,
     `${formatNumber(planarian3dStepMs)}ms`,
-    `dV ${formatNumber(planarian3dStats?.max_voltage_delta || 0)}`,
+    `dV ${formatDeltaNumber(planarian3dStats?.max_voltage_delta || 0)}`,
+    controls.scalarLayer.value === "circuit.activity"
+      ? `active nodes ${Math.trunc(planarian3dStats?.node_activity_active_count || 0)}`
+      : null,
     `${Math.trunc(planarian3dStats?.active_gates || 0)} gates`,
     `post memory ${formatNumber(planarian3dStats?.posterior_memory || 0)}`,
     `post head ${formatNumber(planarian3dStats?.posterior_head_identity || 0)}`,
@@ -1458,6 +1464,10 @@ function readPlanarian3DStats() {
     body_triangle_count: planarian3dRuntime.body_triangle_count(),
     sample_anchor_count: planarian3dView?.anchorCount ?? 0,
     sample_anchor_stride: planarian3dView?.anchorStride ?? 0,
+    node_activity_count: Number(viewport3d?.dataset?.nodeActivityCount || 0),
+    node_activity_active_count: Number(viewport3d?.dataset?.nodeActivityActiveCount || 0),
+    node_activity_stride: Number(viewport3d?.dataset?.nodeActivityStride || 0),
+    node_activity_max_delta: Number(viewport3d?.dataset?.nodeActivityMaxDelta || 0),
   };
 }
 
@@ -1607,13 +1617,15 @@ function updatePlanarian3DView() {
   if (!planarian3dRuntime || !planarian3dView) {
     return;
   }
-  planarian3dStats = readPlanarian3DStats();
+  const activityValues = planarian3dRuntime.node_activity?.() || null;
   const feedbackFrame = readPlanarianEditFeedbackFrame();
   planarian3dView.updateSnapshot(
     planarian3dRuntime.snapshot(),
     planarian3dRuntime.conductance_values(),
     controls.scalarLayer.value || "circuit.voltage",
+    activityValues,
   );
+  planarian3dStats = readPlanarian3DStats();
   planarian3dView.setVisibility(
     controls.edges.checked,
     controls.tier2.checked,
@@ -1799,6 +1811,7 @@ function selectedPlanarianNodeInfo() {
   if (values.length < 10) {
     return null;
   }
+  const activity = planarian3DNodeActivityAt(nodeTarget.node_index);
   return {
     node_index: Math.trunc(values[0]),
     region_code: Math.trunc(values[1]),
@@ -1806,12 +1819,30 @@ function selectedPlanarianNodeInfo() {
     ap_coordinate: values[2],
     lateral_coordinate: values[3],
     surface_anchor: normalizePlanarianSurfaceAnchor(nodeTarget.surface_anchor),
+    activity_delta: activity?.delta ?? 0,
+    activity_normalized: activity?.normalized ?? 0,
     voltage: values[4],
     memory: values[5],
     head_identity: values[6],
     tail_identity: values[7],
     incident_edge_count: Math.trunc(values[8]),
     outgoing_edge_count: Math.trunc(values[9]),
+  };
+}
+
+function planarian3DNodeActivityAt(nodeIndex) {
+  if (!planarian3dRuntime?.node_activity) {
+    return null;
+  }
+  const stride = Math.trunc(planarian3dRuntime.node_activity_stride?.() || 2);
+  const values = planarian3dRuntime.node_activity();
+  const offset = Math.trunc(nodeIndex) * stride;
+  if (offset + 1 >= values.length) {
+    return null;
+  }
+  return {
+    delta: values[offset],
+    normalized: values[offset + 1],
   };
 }
 
@@ -1885,6 +1916,7 @@ function updatePlanarian3DSelectionReadout() {
       `AP ${formatNumber(nodeInfo.ap_coordinate)}`,
       `lat ${signedFormatNumber(nodeInfo.lateral_coordinate)}`,
       formatPlanarianSurfaceAnchor(nodeInfo.surface_anchor),
+      `dV ${formatDeltaNumber(nodeInfo.activity_delta)}`,
       `V ${signedFormatNumber(nodeInfo.voltage)}`,
       `memory ${formatNumber(nodeInfo.memory)}`,
       `head ${formatNumber(nodeInfo.head_identity)}`,
@@ -2552,6 +2584,15 @@ function lerpColor(a, b, t) {
 
 function formatNumber(value) {
   return Number(value).toFixed(2);
+}
+
+function formatDeltaNumber(value) {
+  const number = Number(value) || 0;
+  const magnitude = Math.abs(number);
+  if (magnitude > 0 && magnitude < 0.01) {
+    return number.toFixed(4);
+  }
+  return number.toFixed(2);
 }
 
 function signedFormatNumber(value) {

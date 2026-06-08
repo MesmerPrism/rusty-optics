@@ -63,7 +63,9 @@ For realtime surface-field previews, Optics calls the Matter surface-field
 Wasm runtime for fixed-step dynamics and snapshots. Browser JavaScript maps
 the returned Matter values into Optics-owned colors, arrows, overlays, and
 controls; it must not duplicate diffusion, decay, perturbation, or vector
-update rules.
+update rules. In the live Planarian 3D view, the `activity dV` layer is also
+Matter-exported data: Optics colors the latest per-node voltage-delta rows but
+does not derive circuit activity from renderer geometry.
 
 For bioelectric circuit previews, Optics consumes Matter circuit state and
 diagnostics as renderer-neutral visual frames. Browser JavaScript may select
@@ -87,9 +89,11 @@ Matter-exported event and affected-target rows, wraps them in an Optics
 feedback-frame shape, and only formats operation, target, revision, status,
 clamping metadata, renderer color, size, recency fade, and compact timeline
 marks. The browser Planarian 3D adapter may style the converted Matter mesh as
-a solid visible body, but it must use the Matter-exported triangle surface and
-GLB surface-anchor rows, keep body/nodes/edges as separate visibility
-controls, and refuse a low-count procedural fallback for this GLB-backed mode.
+a solid visible body, draw Matter-exported node activity as a visual layer, and
+default first-tier conductance edges on for readability, but it must use the
+Matter-exported triangle surface and GLB surface-anchor rows, keep
+body/nodes/edges as separate visibility controls, and refuse a low-count
+procedural fallback for this GLB-backed mode.
 
 ## Renderer Adapter Boundary
 
