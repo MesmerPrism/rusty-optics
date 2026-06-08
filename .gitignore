@@ -1,4 +1,6 @@
 /target/
+/local-artifacts/
+/.surface-field-preview.pid
 /.idea/
 /.vscode/
 *.rs.bk
