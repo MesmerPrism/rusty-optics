@@ -5,6 +5,8 @@
   "source_schema_id": "rusty.matter.fields.debug_frame.v1",
   "substrate_id": "fields.substrate.optics_unit_square",
   "surface_id": "mesh.unit_square_surface",
+  "step_index": 0,
+  "time_seconds": 0.0,
   "bounds_min": {
     "x": 0.12556355,
     "y": 0.11687642,

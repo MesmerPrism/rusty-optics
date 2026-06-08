@@ -30,6 +30,10 @@ The surface-field browser fixture is regenerated with:
 cargo run -p rusty-optics-fixtures -- export-surface-field-preview
 ```
 
+That command writes both `fixtures/fields/surface_field_visual_frame.json` and
+`fixtures/fields/surface_field_visual_sequence.json`. The browser preview
+defaults to the sequence for dynamic playback.
+
 Start the static browser preview with:
 
 ```powershell

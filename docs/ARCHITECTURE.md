@@ -18,7 +18,8 @@ Optics owns:
 - trail appearance descriptors and particle render-budget summaries;
 - mesh debug frames, coordinate-map visuals, collider visuals, and SDF slice
   visuals over Matter mesh payloads;
-- surface-field visual frames over Matter field debug frames;
+- surface-field visual frames and playback sequences over Matter field debug
+  frames/sequences;
 - deterministic fixture and schema artifacts;
 - renderer-neutral diagnostics for visual payloads.
 
@@ -72,7 +73,8 @@ The implemented foundation slice is CPU/data-only:
 - flat-screen projection and far-to-near sorting;
 - morphed-ring mask atlas CPU reference generation;
 - mesh debug frames over Matter triangle surfaces;
-- surface-field visual frames over Matter surface-field debug frames;
+- surface-field visual frames and playback sequences over Matter surface-field
+  debug frames/sequences;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over one shared
   source mesh surface;
 - browser preview for generated mesh debug JSON and Matter-Wasm-backed animated
@@ -96,8 +98,8 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
 - `rusty-optics-mesh/src/coordinate.rs`: coordinate-map anchor and axis debug
   visuals.
 - `rusty-optics-mesh/src/field_frame.rs`: renderer-neutral surface-field node,
-  edge, scalar-color, perturbation-region, and polarity-arrow visuals over
-  Matter field debug frames.
+  edge, scalar-color, perturbation-region, polarity-arrow, and visual sequence
+  contracts over Matter field debug frames/sequences.
 - `rusty-optics-mesh/src/mesh_frame.rs`: mesh wireframe and topology debug
   visuals.
 - `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug

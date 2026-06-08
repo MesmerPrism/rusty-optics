@@ -3,6 +3,10 @@ const ctx = canvas.getContext("2d");
 const stats = document.querySelector("#stats");
 const controls = {
   scalarLayer: document.querySelector("#scalar-layer"),
+  play: document.querySelector("#toggle-play"),
+  frameSlider: document.querySelector("#frame-slider"),
+  framePosition: document.querySelector("#frame-position"),
+  speed: document.querySelector("#playback-speed"),
   edges: document.querySelector("#toggle-edges"),
   tier2: document.querySelector("#toggle-tier2"),
   regions: document.querySelector("#toggle-regions"),
@@ -12,13 +16,22 @@ const controls = {
 };
 
 const params = new URLSearchParams(window.location.search);
-const frameUrl = params.get("frame") || "/fixtures/fields/surface_field_visual_frame.json";
-let frame = null;
+const frameUrl = params.get("frame");
+const sequenceUrl = params.get("sequence")
+  || (frameUrl ? null : "/fixtures/fields/surface_field_visual_sequence.json");
+const payloadUrl = sequenceUrl || frameUrl || "/fixtures/fields/surface_field_visual_frame.json";
+
+let sequence = null;
+let frames = [];
+let currentFrameIndex = 0;
 let bounds = null;
 let view = { zoom: 1, offsetX: 0, offsetY: 0 };
 let drag = null;
+let playing = true;
+let lastAnimationTime = null;
+let frameAccumulatorMs = 0;
 
-fetch(frameUrl)
+fetch(payloadUrl)
   .then((response) => {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
@@ -26,15 +39,12 @@ fetch(frameUrl)
     return response.json();
   })
   .then((payload) => {
-    frame = payload;
-    bounds = computeBounds(frame);
-    fillLayerSelect();
-    resetView();
-    updateStats();
-    draw();
+    loadPayload(payload);
+    requestAnimationFrame(animationLoop);
   })
   .catch((error) => {
-    stats.value = `Frame load failed: ${error.message}`;
+    stats.textContent = `Frame load failed: ${error.message}`;
+    setPlaying(false);
     draw();
   });
 
@@ -51,6 +61,23 @@ for (const input of [
     draw();
   });
 }
+
+controls.play.addEventListener("click", () => {
+  setPlaying(!playing);
+});
+
+controls.frameSlider.addEventListener("input", () => {
+  currentFrameIndex = Number(controls.frameSlider.value);
+  lastAnimationTime = null;
+  frameAccumulatorMs = 0;
+  updateTimelineControls();
+  updateStats();
+  draw();
+});
+
+controls.speed.addEventListener("change", () => {
+  frameAccumulatorMs = 0;
+});
 
 controls.reset.addEventListener("click", () => {
   resetView();
@@ -90,13 +117,63 @@ canvas.addEventListener("wheel", (event) => {
 
 window.addEventListener("resize", draw);
 
+function loadPayload(payload) {
+  if (Array.isArray(payload.frames)) {
+    sequence = payload;
+    frames = payload.frames;
+  } else {
+    sequence = null;
+    frames = [payload];
+  }
+  currentFrameIndex = 0;
+  bounds = computeBounds(activeFrame());
+  fillLayerSelect();
+  resetView();
+  setPlaying(frames.length > 1);
+  updateTimelineControls();
+  updateStats();
+  draw();
+}
+
+function animationLoop(timestamp) {
+  if (playing && frames.length > 1) {
+    if (lastAnimationTime !== null) {
+      frameAccumulatorMs += timestamp - lastAnimationTime;
+      const intervalMs = frameIntervalSeconds() * 1000 / playbackSpeed();
+      while (frameAccumulatorMs >= intervalMs) {
+        frameAccumulatorMs -= intervalMs;
+        currentFrameIndex = (currentFrameIndex + 1) % frames.length;
+      }
+      updateTimelineControls();
+      updateStats();
+      draw();
+    }
+    lastAnimationTime = timestamp;
+  } else {
+    lastAnimationTime = null;
+  }
+  requestAnimationFrame(animationLoop);
+}
+
+function setPlaying(nextPlaying) {
+  playing = nextPlaying && frames.length > 1;
+  controls.play.textContent = playing ? "Pause" : "Play";
+  controls.play.disabled = frames.length <= 1;
+}
+
 function fillLayerSelect() {
+  const selected = controls.scalarLayer.value;
   controls.scalarLayer.innerHTML = "";
+  const frame = activeFrame();
   for (const layer of frame.scalar_layers) {
     const option = document.createElement("option");
     option.value = layer.field_id;
     option.textContent = layer.field_id.replace("field.", "");
     controls.scalarLayer.append(option);
+  }
+  if (frame.scalar_layers.some((layer) => layer.field_id === selected)) {
+    controls.scalarLayer.value = selected;
+    return;
   }
   const wound = frame.scalar_layers.find((layer) => layer.field_id.includes("wound"));
   if (wound) {
@@ -108,14 +185,26 @@ function resetView() {
   view = { zoom: 1, offsetX: 0, offsetY: 0 };
 }
 
+function updateTimelineControls() {
+  const frameCount = Math.max(1, frames.length);
+  controls.frameSlider.max = String(frameCount - 1);
+  controls.frameSlider.value = String(currentFrameIndex);
+  controls.frameSlider.disabled = frameCount <= 1;
+  controls.framePosition.textContent = `${currentFrameIndex + 1}/${frameCount}`;
+}
+
 function updateStats() {
-  if (!frame) {
+  if (frames.length === 0) {
     return;
   }
+  const frame = activeFrame();
   const layer = activeScalarLayer();
-  stats.value = [
+  stats.textContent = [
     `${frame.nodes.length} nodes`,
     `${frame.edges.length} edges`,
+    `${frames.length} frames`,
+    `step ${frame.step_index}${sequence ? `/${sequence.step_count}` : ""}`,
+    `t ${formatNumber(frame.time_seconds)}s`,
     `${frame.scalar_layers.length} scalar layers`,
     `${frame.vector_layers[0]?.arrows.length || 0} arrows`,
     layer ? `${layer.field_id}: ${formatNumber(layer.min_value)}..${formatNumber(layer.max_value)}` : null,
@@ -126,7 +215,7 @@ function draw() {
   resizeCanvas();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
-  if (!frame) {
+  if (frames.length === 0) {
     drawLoading();
     return;
   }
@@ -171,6 +260,7 @@ function drawLoading() {
 }
 
 function drawEdges() {
+  const frame = activeFrame();
   ctx.lineCap = "round";
   for (const edge of frame.edges) {
     if (edge.tier === 2 && !controls.tier2.checked) {
@@ -184,7 +274,7 @@ function drawEdges() {
     const start = project(startNode.position);
     const end = project(endNode.position);
     ctx.strokeStyle = rgba(edge.color);
-    ctx.lineWidth = (edge.tier === 1 ? 1.25 : 0.75) * (window.devicePixelRatio || 1);
+    ctx.lineWidth = (edge.tier === 1 ? 1.2 : 0.65) * (window.devicePixelRatio || 1);
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
     ctx.lineTo(end.x, end.y);
@@ -193,6 +283,7 @@ function drawEdges() {
 }
 
 function drawRegions() {
+  const frame = activeFrame();
   for (const region of frame.perturbation_regions) {
     ctx.fillStyle = rgba(region.color);
     ctx.strokeStyle = rgba({ ...region.color, a: Math.min(0.72, region.color.a * 1.8) });
@@ -213,6 +304,7 @@ function drawRegions() {
 }
 
 function drawScalarNodes() {
+  const frame = activeFrame();
   const layer = activeScalarLayer();
   if (!layer) {
     return;
@@ -231,23 +323,25 @@ function drawScalarNodes() {
 }
 
 function drawVectorArrows() {
+  const frame = activeFrame();
   for (const layer of frame.vector_layers) {
     for (const arrow of layer.arrows) {
       const start = project(arrow.start);
       const end = project(arrow.end);
       ctx.strokeStyle = rgba(arrow.color);
       ctx.fillStyle = rgba(arrow.color);
-      ctx.lineWidth = 1.8 * (window.devicePixelRatio || 1);
+      ctx.lineWidth = 1.5 * (window.devicePixelRatio || 1);
       ctx.beginPath();
       ctx.moveTo(start.x, start.y);
       ctx.lineTo(end.x, end.y);
       ctx.stroke();
-      drawArrowHead(start, end, 7 * (window.devicePixelRatio || 1));
+      drawArrowHead(start, end, 6 * (window.devicePixelRatio || 1));
     }
   }
 }
 
 function drawLabels() {
+  const frame = activeFrame();
   const scale = window.devicePixelRatio || 1;
   ctx.fillStyle = "rgba(226, 232, 238, 0.82)";
   ctx.font = `${11 * scale}px sans-serif`;
@@ -282,7 +376,12 @@ function drawArrowHead(start, end, size) {
   ctx.fill();
 }
 
+function activeFrame() {
+  return frames[currentFrameIndex] || frames[0];
+}
+
 function activeScalarLayer() {
+  const frame = activeFrame();
   return frame?.scalar_layers.find((layer) => layer.field_id === controls.scalarLayer.value)
     || frame?.scalar_layers[0]
     || null;
@@ -318,11 +417,22 @@ function project(point) {
 }
 
 function screenScale() {
-  return (Math.min(canvas.width, canvas.height) * 0.72 * view.zoom) / bounds.radius;
+  return (Math.min(canvas.width, canvas.height) * 0.74 * view.zoom) / bounds.radius;
 }
 
 function nodeScreenRadius(node) {
-  return Math.max(6, node.radius * screenScale());
+  return Math.max(4.5, node.radius * screenScale());
+}
+
+function frameIntervalSeconds() {
+  if (sequence) {
+    return Math.max(0.01, sequence.fixed_step_seconds * sequence.frame_stride);
+  }
+  return 1 / 30;
+}
+
+function playbackSpeed() {
+  return Number(controls.speed.value) || 1;
 }
 
 function rgba(color) {

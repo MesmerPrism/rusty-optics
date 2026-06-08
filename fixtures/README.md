@@ -51,3 +51,6 @@ Surface-field preview fixtures:
   visual frame over a Matter-owned surface-field debug frame. It contains
   colored scalar node samples, tiered neighbor edges, perturbation highlights,
   and polarity arrows.
+- `fixtures/fields/surface_field_visual_sequence.json`: renderer-neutral
+  Optics visual sequence over a Matter-owned dynamic debug sequence. It
+  contains 41 emitted frames over 120 Matter fixed steps for browser playback.

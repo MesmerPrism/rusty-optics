@@ -29,7 +29,8 @@ runtime sockets, media stacks, or downstream app crates.
 - Optics owns visual particle frames, billboard preparation contracts, flat
   projection, animation-mask descriptors, trail appearance descriptors,
   transparency/depth policy, renderer-neutral budget summaries, mesh debug
-  frames, coordinate-map visuals, collider visuals, and SDF slice visuals.
+  frames, coordinate-map visuals, collider visuals, SDF slice visuals, and
+  surface-field visual frames/sequences over Matter-owned field payloads.
 - Renderer adapters own GPU buffers, shaders, draw calls, texture uploads,
   swapchains, platform frame lifecycle, and backend imports.
 - Animated hand-mesh browser previews must call Matter runtime code through the

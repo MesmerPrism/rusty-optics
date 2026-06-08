@@ -1,7 +1,7 @@
 use rusty_matter_fields::{
     SurfaceFieldDebugFrame, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
-    SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
-    SurfaceVectorField, SurfaceVectorFieldKind,
+    SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate,
+    SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
 };
 use rusty_matter_mesh::{
     DynamicMeshCollider, DynamicMeshColliderConfig, MeshCoordinateFrameConfig, MeshCoordinateMap,
@@ -12,7 +12,7 @@ use rusty_matter_sdf::{build_sdf_from_mesh, MeshToSdfConfig};
 
 use crate::{
     MeshBrowserDebugFrame, MeshColliderVisual, MeshCoordinateVisual, MeshDebugFrame,
-    SdfSliceVisual, SurfaceFieldVisualFrame,
+    SdfSliceVisual, SurfaceFieldVisualFrame, SurfaceFieldVisualFrameSequence,
 };
 
 #[test]
@@ -119,6 +119,22 @@ fn surface_field_visual_frame_resolves_layers_edges_and_regions() {
         .any(|arrow| arrow.end.x < arrow.start.x));
 }
 
+#[test]
+fn surface_field_visual_sequence_preserves_matter_timing() {
+    let source = sample_surface_field_debug_sequence();
+    let sequence = SurfaceFieldVisualFrameSequence::from_matter_debug_sequence(
+        "fields.visual.sequence.unit_square",
+        &source,
+    )
+    .expect("field visual sequence");
+
+    assert_eq!(sequence.frames.len(), source.frames.len());
+    assert_eq!(sequence.diagnostic_count, source.diagnostics.len());
+    assert_eq!(sequence.step_count, source.step_count);
+    assert_eq!(sequence.frames[0].step_index, 0);
+    assert!(sequence.frames.last().expect("final frame").time_seconds > 0.0);
+}
+
 fn sample_surface() -> TriangleMeshSurface {
     TriangleMeshSurface::new(
         "mesh.unit_square_surface",
@@ -192,4 +208,56 @@ fn sample_surface_field_debug_frame() -> SurfaceFieldDebugFrame {
         &perturbations,
     )
     .expect("debug frame")
+}
+
+fn sample_surface_field_debug_sequence() -> rusty_matter_fields::SurfaceFieldDebugFrameSequence {
+    let surface = sample_surface();
+    let config = MeshSurfaceSampleConfig {
+        point_count: 10,
+        first_tier_neighbor_count: 3,
+        second_tier_neighbor_count: 3,
+        pattern: MeshSurfaceSamplePattern::LowDiscrepancy,
+        ..MeshSurfaceSampleConfig::default()
+    };
+    let samples = surface.sample_points(&config).expect("samples");
+    let substrate =
+        SurfaceFieldSubstrate::from_sample_set("fields.substrate.visual_sequence_test", &samples)
+            .expect("substrate");
+    let node_count = substrate.node_count();
+    let state = SurfaceFieldState::new(
+        "fields.state.visual_sequence_test",
+        &substrate,
+        vec![SurfaceScalarField::constant(
+            "field.wound_signal",
+            SurfaceScalarFieldKind::WoundSignal,
+            node_count,
+            0.0,
+        )],
+        vec![SurfaceVectorField::constant(
+            "field.polarity",
+            SurfaceVectorFieldKind::Polarity,
+            node_count,
+            Vec3::new(1.0, 0.0, 0.0),
+        )],
+    )
+    .expect("state");
+    let mut perturbation = SurfaceFieldPerturbation::new(
+        "perturbation.wound.visual_sequence_test",
+        Some("field.wound_signal".to_owned()),
+        vec![0, 1],
+        SurfaceFieldPerturbationEffect::WoundRegion { signal_value: 1.0 },
+    );
+    perturbation.duration_steps = 3;
+    let runtime =
+        SurfaceFieldRuntime::new(SurfaceFieldRuntimeConfig::default()).expect("runtime config");
+    runtime
+        .run_debug_sequence(
+            "fields.debug_sequence.visual_test",
+            &substrate,
+            &state,
+            &[perturbation],
+            9,
+            3,
+        )
+        .expect("debug sequence")
 }

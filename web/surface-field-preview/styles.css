@@ -24,9 +24,10 @@ body {
 
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
-  min-height: 48px;
+  gap: 12px;
+  min-height: 76px;
   padding: 8px 12px;
   border-bottom: 1px solid #2b323c;
   background: #171c23;
@@ -64,7 +65,8 @@ select {
 }
 
 button {
-  min-width: 64px;
+  min-width: 58px;
+  padding: 0 10px;
 }
 
 button:hover,
@@ -76,6 +78,33 @@ output {
   margin-left: auto;
   color: #aeb9c4;
   white-space: nowrap;
+}
+
+.frame-control {
+  min-width: 178px;
+}
+
+.frame-control input {
+  width: 132px;
+  accent-color: #76b7ff;
+}
+
+#frame-position {
+  min-width: 42px;
+  margin-left: 0;
+  color: #d9e0e8;
+  text-align: center;
+}
+
+#playback-speed {
+  min-width: 72px;
+}
+
+#stats {
+  flex-basis: 100%;
+  margin-left: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 canvas {
@@ -92,7 +121,6 @@ canvas {
 
 @media (max-width: 720px) {
   .toolbar {
-    flex-wrap: wrap;
     min-height: 84px;
     row-gap: 8px;
   }

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Rusty Optics Surface Field</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=surface-field-dynamics">
   </head>
   <body>
     <main class="app">
@@ -12,6 +12,21 @@
         <label>
           Scalar
           <select id="scalar-layer"></select>
+        </label>
+        <button id="toggle-play" type="button">Play</button>
+        <label class="frame-control">
+          Frame
+          <input id="frame-slider" type="range" min="0" max="0" value="0">
+        </label>
+        <output id="frame-position">0/0</output>
+        <label>
+          Speed
+          <select id="playback-speed">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+            <option value="4">4x</option>
+          </select>
         </label>
         <label><input id="toggle-edges" type="checkbox" checked> Edges</label>
         <label><input id="toggle-tier2" type="checkbox" checked> Tier 2</label>
@@ -23,6 +38,6 @@
       </div>
       <canvas id="viewport"></canvas>
     </main>
-    <script src="app.js"></script>
+    <script src="app.js?v=surface-field-dynamics"></script>
   </body>
 </html>

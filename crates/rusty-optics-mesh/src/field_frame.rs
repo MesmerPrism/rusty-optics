@@ -1,6 +1,12 @@
-use rusty_matter_fields::{SurfaceFieldDebugFrame, SURFACE_FIELD_DEBUG_FRAME_SCHEMA_ID};
+use rusty_matter_fields::{
+    SurfaceFieldDebugFrame, SurfaceFieldDebugFrameSequence, SURFACE_FIELD_DEBUG_FRAME_SCHEMA_ID,
+    SURFACE_FIELD_DEBUG_SEQUENCE_SCHEMA_ID,
+};
 use rusty_matter_model::Vec3;
-use rusty_optics_model::{ColorRgba, OpticsError, SURFACE_FIELD_VISUAL_FRAME_SCHEMA_ID};
+use rusty_optics_model::{
+    ColorRgba, OpticsError, SURFACE_FIELD_VISUAL_FRAME_SCHEMA_ID,
+    SURFACE_FIELD_VISUAL_SEQUENCE_SCHEMA_ID,
+};
 
 /// Renderer-neutral visual node for a surface-field sample.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -120,6 +126,10 @@ pub struct SurfaceFieldVisualFrame {
     pub substrate_id: String,
     /// Source Matter surface identifier.
     pub surface_id: String,
+    /// Fixed-step index represented by this frame.
+    pub step_index: u32,
+    /// State time in seconds represented by this frame.
+    pub time_seconds: f32,
     /// Bounds minimum for fit-to-view.
     pub bounds_min: Vec3,
     /// Bounds maximum for fit-to-view.
@@ -165,6 +175,8 @@ impl SurfaceFieldVisualFrame {
             source_schema_id: source.schema_id.clone(),
             substrate_id: source.substrate_id.clone(),
             surface_id: source.surface_id.clone(),
+            step_index: source.step_index,
+            time_seconds: source.time_seconds,
             bounds_min,
             bounds_max,
             nodes: source
@@ -240,6 +252,9 @@ impl SurfaceFieldVisualFrame {
         if self.surface_id.trim().is_empty() {
             return Err(OpticsError::EmptyId("surface_id"));
         }
+        if !self.time_seconds.is_finite() || self.time_seconds < 0.0 {
+            return Err(OpticsError::InvalidValue("time_seconds"));
+        }
         if self.nodes.is_empty() {
             return Err(OpticsError::InvalidCount("nodes"));
         }
@@ -289,6 +304,140 @@ impl SurfaceFieldVisualFrame {
                     return Err(OpticsError::InvalidPayload("perturbation node target"));
                 }
             }
+        }
+        Ok(())
+    }
+}
+
+/// Renderer-neutral visual sequence for Matter surface-field debug data.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct SurfaceFieldVisualFrameSequence {
+    /// Schema identifier.
+    pub schema_id: String,
+    /// Stable visual sequence identifier.
+    pub sequence_id: String,
+    /// Source Matter debug sequence identifier.
+    pub source_sequence_id: String,
+    /// Source Matter sequence schema identifier.
+    pub source_schema_id: String,
+    /// Source Matter substrate identifier.
+    pub substrate_id: String,
+    /// Source Matter surface identifier.
+    pub surface_id: String,
+    /// Fixed step duration in seconds.
+    pub fixed_step_seconds: f32,
+    /// Total executed fixed steps.
+    pub step_count: u32,
+    /// Step interval between visual frames.
+    pub frame_stride: u32,
+    /// Number of source per-step diagnostics available in Matter.
+    pub diagnostic_count: usize,
+    /// Visual frames.
+    pub frames: Vec<SurfaceFieldVisualFrame>,
+}
+
+impl SurfaceFieldVisualFrameSequence {
+    /// Creates a renderer-neutral visual sequence from Matter debug frames.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpticsError`] when the source sequence or visual output is
+    /// invalid.
+    pub fn from_matter_debug_sequence(
+        sequence_id: impl Into<String>,
+        source: &SurfaceFieldDebugFrameSequence,
+    ) -> Result<Self, OpticsError> {
+        if source.schema_id != SURFACE_FIELD_DEBUG_SEQUENCE_SCHEMA_ID {
+            return Err(OpticsError::UnexpectedSchema {
+                expected: SURFACE_FIELD_DEBUG_SEQUENCE_SCHEMA_ID,
+                actual: source.schema_id.clone(),
+            });
+        }
+        source.validate().map_err(|_| {
+            OpticsError::InvalidPayload("source surface-field debug sequence invalid")
+        })?;
+        let sequence_id = sequence_id.into();
+        let frames = source
+            .frames
+            .iter()
+            .map(|frame| {
+                SurfaceFieldVisualFrame::from_matter_debug_frame(
+                    format!("{sequence_id}.frame.{:04}", frame.step_index),
+                    frame,
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let sequence = Self {
+            schema_id: SURFACE_FIELD_VISUAL_SEQUENCE_SCHEMA_ID.to_owned(),
+            sequence_id,
+            source_sequence_id: source.sequence_id.clone(),
+            source_schema_id: source.schema_id.clone(),
+            substrate_id: source.substrate_id.clone(),
+            surface_id: source.surface_id.clone(),
+            fixed_step_seconds: source.fixed_step_seconds,
+            step_count: source.step_count,
+            frame_stride: source.frame_stride,
+            diagnostic_count: source.diagnostics.len(),
+            frames,
+        };
+        sequence.validate()?;
+        Ok(sequence)
+    }
+
+    /// Validates the visual sequence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpticsError`] when IDs, timing, or frame ordering are invalid.
+    pub fn validate(&self) -> Result<(), OpticsError> {
+        if self.schema_id != SURFACE_FIELD_VISUAL_SEQUENCE_SCHEMA_ID {
+            return Err(OpticsError::UnexpectedSchema {
+                expected: SURFACE_FIELD_VISUAL_SEQUENCE_SCHEMA_ID,
+                actual: self.schema_id.clone(),
+            });
+        }
+        if self.sequence_id.trim().is_empty() {
+            return Err(OpticsError::EmptyId("sequence_id"));
+        }
+        if self.source_sequence_id.trim().is_empty() {
+            return Err(OpticsError::EmptyId("source_sequence_id"));
+        }
+        if self.source_schema_id.trim().is_empty() {
+            return Err(OpticsError::EmptyId("source_schema_id"));
+        }
+        if self.substrate_id.trim().is_empty() {
+            return Err(OpticsError::EmptyId("substrate_id"));
+        }
+        if self.surface_id.trim().is_empty() {
+            return Err(OpticsError::EmptyId("surface_id"));
+        }
+        if !self.fixed_step_seconds.is_finite() || self.fixed_step_seconds <= 0.0 {
+            return Err(OpticsError::InvalidValue("fixed_step_seconds"));
+        }
+        if self.frame_stride == 0 {
+            return Err(OpticsError::InvalidValue("frame_stride"));
+        }
+        if self.frames.is_empty() {
+            return Err(OpticsError::InvalidCount("frames"));
+        }
+        let mut previous_step = None::<u32>;
+        for frame in &self.frames {
+            frame.validate()?;
+            if frame.substrate_id != self.substrate_id || frame.surface_id != self.surface_id {
+                return Err(OpticsError::InvalidPayload(
+                    "visual sequence frame source must match sequence",
+                ));
+            }
+            if frame.step_index > self.step_count {
+                return Err(OpticsError::InvalidValue("frame.step_index"));
+            }
+            if previous_step.is_some_and(|step| frame.step_index <= step) {
+                return Err(OpticsError::InvalidPayload(
+                    "visual sequence frame steps must be increasing",
+                ));
+            }
+            previous_step = Some(frame.step_index);
         }
         Ok(())
     }

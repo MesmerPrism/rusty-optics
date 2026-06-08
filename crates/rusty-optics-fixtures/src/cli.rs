@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     error::FixtureError,
-    fields::surface_field_visual_frame_json,
+    fields::{surface_field_visual_frame_json, surface_field_visual_sequence_json},
     hand_mesh::{hand_mesh_browser_frame_json, hand_mesh_browser_frame_json_from_surface},
     summary::summary_json,
 };
@@ -25,25 +25,44 @@ fn export_surface_field_preview(
     args: impl IntoIterator<Item = String>,
 ) -> Result<(), FixtureError> {
     let mut check = false;
-    let mut output = PathBuf::from("fixtures/fields/surface_field_visual_frame.json");
+    let mut frame_output = PathBuf::from("fixtures/fields/surface_field_visual_frame.json");
+    let mut sequence_output = PathBuf::from("fixtures/fields/surface_field_visual_sequence.json");
     let mut args = args.into_iter();
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--check" => check = true,
-            "--output" => {
+            "--frame-output" => {
                 let Some(path) = args.next() else {
                     return Err(FixtureError::InvalidArgument(
-                        "--output requires a path".to_owned(),
+                        "--frame-output requires a path".to_owned(),
                     ));
                 };
-                output = PathBuf::from(path);
+                frame_output = PathBuf::from(path);
+            }
+            "--sequence-output" => {
+                let Some(path) = args.next() else {
+                    return Err(FixtureError::InvalidArgument(
+                        "--sequence-output requires a path".to_owned(),
+                    ));
+                };
+                sequence_output = PathBuf::from(path);
             }
             _ => return Err(FixtureError::InvalidArgument(argument)),
         }
     }
 
-    let json = surface_field_visual_frame_json()?;
-    write_or_check_json(output, json, check, "surface field visual frame")
+    write_or_check_json(
+        frame_output,
+        surface_field_visual_frame_json()?,
+        check,
+        "surface field visual frame",
+    )?;
+    write_or_check_json(
+        sequence_output,
+        surface_field_visual_sequence_json()?,
+        check,
+        "surface field visual sequence",
+    )
 }
 
 fn export(args: impl IntoIterator<Item = String>) -> Result<(), FixtureError> {
