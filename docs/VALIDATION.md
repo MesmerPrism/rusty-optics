@@ -38,6 +38,12 @@ preview defaults to the sequence for dynamic playback and can switch to the
 circuit frame for voltage/conductance/memory/readout inspection or the
 planarian sequence for AP-region bioelectric playback.
 
+The committed planarian visual sequence intentionally uses Matter's compact
+synthetic AP surface so the Optics fixture remains a deterministic visual
+contract, not a copied body-asset cache. The browser's live Planarian 3D mode
+uses the Matter Wasm runtime and receives the reviewed GLB-derived body surface
+from Matter at runtime.
+
 Start the static browser preview with:
 
 ```powershell

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Rusty Optics Surface Field</title>
-    <link rel="stylesheet" href="styles.css?v=surface-field-circuit">
+    <link rel="stylesheet" href="styles.css?v=surface-field-planarian-3d-glb-1">
   </head>
   <body>
     <main class="app">
@@ -15,6 +15,7 @@
             <option value="surface" selected>Surface</option>
             <option value="circuit">Circuit</option>
             <option value="planarian">Planarian</option>
+            <option value="planarian3d">Planarian 3D</option>
           </select>
         </label>
         <label>
@@ -43,11 +44,27 @@
         <label><input id="toggle-regions" type="checkbox" checked> Regions</label>
         <label><input id="toggle-polarity" type="checkbox" checked> Vectors</label>
         <label><input id="toggle-labels" type="checkbox"> Labels</label>
+        <span id="planarian-3d-controls" class="edit-controls" hidden>
+          <label>Node <output id="selected-node">none</output></label>
+          <label>
+            dV
+            <input id="voltage-delta" type="range" min="-1" max="1" step="0.05" value="0.25">
+            <output id="voltage-delta-value">+0.25</output>
+          </label>
+          <button id="apply-voltage" type="button" title="Apply the selected voltage delta">Apply dV</button>
+          <button id="pulse-current" type="button" title="Add a short Matter current term to the selected node">Pulse</button>
+          <button id="set-memory" type="button" title="Set selected node memory to one">Memory</button>
+          <button id="scale-gate" type="button" title="Halve incident conductance on the selected node">Gate 0.5</button>
+          <output id="edit-status">no edit</output>
+        </span>
         <button id="reset-view" type="button">Reset</button>
         <output id="stats">Loading</output>
       </div>
-      <canvas id="viewport"></canvas>
+      <div class="viewport-shell">
+        <canvas id="viewport"></canvas>
+        <div id="viewport-3d" class="viewport-3d" hidden></div>
+      </div>
     </main>
-    <script src="app.js?v=surface-field-circuit"></script>
+    <script src="app.js?v=surface-field-planarian-3d-glb-1"></script>
   </body>
 </html>

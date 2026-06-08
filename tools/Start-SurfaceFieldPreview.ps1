@@ -2,6 +2,7 @@ param(
     [int]$Port = 8792,
     [string]$FramePath = "",
     [switch]$BuildMatterWasm,
+    [switch]$BuildWeb3DDeps,
     [string]$MatterRepoRoot = ""
 )
 
@@ -45,6 +46,16 @@ try {
             $buildArgs += @("-MatterRepoRoot", $MatterRepoRoot)
         }
         Invoke-Checked "surface field Matter Wasm build" "powershell" $buildArgs
+    }
+
+    if ($BuildWeb3DDeps) {
+        Invoke-Checked "surface field preview Web 3D dependencies" "powershell" @(
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            ".\tools\Build-SurfaceFieldPreviewWeb3DDeps.ps1"
+        )
     }
 
     $url = "http://127.0.0.1:$Port/web/surface-field-preview/"

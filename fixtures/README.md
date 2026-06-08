@@ -63,3 +63,8 @@ Surface-field preview fixtures:
   planarian AP bioelectric scenario. It contains AP region bands, node-region
   colors, voltage/memory/readout playback frames, conductance edges, current
   regions, and diagnostics for browser inspection.
+
+The planarian fixture stays on the compact synthetic AP surface by design. Live
+Planarian 3D browser sessions import Matter Wasm and request Matter's
+reviewed GLB-derived body surface at runtime, preserving Matter as the body
+geometry and simulation authority while keeping committed Optics fixtures small.

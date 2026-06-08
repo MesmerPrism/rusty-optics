@@ -3,10 +3,11 @@ use rusty_matter_fields::{
     BioelectricConductanceEdge, BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate,
     BioelectricGateSource, BioelectricMemoryState, BioelectricReadoutLayer,
     BioelectricVoltageField, BioelectricVoltageUnit, PlanarianBioelectricPresetConfig,
-    PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun, SurfaceFieldDebugFrame,
-    SurfaceFieldDebugFrameSequence, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
-    SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate,
-    SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
+    PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun, PlanarianBodySurfaceSource,
+    SurfaceFieldDebugFrame, SurfaceFieldDebugFrameSequence, SurfaceFieldPerturbation,
+    SurfaceFieldPerturbationEffect, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig,
+    SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
+    SurfaceVectorField, SurfaceVectorFieldKind,
 };
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
@@ -72,6 +73,7 @@ pub fn planarian_bioelectric_visual_sequence_json() -> Result<String, FixtureErr
     let source = PlanarianBioelectricScenarioRun::build(
         PlanarianBioelectricScenarioKind::TransientDepolarizationMemory,
         PlanarianBioelectricPresetConfig {
+            body_surface_source: PlanarianBodySurfaceSource::SyntheticAxis,
             sample_count: 80,
             step_count: 150,
             frame_stride: 15,
