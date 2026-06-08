@@ -73,3 +73,5 @@ The planarian fixture stays on the compact synthetic AP surface by design. Live
 Planarian 3D browser sessions import Matter Wasm and request Matter's
 reviewed GLB-derived body surface at runtime, preserving Matter as the body
 geometry and simulation authority while keeping committed Optics fixtures small.
+The live outcome plot also uses Matter Wasm outcome traces at runtime rather
+than committing GLB-body trace caches into Optics fixtures.

@@ -18,6 +18,9 @@ const controls = {
   labels: document.querySelector("#toggle-labels"),
   planarian3dControls: document.querySelector("#planarian-3d-controls"),
   planarianScenario: document.querySelector("#planarian-scenario"),
+  planarianOutcomePanel: document.querySelector("#planarian-outcome-panel"),
+  planarianOutcomeTrace: document.querySelector("#planarian-outcome-trace"),
+  planarianOutcomeReadout: document.querySelector("#planarian-outcome-readout"),
   selectedNode: document.querySelector("#selected-node"),
   voltageDelta: document.querySelector("#voltage-delta"),
   voltageDeltaValue: document.querySelector("#voltage-delta-value"),
@@ -51,6 +54,12 @@ const PLANARIAN_SCENARIOS = new Map([
   [3, { label: "memory", outcome: "posterior head-memory persistence" }],
   [4, { label: "no-memory", outcome: "transient relaxes" }],
 ]);
+const PLANARIAN_OUTCOME_TRACE_STRIDE = 7;
+const PLANARIAN_OUTCOME_METRICS = [
+  { key: "posterior_memory", label: "post memory", color: "#73d9bb" },
+  { key: "posterior_head_identity", label: "post head", color: "#f1c65c" },
+  { key: "tail_identity_at_tail", label: "tail", color: "#83a7ff" },
+];
 
 let sequence = null;
 let frames = [];
@@ -74,6 +83,7 @@ let matterWasmModule = null;
 let planarian3dRuntime = null;
 let planarian3dView = null;
 let planarian3dStats = null;
+let planarian3dTrace = null;
 let planarian3dStepMs = 0;
 let selectedPlanarianNode = null;
 let selectedPlanarianPick = null;
@@ -440,6 +450,7 @@ async function initPlanarian3D() {
       },
     });
     planarian3dStats = readPlanarian3DStats();
+    planarian3dTrace = readPlanarian3DOutcomeTrace();
     controls.planarianScenario.value = String(Math.trunc(planarian3dStats.scenario_code || 3));
     updatePlanarian3DView();
     planarian3dError = null;
@@ -555,6 +566,7 @@ function updateControlAvailability() {
   controls.live.disabled = circuit || planarian || planarian3d || !liveRuntime;
   controls.polarity.disabled = circuit || planarian || planarian3d;
   controls.planarian3dControls.hidden = !planarian3d;
+  controls.planarianOutcomePanel.hidden = !planarian3d;
   controls.planarianScenario.disabled = !planarian3d;
   controls.applyVoltage.disabled = !planarian3d || selectedPlanarianNode === null;
   controls.pulseCurrent.disabled = controls.applyVoltage.disabled;
@@ -744,6 +756,7 @@ function updatePlanarian3DStats() {
     ? `edit ${lastPlanarianEdit.accepted ? "accepted" : "rejected"} r${lastPlanarianEdit.revision_after}`
     : "no edit";
   const scenario = scenarioInfo(planarian3dStats?.scenario_code);
+  const cutConductance = planarian3dTrace?.cross_cut_conductance ?? 0;
   stats.textContent = [
     "planarian 3D",
     scenario.label,
@@ -760,6 +773,7 @@ function updatePlanarian3DStats() {
     `post head ${formatNumber(planarian3dStats?.posterior_head_identity || 0)}`,
     `head ${formatNumber(planarian3dStats?.head_identity_at_head || 0)}`,
     `tail ${formatNumber(planarian3dStats?.tail_identity_at_tail || 0)}`,
+    `cut g ${formatNumber(cutConductance)}`,
     `node ${selected}`,
     layerLabel,
     edit,
@@ -770,6 +784,7 @@ function draw() {
   updateViewportVisibility();
   if (isPlanarian3DMode()) {
     planarian3dView.render();
+    drawPlanarianOutcomeTrace();
     return;
   }
   resizeCanvas();
@@ -806,6 +821,7 @@ function updateViewportVisibility() {
   const show3d = isPlanarian3DMode();
   canvas.hidden = show3d;
   viewport3d.hidden = !show3d;
+  controls.planarianOutcomePanel.hidden = !show3d;
 }
 
 function drawCircuitFrame() {
@@ -1337,6 +1353,33 @@ function readPlanarian3DStats() {
   };
 }
 
+function readPlanarian3DOutcomeTrace() {
+  if (!planarian3dRuntime?.outcome_trace) {
+    return null;
+  }
+  const stride = Math.trunc(
+    planarian3dRuntime.outcome_trace_stride?.() || PLANARIAN_OUTCOME_TRACE_STRIDE,
+  );
+  const values = planarian3dRuntime.outcome_trace();
+  const samples = [];
+  for (let offset = 0; offset + stride <= values.length; offset += stride) {
+    samples.push({
+      step: values[offset],
+      time_seconds: values[offset + 1],
+      posterior_memory: values[offset + 2],
+      posterior_head_identity: values[offset + 3],
+      head_identity_at_head: values[offset + 4],
+      tail_identity_at_tail: values[offset + 5],
+      cut_band_voltage: values[offset + 6],
+    });
+  }
+  return {
+    samples,
+    stride,
+    cross_cut_conductance: planarian3dRuntime.outcome_trace_cross_cut_conductance?.() || 0,
+  };
+}
+
 function decodePlanarianEditResult(values) {
   return {
     accepted: values[0] > 0.5,
@@ -1361,6 +1404,7 @@ function updatePlanarian3DView() {
   );
   planarian3dView.setVisibility(controls.edges.checked, controls.tier2.checked);
   planarian3dView.render();
+  drawPlanarianOutcomeTrace();
 }
 
 function resetPlanarian3D() {
@@ -1369,6 +1413,7 @@ function resetPlanarian3D() {
   }
   planarian3dRuntime.reset();
   planarian3dStats = readPlanarian3DStats();
+  planarian3dTrace = readPlanarian3DOutcomeTrace();
   controls.planarianScenario.value = String(Math.trunc(planarian3dStats.scenario_code || 0));
   clearPlanarian3DInteractionState();
   updatePlanarian3DView();
@@ -1380,6 +1425,7 @@ function setPlanarian3DScenario(scenarioCode) {
   }
   planarian3dRuntime.reset_to_scenario(Math.trunc(scenarioCode));
   planarian3dStats = readPlanarian3DStats();
+  planarian3dTrace = readPlanarian3DOutcomeTrace();
   controls.planarianScenario.value = String(Math.trunc(planarian3dStats.scenario_code || 0));
   clearPlanarian3DInteractionState();
   updatePlanarian3DView();
@@ -1474,6 +1520,116 @@ function operationKind(operation) {
 function scenarioInfo(scenarioCode) {
   return PLANARIAN_SCENARIOS.get(Math.trunc(scenarioCode ?? 3))
     || { label: "scenario", outcome: "Matter preset" };
+}
+
+function drawPlanarianOutcomeTrace() {
+  if (!isPlanarian3DMode() || !planarian3dTrace?.samples?.length) {
+    if (controls.planarianOutcomeReadout) {
+      controls.planarianOutcomeReadout.textContent = "trace unavailable";
+    }
+    return;
+  }
+  const traceCanvas = controls.planarianOutcomeTrace;
+  const traceCtx = traceCanvas.getContext("2d");
+  const rect = traceCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const width = Math.max(240, Math.round(rect.width * dpr));
+  const height = Math.max(110, Math.round(rect.height * dpr));
+  if (traceCanvas.width !== width || traceCanvas.height !== height) {
+    traceCanvas.width = width;
+    traceCanvas.height = height;
+  }
+  traceCtx.clearRect(0, 0, width, height);
+  traceCtx.fillStyle = "#10151b";
+  traceCtx.fillRect(0, 0, width, height);
+
+  const padding = {
+    left: 36 * dpr,
+    right: 12 * dpr,
+    top: 16 * dpr,
+    bottom: 24 * dpr,
+  };
+  const plot = {
+    x: padding.left,
+    y: padding.top,
+    width: width - padding.left - padding.right,
+    height: height - padding.top - padding.bottom,
+  };
+  const samples = planarian3dTrace.samples;
+  const maxStep = Math.max(1, samples[samples.length - 1].step);
+
+  drawTraceGrid(traceCtx, plot, dpr);
+  for (const metric of PLANARIAN_OUTCOME_METRICS) {
+    drawTraceLine(traceCtx, plot, samples, maxStep, metric);
+  }
+  drawTraceLiveMarker(traceCtx, plot, maxStep, dpr);
+  drawTraceLabels(traceCtx, plot, dpr);
+  updatePlanarianOutcomeReadout();
+}
+
+function drawTraceGrid(traceCtx, plot, dpr) {
+  traceCtx.strokeStyle = "rgba(92, 106, 122, 0.42)";
+  traceCtx.lineWidth = 1 * dpr;
+  for (const fraction of [0, 0.25, 0.5, 0.75, 1]) {
+    const y = plot.y + plot.height * (1 - fraction);
+    traceCtx.beginPath();
+    traceCtx.moveTo(plot.x, y);
+    traceCtx.lineTo(plot.x + plot.width, y);
+    traceCtx.stroke();
+  }
+  traceCtx.strokeStyle = "rgba(130, 148, 166, 0.72)";
+  traceCtx.strokeRect(plot.x, plot.y, plot.width, plot.height);
+}
+
+function drawTraceLine(traceCtx, plot, samples, maxStep, metric) {
+  traceCtx.strokeStyle = metric.color;
+  traceCtx.lineWidth = 2;
+  traceCtx.beginPath();
+  samples.forEach((sample, index) => {
+    const x = plot.x + plot.width * clamp(sample.step / maxStep, 0, 1);
+    const y = plot.y + plot.height * (1 - clamp(sample[metric.key], 0, 1));
+    if (index === 0) {
+      traceCtx.moveTo(x, y);
+    } else {
+      traceCtx.lineTo(x, y);
+    }
+  });
+  traceCtx.stroke();
+}
+
+function drawTraceLiveMarker(traceCtx, plot, maxStep, dpr) {
+  const liveStep = Math.trunc(planarian3dStats?.step || 0);
+  const x = plot.x + plot.width * clamp(liveStep / maxStep, 0, 1);
+  traceCtx.strokeStyle = "rgba(238, 244, 250, 0.86)";
+  traceCtx.lineWidth = 1.2 * dpr;
+  traceCtx.beginPath();
+  traceCtx.moveTo(x, plot.y);
+  traceCtx.lineTo(x, plot.y + plot.height);
+  traceCtx.stroke();
+}
+
+function drawTraceLabels(traceCtx, plot, dpr) {
+  traceCtx.font = `${11 * dpr}px Inter, sans-serif`;
+  traceCtx.fillStyle = "#d5dde6";
+  traceCtx.fillText("0", plot.x - 18 * dpr, plot.y + plot.height + 3 * dpr);
+  traceCtx.fillText("1", plot.x - 18 * dpr, plot.y + 4 * dpr);
+  let labelX = plot.x;
+  for (const metric of PLANARIAN_OUTCOME_METRICS) {
+    traceCtx.fillStyle = metric.color;
+    traceCtx.fillText(metric.label, labelX, plot.y + plot.height + 18 * dpr);
+    labelX += (metric.label.length * 7 + 12) * dpr;
+  }
+}
+
+function updatePlanarianOutcomeReadout() {
+  const scenario = scenarioInfo(planarian3dStats?.scenario_code);
+  controls.planarianOutcomeReadout.textContent = [
+    `${scenario.label} trace`,
+    `live step ${Math.trunc(planarian3dStats?.step || 0)}`,
+    `post memory ${formatNumber(planarian3dStats?.posterior_memory || 0)}`,
+    `post head ${formatNumber(planarian3dStats?.posterior_head_identity || 0)}`,
+    `cut g ${formatNumber(planarian3dTrace?.cross_cut_conductance || 0)}`,
+  ].join("  ");
 }
 
 function computeBounds(payload) {

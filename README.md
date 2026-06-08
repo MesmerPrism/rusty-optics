@@ -92,7 +92,9 @@ and circuit state. Browser raycasts become Optics pick-selection payloads, UI
 edits become Optics edit-intent payloads, and Matter remains the authority that
 accepts or rejects those edits and advances revisions. The scenario selector
 only asks Matter to reset to one of its deterministic planarian presets; browser
-JavaScript does not rebuild the body graph or compute circuit dynamics.
+JavaScript does not rebuild the body graph or compute circuit dynamics. The
+outcome plot overlays the Matter-exported scenario trace and live-step marker
+without becoming the metric authority.
 
 For animated hand-mesh sequence previews, build the Matter Wasm runtime into
 Optics local artifacts before launching:

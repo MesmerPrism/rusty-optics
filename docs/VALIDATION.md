@@ -53,8 +53,9 @@ advances revisions.
 
 The live Planarian 3D scenario selector is a browser smoke-test surface over
 Matter reset codes. It should show the GLB-derived body vertex/triangle counts,
-switch among baseline, wound, gap-block, memory, and no-memory presets, and keep
-pick/edit intents routed back into Matter Wasm after switching.
+switch among baseline, wound, gap-block, memory, and no-memory presets, render
+the Matter-exported outcome trace panel, and keep pick/edit intents routed back
+into Matter Wasm after switching.
 
 Start the static browser preview with:
 
