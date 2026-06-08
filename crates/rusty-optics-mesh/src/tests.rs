@@ -311,6 +311,47 @@ fn planarian_pick_selection_and_edit_intent_reference_visual_targets() {
 }
 
 #[test]
+fn planarian_edge_pick_selection_builds_gate_edit_intent() {
+    let source = sample_planarian_run();
+    let visual = PlanarianBioelectricVisualSequence::from_matter_planarian_run(
+        "fields.visual.planarian_ap.edge_interaction",
+        &source,
+    )
+    .expect("planarian visual sequence");
+
+    let selection = PlanarianPickSelection::from_sequence_conductance_edge(
+        "fields.planarian.pick.edge_0002",
+        &visual,
+        2,
+        Some(Vec2::new(-0.10, 0.22)),
+        0.61,
+        Some(21),
+    )
+    .expect("edge pick selection");
+    selection
+        .validate_for_sequence(&visual)
+        .expect("edge selection validates against visual sequence");
+    assert_eq!(selection.node_index(), None);
+    assert_eq!(selection.edge_index(), Some(2));
+
+    let intent = PlanarianBioelectricEditIntent::set_edge_gate_threshold(
+        "fields.planarian.intent.set_gate.edge_0002",
+        &selection,
+        Some(21),
+        0.18,
+        None,
+    )
+    .expect("gate edit intent");
+    intent
+        .validate_for_sequence(&visual)
+        .expect("gate intent validates against visual sequence");
+    intent
+        .validate_for_selection(&selection)
+        .expect("gate intent references source edge selection");
+    assert_eq!(intent.expected_revision, Some(21));
+}
+
+#[test]
 fn damaged_planarian_pick_selection_metadata_is_rejected() {
     let source = sample_planarian_run();
     let visual = PlanarianBioelectricVisualSequence::from_matter_planarian_run(
@@ -368,6 +409,38 @@ fn damaged_planarian_edit_intent_value_is_rejected() {
     assert!(matches!(
         error,
         rusty_optics_model::OpticsError::InvalidValue(_)
+    ));
+}
+
+#[test]
+fn damaged_planarian_edge_gate_intent_requires_edge_selection() {
+    let source = sample_planarian_run();
+    let visual = PlanarianBioelectricVisualSequence::from_matter_planarian_run(
+        "fields.visual.planarian_ap.bad_edge_interaction",
+        &source,
+    )
+    .expect("planarian visual sequence");
+    let selection = PlanarianPickSelection::from_sequence_node(
+        "fields.planarian.pick.bad_gate_node",
+        &visual,
+        6,
+        None,
+        0.29,
+        Some(4),
+    )
+    .expect("node selection");
+    let error = PlanarianBioelectricEditIntent::set_edge_gate_threshold(
+        "fields.planarian.intent.bad_gate_target",
+        &selection,
+        Some(4),
+        0.15,
+        None,
+    )
+    .expect_err("gate edit rejects node selection");
+
+    assert!(matches!(
+        error,
+        rusty_optics_model::OpticsError::InvalidPayload(_)
     ));
 }
 

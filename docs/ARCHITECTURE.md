@@ -147,7 +147,8 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
   live Matter surface-field Wasm snapshots, plus static bioelectric circuit
   visual frames, planarian AP bioelectric sequence playback, and live Planarian
   3D scenario selection, outcome-trace comparison plotting, and pick/edit
-  request UI; owns playback, drawing, and edit-intent construction only.
+  request UI for node and conductance-edge targets; owns playback, drawing,
+  and edit-intent construction only.
 - `rusty-optics-mesh/src/mesh_frame.rs`: mesh wireframe and topology debug
   visuals.
 - `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug

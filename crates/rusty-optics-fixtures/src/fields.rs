@@ -98,6 +98,23 @@ pub fn planarian_bioelectric_interaction_intent_json() -> Result<String, Fixture
         0.25,
     )
     .map_err(|error| FixtureError::Optics(error.to_string()))?;
+    let edge_selection = PlanarianPickSelection::from_sequence_conductance_edge(
+        "fields.planarian.pick.fixture.edge_0008",
+        &visual,
+        8,
+        Some(Vec2::new(-0.12, 0.22)),
+        0.58,
+        Some(0),
+    )
+    .map_err(|error| FixtureError::Optics(error.to_string()))?;
+    let edge_edit_intent = PlanarianBioelectricEditIntent::set_edge_gate_threshold(
+        "fields.planarian.intent.fixture.set_gate.edge_0008",
+        &edge_selection,
+        Some(0),
+        0.18,
+        None,
+    )
+    .map_err(|error| FixtureError::Optics(error.to_string()))?;
     let fixture = PlanarianBioelectricInteractionFixture {
         schema_version: 1,
         source_visual_sequence_id: visual.sequence_id,
@@ -105,6 +122,8 @@ pub fn planarian_bioelectric_interaction_intent_json() -> Result<String, Fixture
             "Optics validates pick/edit intent shape; Matter accepts or rejects mutations.",
         pick_selection: selection,
         edit_intent,
+        edge_pick_selection: edge_selection,
+        edge_edit_intent,
     };
     let mut json = serde_json::to_string_pretty(&fixture)?;
     json.push('\n');
@@ -118,6 +137,8 @@ struct PlanarianBioelectricInteractionFixture {
     authority_note: &'static str,
     pick_selection: PlanarianPickSelection,
     edit_intent: PlanarianBioelectricEditIntent,
+    edge_pick_selection: PlanarianPickSelection,
+    edge_edit_intent: PlanarianBioelectricEditIntent,
 }
 
 fn build_planarian_visual_sequence() -> Result<PlanarianBioelectricVisualSequence, FixtureError> {

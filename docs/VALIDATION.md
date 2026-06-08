@@ -38,7 +38,8 @@ That command writes both `fixtures/fields/surface_field_visual_frame.json` and
 preview defaults to the sequence for dynamic playback and can switch to the
 circuit frame for voltage/conductance/memory/readout inspection, the planarian
 sequence for AP-region bioelectric playback, or the live Planarian 3D view for
-Matter-Wasm-backed scenario switching, picking, and edit-intent requests.
+Matter-Wasm-backed scenario switching, node/edge picking, and edit-intent
+requests.
 The live Planarian 3D path also exposes the Matter comparison trace set through
 the browser comparison selector; Optics validates selector wiring and drawing,
 not the metrics themselves.
@@ -49,17 +50,18 @@ contract, not a copied body-asset cache. The browser's live Planarian 3D mode
 uses the Matter Wasm runtime and receives the reviewed GLB-derived body surface
 from Matter at runtime.
 
-The interaction-intent fixture records one renderer-neutral Planarian 3D node
-pick and one voltage edit intent. It validates Optics' request shape only;
-Matter remains the authority that accepts, rejects, clamps, mutates, and
-advances revisions.
+The interaction-intent fixture records renderer-neutral Planarian 3D node and
+conductance-edge picks, plus node-voltage and edge-gate edit intents. It
+validates Optics' request shape only; Matter remains the authority that
+accepts, rejects, clamps, mutates, and advances revisions.
 
 The live Planarian 3D scenario selector is a browser smoke-test surface over
 Matter reset codes. It should show the GLB-derived body vertex/triangle counts,
 switch among baseline, wound, gap-block, memory, and no-memory presets, render
 the Matter-exported outcome trace panel, compare against alternate Matter
-scenario traces, and keep pick/edit intents routed back into Matter Wasm after
-switching.
+scenario traces, pick both surface nodes and conductance edges, apply a node
+voltage edit and an edge gate-threshold edit, and keep those intents routed
+back into Matter Wasm after switching.
 
 Start the static browser preview with:
 

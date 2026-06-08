@@ -43,5 +43,49 @@
         "delta": 0.25
       }
     }
+  },
+  "edge_pick_selection": {
+    "schema_id": "rusty.optics.fields.planarian_bioelectric.pick_selection.v1",
+    "selection_id": "fields.planarian.pick.fixture.edge_0008",
+    "visual_id": "fields.visual.planarian_ap.transient_memory",
+    "surface_id": "mesh.planarian_ap.synthetic_surface",
+    "substrate_id": "fields.substrate.planarian_ap.synthetic",
+    "target": {
+      "ConductanceEdge": {
+        "edge_index": 8,
+        "from": 1,
+        "to": 27,
+        "tier": 1
+      }
+    },
+    "normalized_pointer": {
+      "x": -0.12,
+      "y": 0.22
+    },
+    "distance": 0.58,
+    "view_revision": 0
+  },
+  "edge_edit_intent": {
+    "schema_id": "rusty.optics.fields.planarian_bioelectric.edit_intent.v1",
+    "intent_id": "fields.planarian.intent.fixture.set_gate.edge_0008",
+    "selection_id": "fields.planarian.pick.fixture.edge_0008",
+    "visual_id": "fields.visual.planarian_ap.transient_memory",
+    "surface_id": "mesh.planarian_ap.synthetic_surface",
+    "substrate_id": "fields.substrate.planarian_ap.synthetic",
+    "expected_revision": 0,
+    "target": {
+      "ConductanceEdge": {
+        "edge_index": 8,
+        "from": 1,
+        "to": 27,
+        "tier": 1
+      }
+    },
+    "operation": {
+      "SetEdgeGateThreshold": {
+        "threshold": 0.18,
+        "slope": null
+      }
+    }
   }
 }

@@ -21,10 +21,12 @@ class PlanarianBioelectric3DView {
     this.substrateId = options.substrateId || "fields.substrate.planarian_ap.sketchfab_educational";
     this.getViewRevision = options.getViewRevision || (() => null);
     this.onSelectNode = options.onSelectNode || (() => {});
+    this.onSelectEdge = options.onSelectEdge || (() => {});
     this.nodes = [];
     this.edges = [];
     this.edgeGroups = [];
     this.selectedNodeIndex = null;
+    this.selectedEdgeIndex = null;
     this.pointer = null;
     this.yaw = -0.42;
     this.pitch = 0.42;
@@ -43,6 +45,7 @@ class PlanarianBioelectric3DView {
     this.createConductanceEdges();
     this.createNodes();
     this.createSelectedNodeMarker();
+    this.createSelectedEdgeMarker();
     this.installControls();
     this.updateSnapshot(this.runtime.snapshot(), this.runtime.conductance_values(), "circuit.voltage");
     this.render();
@@ -82,6 +85,7 @@ class PlanarianBioelectric3DView {
     this.edges = [];
     for (let offset = 0; offset < edgeData.length; offset += EDGE_STRIDE) {
       this.edges.push({
+        edgeIndex: this.edges.length,
         from: edgeData[offset],
         to: edgeData[offset + 1],
         tier: edgeData[offset + 2],
@@ -186,6 +190,7 @@ class PlanarianBioelectric3DView {
         depthWrite: false,
       });
       const lines = new THREE.LineSegments(geometry, material);
+      lines.userData.edgeGroup = group;
       this.scene.add(lines);
       return { ...group, colorArray, geometry, lines };
     });
@@ -240,6 +245,22 @@ class PlanarianBioelectric3DView {
     this.scene.add(this.selectedMarker);
   }
 
+  createSelectedEdgeMarker() {
+    const THREE = this.THREE;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
+    const material = new THREE.LineBasicMaterial({
+      color: 0xf1c65c,
+      transparent: true,
+      opacity: 0.96,
+      depthTest: false,
+      depthWrite: false,
+    });
+    this.selectedEdgeMarker = new THREE.LineSegments(geometry, material);
+    this.selectedEdgeMarker.visible = false;
+    this.scene.add(this.selectedEdgeMarker);
+  }
+
   installControls() {
     const element = this.renderer.domElement;
     element.addEventListener("pointerdown", (event) => {
@@ -267,7 +288,7 @@ class PlanarianBioelectric3DView {
     });
     element.addEventListener("pointerup", (event) => {
       if (this.pointer && !this.pointer.moved) {
-        this.pickNode(event);
+        this.pickTarget(event);
       }
       this.pointer = null;
     });
@@ -353,17 +374,77 @@ class PlanarianBioelectric3DView {
     this.render();
   }
 
-  pickNode(event) {
+  selectEdge(edgeIndex) {
+    this.selectedEdgeIndex = Number.isInteger(edgeIndex) ? edgeIndex : null;
+    if (this.selectedEdgeIndex === null) {
+      this.selectedEdgeMarker.visible = false;
+      this.render();
+      return;
+    }
+    const edge = this.edges[this.selectedEdgeIndex];
+    const start = this.nodes[edge?.from]?.renderPosition || this.nodes[edge?.from]?.position;
+    const end = this.nodes[edge?.to]?.renderPosition || this.nodes[edge?.to]?.position;
+    if (!edge || !start || !end) {
+      this.selectedEdgeMarker.visible = false;
+      this.render();
+      return;
+    }
+    const positions = this.selectedEdgeMarker.geometry.attributes.position.array;
+    positions[0] = start.x;
+    positions[1] = start.y;
+    positions[2] = start.z;
+    positions[3] = end.x;
+    positions[4] = end.y;
+    positions[5] = end.z;
+    this.selectedEdgeMarker.geometry.attributes.position.needsUpdate = true;
+    this.selectedEdgeMarker.visible = true;
+    this.render();
+  }
+
+  edgeInfo(edgeIndex) {
+    return this.edges[edgeIndex] || null;
+  }
+
+  pickTarget(event) {
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    this.raycaster.params.Points.threshold = this.nodeRadius * 3.2;
+    this.raycaster.params.Points.threshold = this.nodeRadius * 1.6;
+    this.raycaster.params.Line.threshold = this.nodeRadius * 3.4;
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const hits = this.raycaster.intersectObject(this.nodePoints, false);
     const hit = hits.find((entry) => Number.isInteger(entry.index));
     if (hit) {
       this.onSelectNode(this.selectionForNode(hit.index, hit.distance));
+      return;
     }
+
+    const edgeHits = this.raycaster.intersectObjects(
+      this.edgeGroups
+        .filter((group) => group.lines.visible)
+        .map((group) => group.lines),
+      false,
+    );
+    const edgeHit = edgeHits
+      .map((entry) => ({
+        entry,
+        edgeIndex: this.edgeIndexFromLineHit(entry),
+      }))
+      .find((candidate) => Number.isInteger(candidate.edgeIndex));
+    if (edgeHit) {
+      this.onSelectEdge(this.selectionForEdge(edgeHit.edgeIndex, edgeHit.entry.distance));
+    }
+  }
+
+  edgeIndexFromLineHit(hit) {
+    const group = hit.object?.userData?.edgeGroup;
+    if (!group || !Number.isInteger(hit.index)) {
+      return null;
+    }
+    const localSegmentIndex = Math.floor(hit.index / 2);
+    return Number.isInteger(group.edgeIndices[localSegmentIndex])
+      ? group.edgeIndices[localSegmentIndex]
+      : null;
   }
 
   selectionForNode(nodeIndex, distance) {
@@ -389,6 +470,36 @@ class PlanarianBioelectric3DView {
           region_id: regionIdForCode(node?.regionCode),
           ap_coordinate: node?.ap ?? 0,
           lateral_coordinate: node?.lateral ?? 0,
+        },
+      },
+      normalized_pointer: { x: this.mouse.x, y: this.mouse.y },
+      distance,
+      view_revision: revision,
+    };
+  }
+
+  selectionForEdge(edgeIndex, distance) {
+    const edge = this.edges[edgeIndex];
+    const revision = this.getViewRevision();
+    this.pickCounter += 1;
+    return {
+      schema_id: PICK_SELECTION_SCHEMA_ID,
+      selection_id: [
+        this.visualId,
+        "pick",
+        `edge_${String(edgeIndex).padStart(4, "0")}`,
+        revision === null ? "runknown" : `r${Math.trunc(revision)}`,
+        this.pickCounter,
+      ].join("."),
+      visual_id: this.visualId,
+      surface_id: this.surfaceId,
+      substrate_id: this.substrateId,
+      target: {
+        ConductanceEdge: {
+          edge_index: edgeIndex,
+          from: edge?.from ?? 0,
+          to: edge?.to ?? 0,
+          tier: edge?.tier ?? 0,
         },
       },
       normalized_pointer: { x: this.mouse.x, y: this.mouse.y },

@@ -25,10 +25,13 @@ const controls = {
   selectedNode: document.querySelector("#selected-node"),
   voltageDelta: document.querySelector("#voltage-delta"),
   voltageDeltaValue: document.querySelector("#voltage-delta-value"),
+  gateThreshold: document.querySelector("#gate-threshold"),
+  gateThresholdValue: document.querySelector("#gate-threshold-value"),
   applyVoltage: document.querySelector("#apply-voltage"),
   pulseCurrent: document.querySelector("#pulse-current"),
   setMemory: document.querySelector("#set-memory"),
   scaleGate: document.querySelector("#scale-gate"),
+  setGateThreshold: document.querySelector("#set-gate-threshold"),
   editStatus: document.querySelector("#edit-status"),
   reset: document.querySelector("#reset-view"),
 };
@@ -92,12 +95,14 @@ let planarian3dTrace = null;
 let planarian3dComparisonTrace = null;
 let planarian3dStepMs = 0;
 let selectedPlanarianNode = null;
+let selectedPlanarianEdge = null;
 let selectedPlanarianPick = null;
 let lastPlanarianIntent = null;
 let lastPlanarianEdit = null;
 let planarian3dError = null;
 
 updateVoltageDeltaLabel();
+updateGateThresholdLabel();
 
 Promise.all([
   fetchJson(payloadUrl),
@@ -248,6 +253,10 @@ controls.voltageDelta.addEventListener("input", () => {
   updateVoltageDeltaLabel();
 });
 
+controls.gateThreshold.addEventListener("input", () => {
+  updateGateThresholdLabel();
+});
+
 controls.planarianScenario.addEventListener("change", () => {
   if (isPlanarian3DMode()) {
     setPlanarian3DScenario(Number(controls.planarianScenario.value));
@@ -266,28 +275,40 @@ controls.applyVoltage.addEventListener("click", () => {
   const delta = Number(controls.voltageDelta.value) || 0;
   applyPlanarian3DEdit(
     { AddNodeVoltage: { delta } },
-    (runtime, nodeIndex) => runtime.add_node_voltage(nodeIndex, delta),
+    (runtime, selection) => runtime.add_node_voltage(selection.target.SurfaceNode.node_index, delta),
   );
 });
 
 controls.pulseCurrent.addEventListener("click", () => {
   applyPlanarian3DEdit(
     { AddTransientCurrent: { current: 0.42, duration_steps: 72 } },
-    (runtime, nodeIndex) => runtime.add_transient_current(nodeIndex, 0.42, 72),
+    (runtime, selection) => runtime.add_transient_current(selection.target.SurfaceNode.node_index, 0.42, 72),
   );
 });
 
 controls.setMemory.addEventListener("click", () => {
   applyPlanarian3DEdit(
     { SetNodeMemory: { memory_value: 1.0 } },
-    (runtime, nodeIndex) => runtime.set_node_memory(nodeIndex, 1.0),
+    (runtime, selection) => runtime.set_node_memory(selection.target.SurfaceNode.node_index, 1.0),
   );
 });
 
 controls.scaleGate.addEventListener("click", () => {
   applyPlanarian3DEdit(
     { ScaleIncidentConductance: { scale: 0.5 } },
-    (runtime, nodeIndex) => runtime.scale_incident_conductance(nodeIndex, 0.5),
+    (runtime, selection) => runtime.scale_incident_conductance(selection.target.SurfaceNode.node_index, 0.5),
+  );
+});
+
+controls.setGateThreshold.addEventListener("click", () => {
+  const threshold = Number(controls.gateThreshold.value) || 0;
+  applyPlanarian3DEdit(
+    { SetEdgeGateThreshold: { threshold, slope: null } },
+    (runtime, selection) => runtime.set_edge_gate_threshold(
+      selection.target.ConductanceEdge.edge_index,
+      threshold,
+      0,
+    ),
   );
 });
 
@@ -456,11 +477,10 @@ async function initPlanarian3D() {
       substrateId: PLANARIAN_3D_SUBSTRATE_ID,
       getViewRevision: () => planarian3dStats?.revision ?? null,
       onSelectNode: (selection) => {
-        selectedPlanarianPick = selection;
-        selectedPlanarianNode = selection?.target?.SurfaceNode?.node_index ?? null;
-        lastPlanarianIntent = null;
-        updatePlanarian3DSelection();
-        updateStats();
+        selectPlanarian3DTarget(selection);
+      },
+      onSelectEdge: (selection) => {
+        selectPlanarian3DTarget(selection);
       },
     });
     planarian3dStats = readPlanarian3DStats();
@@ -588,6 +608,8 @@ function updateControlAvailability() {
   controls.pulseCurrent.disabled = controls.applyVoltage.disabled;
   controls.setMemory.disabled = controls.applyVoltage.disabled;
   controls.scaleGate.disabled = controls.applyVoltage.disabled;
+  controls.gateThreshold.disabled = !planarian3d || selectedPlanarianEdge === null;
+  controls.setGateThreshold.disabled = controls.gateThreshold.disabled;
 }
 
 function fillLayerSelect() {
@@ -767,7 +789,8 @@ function updatePlanarianStats() {
 function updatePlanarian3DStats() {
   const layer = controls.scalarLayer.value || "circuit.voltage";
   const layerLabel = layer.replace("circuit.", "").replace("readout:", "");
-  const selected = selectedPlanarianNode === null ? "none" : selectedPlanarianNode;
+  const selected = selectedPlanarianTargetLabel("compact");
+  const selectedEdge = selectedPlanarianEdgeInfo();
   const edit = lastPlanarianEdit
     ? `edit ${lastPlanarianEdit.accepted ? "accepted" : "rejected"} r${lastPlanarianEdit.revision_after}`
     : "no edit";
@@ -792,10 +815,13 @@ function updatePlanarian3DStats() {
     `tail ${formatNumber(planarian3dStats?.tail_identity_at_tail || 0)}`,
     `cut g ${formatNumber(cutConductance)}`,
     comparison ? `compare ${comparison.label}` : null,
-    `node ${selected}`,
+    `pick ${selected}`,
+    selectedEdge
+      ? `edge g ${formatNumber(selectedEdge.conductance)} theta ${signedFormatNumber(selectedEdge.threshold)}`
+      : null,
     layerLabel,
     edit,
-  ].join("  ");
+  ].filter(Boolean).join("  ");
 }
 
 function draw() {
@@ -1463,23 +1489,25 @@ function setPlanarian3DScenario(scenarioCode) {
 
 function clearPlanarian3DInteractionState() {
   selectedPlanarianNode = null;
+  selectedPlanarianEdge = null;
   selectedPlanarianPick = null;
   lastPlanarianIntent = null;
   lastPlanarianEdit = null;
   planarian3dStepMs = 0;
   planarian3dView.selectNode(null);
+  planarian3dView.selectEdge(null);
   updatePlanarian3DSelection();
 }
 
 function applyPlanarian3DEdit(operation, apply) {
-  if (!isPlanarian3DMode() || selectedPlanarianNode === null || !selectedPlanarianPick) {
+  if (!isPlanarian3DMode() || !selectedPlanarianPick) {
     return;
   }
   const intent = buildPlanarianEditIntent(operation);
   if (!intent) {
     return;
   }
-  const resultValues = apply(planarian3dRuntime, selectedPlanarianNode);
+  const resultValues = apply(planarian3dRuntime, selectedPlanarianPick);
   lastPlanarianEdit = decodePlanarianEditResult(resultValues);
   lastPlanarianIntent = intent;
   updatePlanarian3DView();
@@ -1489,17 +1517,20 @@ function applyPlanarian3DEdit(operation, apply) {
 
 function buildPlanarianEditIntent(operation) {
   const nodeTarget = selectedPlanarianPick?.target?.SurfaceNode;
-  if (!nodeTarget) {
+  const edgeTarget = selectedPlanarianPick?.target?.ConductanceEdge;
+  if (!nodeTarget && !edgeTarget) {
     return null;
   }
   const revision = Math.trunc(planarian3dStats?.revision ?? 0);
+  const targetKind = nodeTarget ? "node" : "edge";
+  const targetIndex = nodeTarget?.node_index ?? edgeTarget?.edge_index;
   return {
     schema_id: PLANARIAN_EDIT_INTENT_SCHEMA_ID,
     intent_id: [
       PLANARIAN_3D_VISUAL_ID,
       "intent",
       operationKind(operation),
-      `node_${String(nodeTarget.node_index).padStart(4, "0")}`,
+      `${targetKind}_${String(targetIndex).padStart(4, "0")}`,
       `r${revision}`,
     ].join("."),
     selection_id: selectedPlanarianPick.selection_id,
@@ -1507,20 +1538,30 @@ function buildPlanarianEditIntent(operation) {
     surface_id: selectedPlanarianPick.surface_id,
     substrate_id: selectedPlanarianPick.substrate_id,
     expected_revision: revision,
-    target: {
-      SurfaceNode: {
-        node_index: nodeTarget.node_index,
-        node_id: nodeTarget.node_id,
+    target: nodeTarget
+      ? {
+        SurfaceNode: {
+          node_index: nodeTarget.node_index,
+          node_id: nodeTarget.node_id,
+        },
+      }
+      : {
+        ConductanceEdge: {
+          edge_index: edgeTarget.edge_index,
+          from: edgeTarget.from,
+          to: edgeTarget.to,
+          tier: edgeTarget.tier,
+        },
       },
-    },
     operation,
   };
 }
 
 function updatePlanarian3DSelection() {
-  controls.selectedNode.textContent = selectedPlanarianNode === null ? "none" : String(selectedPlanarianNode);
+  controls.selectedNode.textContent = selectedPlanarianTargetLabel("full");
   if (planarian3dView) {
     planarian3dView.selectNode(selectedPlanarianNode);
+    planarian3dView.selectEdge(selectedPlanarianEdge);
   }
   if (lastPlanarianEdit) {
     controls.editStatus.textContent = [
@@ -1535,9 +1576,64 @@ function updatePlanarian3DSelection() {
   updateControlAvailability();
 }
 
+function selectPlanarian3DTarget(selection) {
+  selectedPlanarianPick = selection;
+  selectedPlanarianNode = selection?.target?.SurfaceNode?.node_index ?? null;
+  selectedPlanarianEdge = selection?.target?.ConductanceEdge?.edge_index ?? null;
+  lastPlanarianIntent = null;
+  updatePlanarian3DSelection();
+  updateStats();
+}
+
+function selectedPlanarianTargetLabel(mode = "full") {
+  const nodeTarget = selectedPlanarianPick?.target?.SurfaceNode;
+  if (nodeTarget) {
+    return mode === "compact" ? `node ${nodeTarget.node_index}` : `node ${nodeTarget.node_index}`;
+  }
+  const edgeTarget = selectedPlanarianPick?.target?.ConductanceEdge;
+  if (edgeTarget) {
+    const label = `edge ${edgeTarget.edge_index}`;
+    return mode === "compact"
+      ? label
+      : `${label} ${edgeTarget.from}->${edgeTarget.to}`;
+  }
+  return "none";
+}
+
+function selectedPlanarianEdgeInfo() {
+  const edgeTarget = selectedPlanarianPick?.target?.ConductanceEdge;
+  if (!edgeTarget || !planarian3dRuntime?.conductance_values) {
+    return null;
+  }
+  const values = planarian3dRuntime.conductance_values();
+  const edge = planarian3dView?.edgeInfo(edgeTarget.edge_index);
+  const offset = edgeTarget.edge_index * 6;
+  if (offset + 5 >= values.length) {
+    return null;
+  }
+  return {
+    edge_index: edgeTarget.edge_index,
+    from: edgeTarget.from,
+    to: edgeTarget.to,
+    tier: edgeTarget.tier,
+    has_gate: edge?.hasGate ?? false,
+    base_conductance: values[offset],
+    conductance: values[offset + 1],
+    threshold: values[offset + 2],
+    slope: values[offset + 3],
+    min_multiplier: values[offset + 4],
+    max_multiplier: values[offset + 5],
+  };
+}
+
 function updateVoltageDeltaLabel() {
   const value = Number(controls.voltageDelta.value) || 0;
   controls.voltageDeltaValue.textContent = `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
+}
+
+function updateGateThresholdLabel() {
+  const value = Number(controls.gateThreshold.value) || 0;
+  controls.gateThresholdValue.textContent = `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
 }
 
 function operationKind(operation) {

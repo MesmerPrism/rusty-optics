@@ -109,6 +109,45 @@ impl PlanarianPickSelection {
         Ok(selection)
     }
 
+    /// Builds a conductance-edge selection from a checked Planarian visual
+    /// sequence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpticsError`] when the requested conductance edge is missing
+    /// or the generated selection is invalid.
+    pub fn from_sequence_conductance_edge(
+        selection_id: impl Into<String>,
+        sequence: &PlanarianBioelectricVisualSequence,
+        edge_index: usize,
+        normalized_pointer: Option<Vec2>,
+        distance: f32,
+        view_revision: Option<u64>,
+    ) -> Result<Self, OpticsError> {
+        sequence.validate()?;
+        let Some(edge) = sequence.frames[0].conductance_edges.get(edge_index) else {
+            return Err(OpticsError::InvalidPayload("planarian pick edge target"));
+        };
+        let selection = Self {
+            schema_id: PLANARIAN_BIOELECTRIC_PICK_SELECTION_SCHEMA_ID.to_owned(),
+            selection_id: selection_id.into(),
+            visual_id: sequence.sequence_id.clone(),
+            surface_id: sequence.surface_id.clone(),
+            substrate_id: sequence.substrate_id.clone(),
+            target: PlanarianPickTarget::ConductanceEdge {
+                edge_index,
+                from: edge.from,
+                to: edge.to,
+                tier: edge.tier,
+            },
+            normalized_pointer,
+            distance,
+            view_revision,
+        };
+        selection.validate_for_sequence(sequence)?;
+        Ok(selection)
+    }
+
     /// Validates selection shape without requiring a source visual sequence.
     ///
     /// # Errors
@@ -163,6 +202,17 @@ impl PlanarianPickSelection {
             PlanarianPickTarget::SurfaceNode { node_index, .. } => Some(node_index),
             PlanarianPickTarget::BodyTriangle { .. }
             | PlanarianPickTarget::ConductanceEdge { .. } => None,
+        }
+    }
+
+    /// Returns the selected conductance edge index when the target is an edge.
+    #[must_use]
+    pub const fn edge_index(&self) -> Option<usize> {
+        match self.target {
+            PlanarianPickTarget::ConductanceEdge { edge_index, .. } => Some(edge_index),
+            PlanarianPickTarget::SurfaceNode { .. } | PlanarianPickTarget::BodyTriangle { .. } => {
+                None
+            }
         }
     }
 }
@@ -346,6 +396,51 @@ impl PlanarianBioelectricEditIntent {
         )
     }
 
+    /// Builds a gate-threshold edit intent from an edge pick selection.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpticsError`] when the selection is not a conductance-edge
+    /// selection or the generated intent is invalid.
+    pub fn set_edge_gate_threshold(
+        intent_id: impl Into<String>,
+        selection: &PlanarianPickSelection,
+        expected_revision: Option<u64>,
+        threshold: f32,
+        slope: Option<f32>,
+    ) -> Result<Self, OpticsError> {
+        Self::from_edge_selection(
+            intent_id,
+            selection,
+            expected_revision,
+            PlanarianBioelectricEditIntentOperation::SetEdgeGateThreshold { threshold, slope },
+        )
+    }
+
+    /// Builds a gate multiplier-bounds edit intent from an edge pick selection.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpticsError`] when the selection is not a conductance-edge
+    /// selection or the generated intent is invalid.
+    pub fn set_edge_gate_multiplier_bounds(
+        intent_id: impl Into<String>,
+        selection: &PlanarianPickSelection,
+        expected_revision: Option<u64>,
+        min_multiplier: f32,
+        max_multiplier: f32,
+    ) -> Result<Self, OpticsError> {
+        Self::from_edge_selection(
+            intent_id,
+            selection,
+            expected_revision,
+            PlanarianBioelectricEditIntentOperation::SetEdgeGateMultiplierBounds {
+                min_multiplier,
+                max_multiplier,
+            },
+        )
+    }
+
     /// Validates intent shape without requiring a source visual sequence.
     ///
     /// # Errors
@@ -448,6 +543,44 @@ impl PlanarianBioelectricEditIntent {
             target: PlanarianBioelectricEditTarget::SurfaceNode {
                 node_index: *node_index,
                 node_id: node_id.clone(),
+            },
+            operation,
+        };
+        intent.validate_for_selection(selection)?;
+        Ok(intent)
+    }
+
+    fn from_edge_selection(
+        intent_id: impl Into<String>,
+        selection: &PlanarianPickSelection,
+        expected_revision: Option<u64>,
+        operation: PlanarianBioelectricEditIntentOperation,
+    ) -> Result<Self, OpticsError> {
+        selection.validate()?;
+        let PlanarianPickTarget::ConductanceEdge {
+            edge_index,
+            from,
+            to,
+            tier,
+        } = &selection.target
+        else {
+            return Err(OpticsError::InvalidPayload(
+                "planarian edit intent requires an edge selection",
+            ));
+        };
+        let intent = Self {
+            schema_id: PLANARIAN_BIOELECTRIC_EDIT_INTENT_SCHEMA_ID.to_owned(),
+            intent_id: intent_id.into(),
+            selection_id: selection.selection_id.clone(),
+            visual_id: selection.visual_id.clone(),
+            surface_id: selection.surface_id.clone(),
+            substrate_id: selection.substrate_id.clone(),
+            expected_revision,
+            target: PlanarianBioelectricEditTarget::ConductanceEdge {
+                edge_index: *edge_index,
+                from: *from,
+                to: *to,
+                tier: *tier,
             },
             operation,
         };
