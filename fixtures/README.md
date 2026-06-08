@@ -54,3 +54,7 @@ Surface-field preview fixtures:
 - `fixtures/fields/surface_field_visual_sequence.json`: renderer-neutral
   Optics visual sequence over a Matter-owned dynamic debug sequence. It
   contains 41 emitted frames over 120 Matter fixed steps for browser playback.
+- `fixtures/fields/bioelectric_circuit_visual_frame.json`: renderer-neutral
+  Optics visual frame over a Matter-owned bioelectric circuit snapshot and step
+  diagnostics. It contains voltage samples, conductance edges, current regions,
+  memory samples, and readout layers for browser inspection.

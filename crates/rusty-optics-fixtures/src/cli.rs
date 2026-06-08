@@ -2,7 +2,10 @@ use std::path::PathBuf;
 
 use crate::{
     error::FixtureError,
-    fields::{surface_field_visual_frame_json, surface_field_visual_sequence_json},
+    fields::{
+        bioelectric_circuit_visual_frame_json, surface_field_visual_frame_json,
+        surface_field_visual_sequence_json,
+    },
     hand_mesh::{hand_mesh_browser_frame_json, hand_mesh_browser_frame_json_from_surface},
     summary::summary_json,
 };
@@ -27,6 +30,7 @@ fn export_surface_field_preview(
     let mut check = false;
     let mut frame_output = PathBuf::from("fixtures/fields/surface_field_visual_frame.json");
     let mut sequence_output = PathBuf::from("fixtures/fields/surface_field_visual_sequence.json");
+    let mut circuit_output = PathBuf::from("fixtures/fields/bioelectric_circuit_visual_frame.json");
     let mut args = args.into_iter();
     while let Some(argument) = args.next() {
         match argument.as_str() {
@@ -47,6 +51,14 @@ fn export_surface_field_preview(
                 };
                 sequence_output = PathBuf::from(path);
             }
+            "--circuit-output" => {
+                let Some(path) = args.next() else {
+                    return Err(FixtureError::InvalidArgument(
+                        "--circuit-output requires a path".to_owned(),
+                    ));
+                };
+                circuit_output = PathBuf::from(path);
+            }
             _ => return Err(FixtureError::InvalidArgument(argument)),
         }
     }
@@ -62,6 +74,12 @@ fn export_surface_field_preview(
         surface_field_visual_sequence_json()?,
         check,
         "surface field visual sequence",
+    )?;
+    write_or_check_json(
+        circuit_output,
+        bioelectric_circuit_visual_frame_json()?,
+        check,
+        "bioelectric circuit visual frame",
     )
 }
 

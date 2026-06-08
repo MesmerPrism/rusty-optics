@@ -2,6 +2,7 @@ const canvas = document.querySelector("#viewport");
 const ctx = canvas.getContext("2d");
 const stats = document.querySelector("#stats");
 const controls = {
+  viewMode: document.querySelector("#view-mode"),
   scalarLayer: document.querySelector("#scalar-layer"),
   live: document.querySelector("#toggle-live"),
   runtimeStatus: document.querySelector("#runtime-status"),
@@ -22,10 +23,12 @@ const frameUrl = params.get("frame");
 const sequenceUrl = params.get("sequence")
   || (frameUrl ? null : "/fixtures/fields/surface_field_visual_sequence.json");
 const payloadUrl = sequenceUrl || frameUrl || "/fixtures/fields/surface_field_visual_frame.json";
+const circuitUrl = params.get("circuit") || "/fixtures/fields/bioelectric_circuit_visual_frame.json";
 const wasmBaseUrl = params.get("wasm") || "/local-artifacts/matter_surface_field_wasm";
 
 let sequence = null;
 let frames = [];
+let circuitFrame = null;
 let currentFrameIndex = 0;
 let bounds = null;
 let view = { zoom: 1, offsetX: 0, offsetY: 0 };
@@ -39,15 +42,15 @@ let liveFrame = null;
 let liveStats = null;
 let liveStepMs = 0;
 
-fetch(payloadUrl)
-  .then((response) => {
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(async (payload) => {
+Promise.all([
+  fetchJson(payloadUrl),
+  fetchJson(circuitUrl).catch(() => null),
+])
+  .then(async ([payload, circuitPayload]) => {
     loadPayload(payload);
+    if (circuitPayload) {
+      loadCircuitPayload(circuitPayload);
+    }
     await initLiveRuntime();
     requestAnimationFrame(animationLoop);
   })
@@ -56,6 +59,30 @@ fetch(payloadUrl)
     setPlaying(false);
     draw();
   });
+
+controls.viewMode.addEventListener("change", () => {
+  if (isCircuitMode() && !circuitFrame) {
+    controls.viewMode.value = "surface";
+    return;
+  }
+  if (isCircuitMode()) {
+    controls.live.checked = false;
+    bounds = computeBounds(circuitFrame);
+    setPlaying(false);
+  } else {
+    if (liveRuntime) {
+      controls.live.checked = true;
+    }
+    bounds = computeBounds(activeFrame());
+    setPlaying(canAnimate());
+  }
+  fillLayerSelect();
+  updateControlAvailability();
+  updateTimelineControls();
+  updateRuntimeStatus(isLiveMode() ? "live" : "sequence");
+  updateStats();
+  draw();
+});
 
 for (const input of [
   controls.scalarLayer,
@@ -72,6 +99,10 @@ for (const input of [
 }
 
 controls.live.addEventListener("change", () => {
+  if (isCircuitMode()) {
+    controls.live.checked = false;
+    return;
+  }
   if (controls.live.checked && !liveRuntime) {
     controls.live.checked = false;
     return;
@@ -155,6 +186,15 @@ canvas.addEventListener("wheel", (event) => {
 
 window.addEventListener("resize", draw);
 
+function fetchJson(url) {
+  return fetch(url).then((response) => {
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return response.json();
+  });
+}
+
 function loadPayload(payload) {
   if (Array.isArray(payload.frames)) {
     sequence = payload;
@@ -168,10 +208,20 @@ function loadPayload(payload) {
   fillLayerSelect();
   resetView();
   setPlaying(frames.length > 1);
+  updateControlAvailability();
   updateTimelineControls();
   updateRuntimeStatus("sequence");
   updateStats();
   draw();
+}
+
+function loadCircuitPayload(payload) {
+  circuitFrame = payload;
+  if (!circuitFrame?.schema_id?.includes("bioelectric_circuit.visual_frame")) {
+    circuitFrame = null;
+    return;
+  }
+  updateControlAvailability();
 }
 
 async function initLiveRuntime() {
@@ -182,10 +232,10 @@ async function initLiveRuntime() {
     liveTopology = decodeLiveTopology(liveRuntime);
     liveFrame = buildLiveFrame();
     controls.live.disabled = false;
-    controls.live.checked = true;
-    bounds = computeBounds(liveFrame);
+    controls.live.checked = !isCircuitMode();
+    bounds = computeBounds(activeFrame());
     fillLayerSelect();
-    setPlaying(true);
+    setPlaying(canAnimate());
     updateTimelineControls();
     updateRuntimeStatus("live");
     updateStats();
@@ -241,22 +291,43 @@ function setPlaying(nextPlaying) {
 }
 
 function canAnimate() {
-  return isLiveMode() || frames.length > 1;
+  return !isCircuitMode() && (isLiveMode() || frames.length > 1);
 }
 
 function isLiveMode() {
-  return Boolean(controls.live.checked && liveRuntime && liveFrame);
+  return Boolean(!isCircuitMode() && controls.live.checked && liveRuntime && liveFrame);
+}
+
+function isCircuitMode() {
+  return controls.viewMode.value === "circuit" && circuitFrame;
+}
+
+function updateControlAvailability() {
+  const circuit = isCircuitMode();
+  controls.viewMode.querySelector('option[value="circuit"]').disabled = !circuitFrame;
+  controls.live.disabled = circuit || !liveRuntime;
+  controls.polarity.disabled = circuit;
 }
 
 function fillLayerSelect() {
   const selected = controls.scalarLayer.value;
   controls.scalarLayer.innerHTML = "";
+  if (isCircuitMode()) {
+    addLayerOption("circuit.voltage", "voltage");
+    if (circuitFrame.memory_samples.length > 0) {
+      addLayerOption("circuit.memory", "memory");
+    }
+    for (const layer of circuitFrame.readout_layers) {
+      addLayerOption(`readout:${layer.layer_id}`, layer.layer_id.replace("readout.", ""));
+    }
+    if ([...controls.scalarLayer.options].some((option) => option.value === selected)) {
+      controls.scalarLayer.value = selected;
+    }
+    return;
+  }
   const frame = activeFrame();
   for (const layer of frame.scalar_layers) {
-    const option = document.createElement("option");
-    option.value = layer.field_id;
-    option.textContent = layer.field_id.replace("field.", "");
-    controls.scalarLayer.append(option);
+    addLayerOption(layer.field_id, layer.field_id.replace("field.", ""));
   }
   if (frame.scalar_layers.some((layer) => layer.field_id === selected)) {
     controls.scalarLayer.value = selected;
@@ -268,11 +339,25 @@ function fillLayerSelect() {
   }
 }
 
+function addLayerOption(value, label) {
+  const option = document.createElement("option");
+  option.value = value;
+  option.textContent = label;
+  controls.scalarLayer.append(option);
+}
+
 function resetView() {
   view = { zoom: 1, offsetX: 0, offsetY: 0 };
 }
 
 function updateTimelineControls() {
+  if (isCircuitMode()) {
+    controls.frameSlider.disabled = true;
+    controls.frameSlider.max = "0";
+    controls.frameSlider.value = "0";
+    controls.framePosition.textContent = "circuit";
+    return;
+  }
   if (isLiveMode()) {
     controls.frameSlider.disabled = true;
     controls.frameSlider.max = "0";
@@ -288,10 +373,18 @@ function updateTimelineControls() {
 }
 
 function updateRuntimeStatus(mode) {
-  controls.runtimeStatus.textContent = mode === "live" ? "Matter live" : "sequence";
+  if (isCircuitMode()) {
+    controls.runtimeStatus.textContent = "circuit";
+  } else {
+    controls.runtimeStatus.textContent = mode === "live" ? "Matter live" : "sequence";
+  }
 }
 
 function updateStats() {
+  if (isCircuitMode()) {
+    updateCircuitStats();
+    return;
+  }
   const frame = activeFrame();
   if (!frame) {
     return;
@@ -312,12 +405,35 @@ function updateStats() {
   ].filter(Boolean).join("  ");
 }
 
+function updateCircuitStats() {
+  const frame = circuitFrame;
+  const diagnostics = frame.diagnostics;
+  const layer = controls.scalarLayer.value || "circuit.voltage";
+  const layerLabel = layer.replace("circuit.", "").replace("readout:", "");
+  stats.textContent = [
+    `${frame.nodes.length} nodes`,
+    `${frame.conductance_edges.length} conductance edges`,
+    `${frame.current_regions.length} current terms`,
+    `${frame.memory_samples.length} memory samples`,
+    `${frame.readout_layers.length} readouts`,
+    `t ${formatNumber(frame.time_seconds)}s`,
+    diagnostics ? `step ${diagnostics.step_index}` : null,
+    diagnostics ? `${diagnostics.active_gates} gates` : null,
+    diagnostics ? `dV ${formatNumber(diagnostics.max_voltage_delta)}` : null,
+    layerLabel,
+  ].filter(Boolean).join("  ");
+}
+
 function draw() {
   resizeCanvas();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
   if (!activeFrame()) {
     drawLoading();
+    return;
+  }
+  if (isCircuitMode()) {
+    drawCircuitFrame();
     return;
   }
   if (controls.edges.checked) {
@@ -330,6 +446,19 @@ function draw() {
   if (controls.polarity.checked) {
     drawVectorArrows();
   }
+  if (controls.labels.checked) {
+    drawLabels();
+  }
+}
+
+function drawCircuitFrame() {
+  if (controls.edges.checked) {
+    drawCircuitConductanceEdges();
+  }
+  if (controls.regions.checked) {
+    drawCircuitCurrentRegions();
+  }
+  drawCircuitNodes();
   if (controls.labels.checked) {
     drawLabels();
   }
@@ -383,6 +512,30 @@ function drawEdges() {
   }
 }
 
+function drawCircuitConductanceEdges() {
+  const frame = circuitFrame;
+  ctx.lineCap = "round";
+  const scale = window.devicePixelRatio || 1;
+  for (const edge of frame.conductance_edges) {
+    if (edge.tier === 2 && !controls.tier2.checked) {
+      continue;
+    }
+    const startNode = frame.nodes[edge.from];
+    const endNode = frame.nodes[edge.to];
+    if (!startNode || !endNode) {
+      continue;
+    }
+    const start = project(startNode.position);
+    const end = project(endNode.position);
+    ctx.strokeStyle = rgba(edge.color);
+    ctx.lineWidth = (0.65 + edge.normalized_conductance * 2.2) * scale;
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+    ctx.stroke();
+  }
+}
+
 function drawRegions() {
   const frame = activeFrame();
   for (const region of frame.perturbation_regions) {
@@ -404,6 +557,31 @@ function drawRegions() {
   }
 }
 
+function drawCircuitCurrentRegions() {
+  const frame = circuitFrame;
+  const scale = window.devicePixelRatio || 1;
+  for (const region of frame.current_regions) {
+    if (region.all_nodes) {
+      continue;
+    }
+    ctx.fillStyle = rgba(region.color);
+    ctx.strokeStyle = rgba({ ...region.color, a: Math.min(0.72, region.color.a * 1.9) });
+    ctx.lineWidth = 1.0 * scale;
+    for (const nodeIndex of region.node_indices) {
+      const node = frame.nodes[nodeIndex];
+      if (!node) {
+        continue;
+      }
+      const point = project(node.position);
+      const radius = nodeScreenRadius(node) * 2.0;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+}
+
 function drawScalarNodes() {
   const frame = activeFrame();
   const layer = activeScalarLayer();
@@ -412,6 +590,28 @@ function drawScalarNodes() {
   }
   for (const sample of layer.samples) {
     const node = frame.nodes[sample.node_index];
+    const point = project(node.position);
+    ctx.fillStyle = rgba(sample.color);
+    ctx.strokeStyle = "rgba(235, 241, 245, 0.78)";
+    ctx.lineWidth = 1.05 * (window.devicePixelRatio || 1);
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, nodeScreenRadius(node), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
+function drawCircuitNodes() {
+  const frame = circuitFrame;
+  const samples = activeCircuitSamples();
+  if (!samples.length) {
+    return;
+  }
+  for (const sample of samples) {
+    const node = frame.nodes[sample.node_index];
+    if (!node) {
+      continue;
+    }
     const point = project(node.position);
     ctx.fillStyle = rgba(sample.color);
     ctx.strokeStyle = "rgba(235, 241, 245, 0.78)";
@@ -478,6 +678,9 @@ function drawArrowHead(start, end, size) {
 }
 
 function activeFrame() {
+  if (isCircuitMode()) {
+    return circuitFrame;
+  }
   if (isLiveMode()) {
     return liveFrame;
   }
@@ -485,10 +688,28 @@ function activeFrame() {
 }
 
 function activeScalarLayer() {
+  if (isCircuitMode()) {
+    return null;
+  }
   const frame = activeFrame();
   return frame?.scalar_layers.find((layer) => layer.field_id === controls.scalarLayer.value)
     || frame?.scalar_layers[0]
     || null;
+}
+
+function activeCircuitSamples() {
+  if (!circuitFrame) {
+    return [];
+  }
+  const selected = controls.scalarLayer.value;
+  if (selected === "circuit.memory") {
+    return circuitFrame.memory_samples;
+  }
+  if (selected.startsWith("readout:")) {
+    const layerId = selected.slice("readout:".length);
+    return circuitFrame.readout_layers.find((layer) => layer.layer_id === layerId)?.samples || [];
+  }
+  return circuitFrame.voltage_samples;
 }
 
 function decodeLiveTopology(runtime) {

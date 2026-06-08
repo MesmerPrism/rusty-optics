@@ -20,6 +20,8 @@ Optics owns:
   visuals over Matter mesh payloads;
 - surface-field visual frames and playback sequences over Matter field debug
   frames/sequences;
+- bioelectric circuit visual frames over Matter circuit state and step
+  diagnostics;
 - deterministic fixture and schema artifacts;
 - renderer-neutral diagnostics for visual payloads.
 
@@ -59,6 +61,12 @@ the returned Matter values into Optics-owned colors, arrows, overlays, and
 controls; it must not duplicate diffusion, decay, perturbation, or vector
 update rules.
 
+For bioelectric circuit previews, Optics consumes Matter circuit state and
+diagnostics as renderer-neutral visual frames. Browser JavaScript may select
+voltage, memory, and readout layers and draw conductance/current overlays, but
+it must not own voltage, conductance, current, gate, memory, or readout update
+rules.
+
 ## Renderer Adapter Boundary
 
 Optics can prepare backend-neutral instance arrays and mask atlas pixels, but
@@ -81,6 +89,8 @@ The implemented foundation slice is CPU/data-only:
 - mesh debug frames over Matter triangle surfaces;
 - surface-field visual frames and playback sequences over Matter surface-field
   debug frames/sequences;
+- bioelectric circuit visual frames over Matter voltage, conductance, current,
+  memory, readout, and step-diagnostic payloads;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over one shared
   source mesh surface;
 - browser preview for generated mesh debug JSON and Matter-Wasm-backed animated
@@ -99,6 +109,8 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
 - `rusty-optics-model/src/vec2.rs`: two-dimensional projection points.
 - `rusty-optics-mesh/src/browser_frame.rs`: combined mesh debug frame for
   static browser previews and future renderer adapters.
+- `rusty-optics-mesh/src/circuit_frame.rs`: renderer-neutral bioelectric
+  circuit visual frame contracts over Matter circuit state and diagnostics.
 - `rusty-optics-mesh/src/collider.rs`: dynamic mesh collider shell/contact
   debug visuals.
 - `rusty-optics-mesh/src/coordinate.rs`: coordinate-map anchor and axis debug
@@ -107,7 +119,8 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
   edge, scalar-color, perturbation-region, polarity-arrow, and visual sequence
   contracts over Matter field debug frames/sequences.
 - `web/surface-field-preview/app.js`: browser preview for visual sequences and
-  live Matter surface-field Wasm snapshots; owns playback and drawing only.
+  live Matter surface-field Wasm snapshots, plus static bioelectric circuit
+  visual frames; owns playback and drawing only.
 - `rusty-optics-mesh/src/mesh_frame.rs`: mesh wireframe and topology debug
   visuals.
 - `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug

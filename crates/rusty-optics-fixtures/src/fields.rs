@@ -1,12 +1,17 @@
 use rusty_matter_fields::{
-    SurfaceFieldDebugFrame, SurfaceFieldDebugFrameSequence, SurfaceFieldPerturbation,
-    SurfaceFieldPerturbationEffect, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig,
-    SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
-    SurfaceVectorField, SurfaceVectorFieldKind,
+    BioelectricCircuitConfig, BioelectricCircuitRuntime, BioelectricCircuitState,
+    BioelectricConductanceEdge, BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate,
+    BioelectricGateSource, BioelectricMemoryState, BioelectricReadoutLayer,
+    BioelectricVoltageField, BioelectricVoltageUnit, SurfaceFieldDebugFrame,
+    SurfaceFieldDebugFrameSequence, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
+    SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate,
+    SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
 };
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
-use rusty_optics_mesh::{SurfaceFieldVisualFrame, SurfaceFieldVisualFrameSequence};
+use rusty_optics_mesh::{
+    BioelectricCircuitVisualFrame, SurfaceFieldVisualFrame, SurfaceFieldVisualFrameSequence,
+};
 
 use crate::error::FixtureError;
 
@@ -29,6 +34,30 @@ pub fn surface_field_visual_sequence_json() -> Result<String, FixtureError> {
     let visual = SurfaceFieldVisualFrameSequence::from_matter_debug_sequence(
         "fields.visual.sequence.unit_square_dynamic",
         &source,
+    )
+    .map_err(|error| FixtureError::Optics(error.to_string()))?;
+    let mut json = serde_json::to_string_pretty(&visual)?;
+    json.push('\n');
+    Ok(json)
+}
+
+/// Serializes the deterministic bioelectric circuit visual frame.
+pub fn bioelectric_circuit_visual_frame_json() -> Result<String, FixtureError> {
+    let (substrate, mut circuit) = build_bioelectric_circuit_state()?;
+    let runtime = BioelectricCircuitRuntime::new(BioelectricCircuitConfig {
+        config_id: "fields.bioelectric_circuit.optics_fixture".to_owned(),
+        max_steps_per_run: 180,
+        ..BioelectricCircuitConfig::default()
+    })
+    .map_err(|error| FixtureError::Matter(error.to_string()))?;
+    let diagnostics = runtime
+        .step_fixed(&substrate, &mut circuit, 0)
+        .map_err(|error| FixtureError::Matter(error.to_string()))?;
+    let visual = BioelectricCircuitVisualFrame::from_matter_circuit_state(
+        "fields.visual.bioelectric_circuit.unit_square",
+        &substrate,
+        &circuit,
+        Some(&diagnostics),
     )
     .map_err(|error| FixtureError::Optics(error.to_string()))?;
     let mut json = serde_json::to_string_pretty(&visual)?;
@@ -250,6 +279,125 @@ fn build_surface_field_debug_sequence() -> Result<SurfaceFieldDebugFrameSequence
             3,
         )
         .map_err(|error| FixtureError::Matter(error.to_string()))
+}
+
+fn build_bioelectric_circuit_state(
+) -> Result<(SurfaceFieldSubstrate, BioelectricCircuitState), FixtureError> {
+    let surface = unit_square_surface();
+    let samples = surface
+        .sample_points(&MeshSurfaceSampleConfig {
+            sample_config_id: "mesh.surface_sample.optics_bioelectric_fixture".to_owned(),
+            sample_set_id: "mesh.surface_samples.optics_bioelectric_fixture".to_owned(),
+            point_count: 12,
+            first_tier_neighbor_count: 3,
+            second_tier_neighbor_count: 3,
+            seed: 48_161,
+            pattern: MeshSurfaceSamplePattern::LowDiscrepancy,
+            ..MeshSurfaceSampleConfig::default()
+        })
+        .map_err(|error| FixtureError::Matter(error.to_string()))?;
+    let substrate = SurfaceFieldSubstrate::from_sample_set(
+        "fields.substrate.optics_bioelectric_unit_square",
+        &samples,
+    )
+    .map_err(|error| FixtureError::Matter(error.to_string()))?;
+    let node_count = substrate.node_count();
+    let voltage_values = substrate
+        .nodes
+        .iter()
+        .map(|node| 0.20 * (node.position.x - 0.5) + 0.12 * (node.position.y - 0.5))
+        .collect::<Vec<_>>();
+    let gate = BioelectricGate::new(
+        "gate.optics_bioelectric_voltage_difference",
+        BioelectricGateSource::VoltageDifference,
+        0.07,
+        0.018,
+        0.3,
+        1.65,
+    );
+    let conductance_edges =
+        BioelectricConductanceEdge::from_substrate_neighbors(&substrate, 0.16, 0.045, Some(gate))
+            .map_err(|error| FixtureError::Matter(error.to_string()))?;
+
+    let source_nodes = nearest_nodes(&substrate, Vec3::new(0.28, 0.62, 0.0), 4);
+    let sink_nodes = nearest_nodes(&substrate, Vec3::new(0.76, 0.38, 0.0), 4);
+    let mut source = BioelectricCurrentTerm::new(
+        "current.optics_bioelectric_source",
+        source_nodes,
+        BioelectricCurrentKind::Constant { current: 0.85 },
+    );
+    source.duration_steps = 24;
+    let mut sink = BioelectricCurrentTerm::new(
+        "current.optics_bioelectric_sink",
+        sink_nodes,
+        BioelectricCurrentKind::Constant { current: -0.35 },
+    );
+    sink.start_step = 8;
+    sink.duration_steps = 40;
+    let current_terms = vec![
+        BioelectricCurrentTerm::new(
+            "current.optics_bioelectric_leak",
+            Vec::new(),
+            BioelectricCurrentKind::Leak {
+                conductance: 0.16,
+                reversal_voltage: 0.0,
+            },
+        ),
+        BioelectricCurrentTerm::new(
+            "current.optics_bioelectric_pump",
+            Vec::new(),
+            BioelectricCurrentKind::Pump {
+                rate: 0.10,
+                target_voltage: 0.0,
+            },
+        ),
+        BioelectricCurrentTerm::new(
+            "current.optics_bioelectric_voltage_gate",
+            Vec::new(),
+            BioelectricCurrentKind::VoltageGated {
+                max_conductance: 0.06,
+                reversal_voltage: -0.25,
+                threshold: 0.16,
+                slope: 0.05,
+            },
+        ),
+        source,
+        sink,
+    ];
+    let memory = BioelectricMemoryState::zeroed(
+        "memory.optics_bioelectric_hysteresis",
+        node_count,
+        0.24,
+        -0.16,
+        1.9,
+        0.55,
+    );
+    let readout = BioelectricReadoutLayer::new(
+        "readout.optics_bioelectric_voltage",
+        vec![0.0; node_count],
+        0.8,
+        0.45,
+        0.08,
+        1.25,
+        -1.0,
+        1.0,
+    );
+    let circuit = BioelectricCircuitState::new(
+        "circuit.optics_bioelectric_unit_square",
+        &substrate,
+        BioelectricVoltageField::new(
+            "field.bioelectric_voltage",
+            BioelectricVoltageUnit::Normalized,
+            0.0,
+            voltage_values,
+        ),
+        conductance_edges,
+        current_terms,
+        Some(memory),
+        vec![readout],
+    )
+    .map_err(|error| FixtureError::Matter(error.to_string()))?;
+    Ok((substrate, circuit))
 }
 
 fn unit_square_surface() -> TriangleMeshSurface {

@@ -4,13 +4,20 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Rusty Optics Surface Field</title>
-    <link rel="stylesheet" href="styles.css?v=surface-field-dynamics">
+    <link rel="stylesheet" href="styles.css?v=surface-field-circuit">
   </head>
   <body>
     <main class="app">
       <div class="toolbar" aria-label="Surface field controls">
         <label>
-          Scalar
+          View
+          <select id="view-mode">
+            <option value="surface" selected>Surface</option>
+            <option value="circuit">Circuit</option>
+          </select>
+        </label>
+        <label>
+          Layer
           <select id="scalar-layer"></select>
         </label>
         <label><input id="toggle-live" type="checkbox" checked> Live</label>
@@ -33,13 +40,13 @@
         <label><input id="toggle-edges" type="checkbox" checked> Edges</label>
         <label><input id="toggle-tier2" type="checkbox" checked> Tier 2</label>
         <label><input id="toggle-regions" type="checkbox" checked> Regions</label>
-        <label><input id="toggle-polarity" type="checkbox" checked> Polarity</label>
+        <label><input id="toggle-polarity" type="checkbox" checked> Vectors</label>
         <label><input id="toggle-labels" type="checkbox"> Labels</label>
         <button id="reset-view" type="button">Reset</button>
         <output id="stats">Loading</output>
       </div>
       <canvas id="viewport"></canvas>
     </main>
-    <script src="app.js?v=surface-field-live"></script>
+    <script src="app.js?v=surface-field-circuit"></script>
   </body>
 </html>

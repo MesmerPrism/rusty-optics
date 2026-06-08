@@ -1,0 +1,1631 @@
+{
+  "schema_id": "rusty.optics.fields.bioelectric_circuit.visual_frame.v1",
+  "frame_id": "fields.visual.bioelectric_circuit.unit_square",
+  "source_circuit_id": "circuit.optics_bioelectric_unit_square",
+  "source_schema_id": "rusty.matter.fields.bioelectric_circuit_state.v1",
+  "substrate_id": "fields.substrate.optics_bioelectric_unit_square",
+  "surface_id": "mesh.unit_square_surface",
+  "time_seconds": 0.016666668,
+  "bounds_min": {
+    "x": 0.12556355,
+    "y": 0.11687642,
+    "z": 0.0
+  },
+  "bounds_max": {
+    "x": 0.9690068,
+    "y": 0.99302673,
+    "z": 0.0
+  },
+  "nodes": [
+    {
+      "node_index": 0,
+      "node_id": "fields.substrate.optics_bioelectric_unit_square.node.0000",
+      "position": {
+        "x": 0.68325555,
+        "y": 0.64340425,
+        "z": 0.0
+      },
+      "radius": 0.026
+    },
+    {
+      "node_index": 1,
+      "node_id": "fields.substrate.optics_bioelectric_unit_square.node.0001",
+      "position": {
+        "x": 0.8803002,
+        "y": 0.9465369,
+        "z": 0.0
+      },
+      "radius": 0.026
+    },
+    {
+      "node_index": 2,
+      "node_id": "fields.substrate.optics_bioelectric_unit_square.node.0002",
+      "position": {
+        "x": 0.29132843,
+        "y": 0.20292544,
+        "z": 0.0
+      },
+      "radius": 0.026
+    },
+    {
+      "node_index": 3,
+      "node_id": "fields.substrate.optics_bioelectric_unit_square.node.0003",
+      "position": {
+        "x": 0.12556355,
+        "y": 0.7169143,
+        "z": 0.0
+      },
+      "radius": 0.026
+    },
+    {
+      "node_index": 4,
+      "node_id": "fields.substrate.optics_bioelectric_unit_square.node.0004",
+      "position": {
+        "x": 0.838395,
+        "y": 0.37847653,
+        "z": 0.0
+      },
+      "radius": 0.026
+    },
+    {
+      "node_index": 5,
+      "node_id": "fields.substrate.optics_bioelectric_unit_square.node.0005",
+      "position": {
+        "x": 0.15269051,
+        "y": 0.363318,
+        "z": 0.0
+      },
+      "radius": 0.026
+    },
+    {
+      "node_index": 6,
+      "node_id": "fields.substrate.optics_bioelectric_unit_square.node.0006",
+      "position": {
+        "x": 0.56651586,
+        "y": 0.11687642,
+        "z": 0.0
+      },
+      "radius": 0.026
+    },
+    {
+      "node_index": 7,
+      "node_id": "fields.substrate.optics_bioelectric_unit_square.node.0007",
+      "position": {
+        "x": 0.57625705,
+        "y": 0.86604524,
+        "z": 0.0
+      },
+      "radius": 0.026
+    },
+    {
+      "node_index": 8,
+      "node_id": "fields.substrate.optics_bioelectric_unit_square.node.0008",
+      "position": {
+        "x": 0.9690068,
+        "y": 0.93139476,
+        "z": 0.0
+      },
+      "radius": 0.026
+    },
+    {
+      "node_index": 9,
+      "node_id": "fields.substrate.optics_bioelectric_unit_square.node.0009",
+      "position": {
+        "x": 0.5523948,
+        "y": 0.60668623,
+        "z": 0.0
+      },
+      "radius": 0.026
+    },
+    {
+      "node_index": 10,
+      "node_id": "fields.substrate.optics_bioelectric_unit_square.node.0010",
+      "position": {
+        "x": 0.7463298,
+        "y": 0.5344192,
+        "z": 0.0
+      },
+      "radius": 0.026
+    },
+    {
+      "node_index": 11,
+      "node_id": "fields.substrate.optics_bioelectric_unit_square.node.0011",
+      "position": {
+        "x": 0.15454818,
+        "y": 0.99302673,
+        "z": 0.0
+      },
+      "radius": 0.026
+    }
+  ],
+  "voltage_samples": [
+    {
+      "node_index": 0,
+      "voltage": 0.053716004,
+      "normalized_voltage": 0.59066564,
+      "color": {
+        "r": 0.6898393,
+        "g": 0.46854627,
+        "b": 0.21906656,
+        "a": 0.91906655
+      }
+    },
+    {
+      "node_index": 1,
+      "voltage": 0.12831624,
+      "normalized_voltage": 0.9296308,
+      "color": {
+        "r": 0.91355634,
+        "g": 0.5939634,
+        "b": 0.25296307,
+        "a": 0.95296305
+      }
+    },
+    {
+      "node_index": 2,
+      "voltage": -0.07627904,
+      "normalized_voltage": 0.0,
+      "color": {
+        "r": 0.3,
+        "g": 0.76,
+        "b": 0.7,
+        "a": 0.96
+      }
+    },
+    {
+      "node_index": 3,
+      "voltage": -0.034057185,
+      "normalized_voltage": 0.19184576,
+      "color": {
+        "r": 0.26546776,
+        "g": 0.66791403,
+        "b": 0.6232617,
+        "a": 0.9408154
+      }
+    },
+    {
+      "node_index": 4,
+      "voltage": 0.052815314,
+      "normalized_voltage": 0.5865731,
+      "color": {
+        "r": 0.68713826,
+        "g": 0.46703207,
+        "b": 0.2186573,
+        "a": 0.9186573
+      }
+    },
+    {
+      "node_index": 5,
+      "voltage": -0.07046373,
+      "normalized_voltage": 0.02642332,
+      "color": {
+        "r": 0.2952438,
+        "g": 0.7473168,
+        "b": 0.68943065,
+        "a": 0.95735765
+      }
+    },
+    {
+      "node_index": 6,
+      "voltage": -0.031941492,
+      "normalized_voltage": 0.20145895,
+      "color": {
+        "r": 0.2637374,
+        "g": 0.6632997,
+        "b": 0.6194164,
+        "a": 0.9398541
+      }
+    },
+    {
+      "node_index": 7,
+      "voltage": 0.07321593,
+      "normalized_voltage": 0.67926854,
+      "color": {
+        "r": 0.74831724,
+        "g": 0.50132936,
+        "b": 0.22792685,
+        "a": 0.92792684
+      }
+    },
+    {
+      "node_index": 8,
+      "voltage": 0.14380324,
+      "normalized_voltage": 1.0,
+      "color": {
+        "r": 0.96,
+        "g": 0.62,
+        "b": 0.26,
+        "a": 0.96
+      }
+    },
+    {
+      "node_index": 9,
+      "voltage": 0.037277255,
+      "normalized_voltage": 0.515972,
+      "color": {
+        "r": 0.64054155,
+        "g": 0.44090965,
+        "b": 0.2115972,
+        "a": 0.9115972
+      }
+    },
+    {
+      "node_index": 10,
+      "voltage": 0.05308076,
+      "normalized_voltage": 0.5877792,
+      "color": {
+        "r": 0.6879343,
+        "g": 0.46747833,
+        "b": 0.21877791,
+        "a": 0.91877794
+      }
+    },
+    {
+      "node_index": 11,
+      "voltage": -0.009578244,
+      "normalized_voltage": 0.30307207,
+      "color": {
+        "r": 0.24544704,
+        "g": 0.6145254,
+        "b": 0.5787711,
+        "a": 0.9296928
+      }
+    }
+  ],
+  "conductance_edges": [
+    {
+      "from": 0,
+      "to": 10,
+      "tier": 1,
+      "conductance": 0.05244308,
+      "normalized_conductance": 0.216744,
+      "gated": true,
+      "color": {
+        "r": 0.2790139,
+        "g": 0.40487432,
+        "b": 0.3576837,
+        "a": 0.3127069
+      }
+    },
+    {
+      "from": 0,
+      "to": 9,
+      "tier": 1,
+      "conductance": 0.069739014,
+      "normalized_conductance": 0.28822702,
+      "gated": true,
+      "color": {
+        "r": 0.29188085,
+        "g": 0.4427603,
+        "b": 0.37340993,
+        "a": 0.34987807
+      }
+    },
+    {
+      "from": 0,
+      "to": 7,
+      "tier": 1,
+      "conductance": 0.05378148,
+      "normalized_conductance": 0.22227553,
+      "gated": true,
+      "color": {
+        "r": 0.2800096,
+        "g": 0.407806,
+        "b": 0.3589006,
+        "a": 0.3155833
+      }
+    },
+    {
+      "from": 0,
+      "to": 4,
+      "tier": 2,
+      "conductance": 0.014770184,
+      "normalized_conductance": 0.061044257,
+      "gated": true,
+      "color": {
+        "r": 0.25098795,
+        "g": 0.32235345,
+        "b": 0.32342973,
+        "a": 0.23174302
+      }
+    },
+    {
+      "from": 0,
+      "to": 1,
+      "tier": 2,
+      "conductance": 0.048714396,
+      "normalized_conductance": 0.20133358,
+      "gated": true,
+      "color": {
+        "r": 0.27624005,
+        "g": 0.3967068,
+        "b": 0.35429338,
+        "a": 0.30469346
+      }
+    },
+    {
+      "from": 0,
+      "to": 8,
+      "tier": 2,
+      "conductance": 0.060253285,
+      "normalized_conductance": 0.2490231,
+      "gated": true,
+      "color": {
+        "r": 0.28482416,
+        "g": 0.42198223,
+        "b": 0.36478508,
+        "a": 0.32949203
+      }
+    },
+    {
+      "from": 1,
+      "to": 8,
+      "tier": 1,
+      "conductance": 0.058202993,
+      "normalized_conductance": 0.24054937,
+      "gated": true,
+      "color": {
+        "r": 0.28329888,
+        "g": 0.41749114,
+        "b": 0.36292085,
+        "a": 0.3250857
+      }
+    },
+    {
+      "from": 1,
+      "to": 7,
+      "tier": 1,
+      "conductance": 0.15740286,
+      "normalized_conductance": 0.6505363,
+      "gated": true,
+      "color": {
+        "r": 0.35709652,
+        "g": 0.6347842,
+        "b": 0.45311797,
+        "a": 0.5382789
+      }
+    },
+    {
+      "from": 1,
+      "to": 0,
+      "tier": 1,
+      "conductance": 0.17320673,
+      "normalized_conductance": 0.7158527,
+      "gated": true,
+      "color": {
+        "r": 0.36885345,
+        "g": 0.6694019,
+        "b": 0.46748757,
+        "a": 0.57224345
+      }
+    },
+    {
+      "from": 1,
+      "to": 10,
+      "tier": 2,
+      "conductance": 0.049094636,
+      "normalized_conductance": 0.20290509,
+      "gated": true,
+      "color": {
+        "r": 0.2765229,
+        "g": 0.39753968,
+        "b": 0.3546391,
+        "a": 0.30551064
+      }
+    },
+    {
+      "from": 1,
+      "to": 9,
+      "tier": 2,
+      "conductance": 0.06713613,
+      "normalized_conductance": 0.2774695,
+      "gated": true,
+      "color": {
+        "r": 0.2899445,
+        "g": 0.4370588,
+        "b": 0.37104326,
+        "a": 0.34428415
+      }
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "tier": 2,
+      "conductance": 0.049339984,
+      "normalized_conductance": 0.2039191,
+      "gated": true,
+      "color": {
+        "r": 0.27670544,
+        "g": 0.3980771,
+        "b": 0.3548622,
+        "a": 0.30603793
+      }
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "tier": 1,
+      "conductance": 0.054856975,
+      "normalized_conductance": 0.22672048,
+      "gated": true,
+      "color": {
+        "r": 0.28080967,
+        "g": 0.41016185,
+        "b": 0.3598785,
+        "a": 0.31789467
+      }
+    },
+    {
+      "from": 2,
+      "to": 6,
+      "tier": 1,
+      "conductance": 0.090560205,
+      "normalized_conductance": 0.37427974,
+      "gated": true,
+      "color": {
+        "r": 0.30737033,
+        "g": 0.48836824,
+        "b": 0.39234152,
+        "a": 0.39462548
+      }
+    },
+    {
+      "from": 2,
+      "to": 9,
+      "tier": 1,
+      "conductance": 0.23073657,
+      "normalized_conductance": 0.95361996,
+      "gated": true,
+      "color": {
+        "r": 0.41165158,
+        "g": 0.7954185,
+        "b": 0.5197964,
+        "a": 0.69588244
+      }
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "tier": 2,
+      "conductance": 0.019014984,
+      "normalized_conductance": 0.078587756,
+      "gated": true,
+      "color": {
+        "r": 0.2541458,
+        "g": 0.3316515,
+        "b": 0.3272893,
+        "a": 0.24086565
+      }
+    },
+    {
+      "from": 2,
+      "to": 10,
+      "tier": 2,
+      "conductance": 0.07224321,
+      "normalized_conductance": 0.29857674,
+      "gated": true,
+      "color": {
+        "r": 0.2937438,
+        "g": 0.44824564,
+        "b": 0.37568688,
+        "a": 0.35525993
+      }
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "tier": 2,
+      "conductance": 0.07221062,
+      "normalized_conductance": 0.298442,
+      "gated": true,
+      "color": {
+        "r": 0.29371956,
+        "g": 0.44817424,
+        "b": 0.37565723,
+        "a": 0.35518986
+      }
+    },
+    {
+      "from": 3,
+      "to": 11,
+      "tier": 1,
+      "conductance": 0.080635145,
+      "normalized_conductance": 0.33326006,
+      "gated": true,
+      "color": {
+        "r": 0.2999868,
+        "g": 0.4666278,
+        "b": 0.3833172,
+        "a": 0.37329525
+      }
+    },
+    {
+      "from": 3,
+      "to": 5,
+      "tier": 1,
+      "conductance": 0.07778258,
+      "normalized_conductance": 0.3214706,
+      "gated": true,
+      "color": {
+        "r": 0.2978647,
+        "g": 0.4603794,
+        "b": 0.38072354,
+        "a": 0.36716473
+      }
+    },
+    {
+      "from": 3,
+      "to": 9,
+      "tier": 1,
+      "conductance": 0.16240913,
+      "normalized_conductance": 0.67122686,
+      "gated": true,
+      "color": {
+        "r": 0.36082083,
+        "g": 0.64575016,
+        "b": 0.45766988,
+        "a": 0.549038
+      }
+    },
+    {
+      "from": 3,
+      "to": 7,
+      "tier": 2,
+      "conductance": 0.06769887,
+      "normalized_conductance": 0.27979526,
+      "gated": true,
+      "color": {
+        "r": 0.29036313,
+        "g": 0.4382915,
+        "b": 0.37155494,
+        "a": 0.34549356
+      }
+    },
+    {
+      "from": 3,
+      "to": 2,
+      "tier": 2,
+      "conductance": 0.019014984,
+      "normalized_conductance": 0.078587756,
+      "gated": true,
+      "color": {
+        "r": 0.2541458,
+        "g": 0.3316515,
+        "b": 0.3272893,
+        "a": 0.24086565
+      }
+    },
+    {
+      "from": 3,
+      "to": 0,
+      "tier": 2,
+      "conductance": 0.06576205,
+      "normalized_conductance": 0.27179047,
+      "gated": true,
+      "color": {
+        "r": 0.28892228,
+        "g": 0.43404895,
+        "b": 0.3697939,
+        "a": 0.34133106
+      }
+    },
+    {
+      "from": 4,
+      "to": 10,
+      "tier": 1,
+      "conductance": 0.052403774,
+      "normalized_conductance": 0.21658155,
+      "gated": true,
+      "color": {
+        "r": 0.27898467,
+        "g": 0.4047882,
+        "b": 0.35764793,
+        "a": 0.31262243
+      }
+    },
+    {
+      "from": 4,
+      "to": 0,
+      "tier": 1,
+      "conductance": 0.052516207,
+      "normalized_conductance": 0.21704623,
+      "gated": true,
+      "color": {
+        "r": 0.27906832,
+        "g": 0.40503448,
+        "b": 0.35775018,
+        "a": 0.31286407
+      }
+    },
+    {
+      "from": 4,
+      "to": 9,
+      "tier": 1,
+      "conductance": 0.06892373,
+      "normalized_conductance": 0.2848575,
+      "gated": true,
+      "color": {
+        "r": 0.29127434,
+        "g": 0.44097447,
+        "b": 0.37266865,
+        "a": 0.34812593
+      }
+    },
+    {
+      "from": 4,
+      "to": 6,
+      "tier": 2,
+      "conductance": 0.05638894,
+      "normalized_conductance": 0.233052,
+      "gated": true,
+      "color": {
+        "r": 0.28194934,
+        "g": 0.41351753,
+        "b": 0.36127144,
+        "a": 0.32118705
+      }
+    },
+    {
+      "from": 4,
+      "to": 7,
+      "tier": 2,
+      "conductance": 0.015194526,
+      "normalized_conductance": 0.06279804,
+      "gated": true,
+      "color": {
+        "r": 0.25130364,
+        "g": 0.32328296,
+        "b": 0.32381558,
+        "a": 0.23265499
+      }
+    },
+    {
+      "from": 4,
+      "to": 8,
+      "tier": 2,
+      "conductance": 0.060704917,
+      "normalized_conductance": 0.25088966,
+      "gated": true,
+      "color": {
+        "r": 0.28516012,
+        "g": 0.4229715,
+        "b": 0.36519572,
+        "a": 0.33046263
+      }
+    },
+    {
+      "from": 5,
+      "to": 2,
+      "tier": 1,
+      "conductance": 0.054856975,
+      "normalized_conductance": 0.22672048,
+      "gated": true,
+      "color": {
+        "r": 0.28080967,
+        "g": 0.41016185,
+        "b": 0.3598785,
+        "a": 0.31789467
+      }
+    },
+    {
+      "from": 5,
+      "to": 3,
+      "tier": 1,
+      "conductance": 0.07778258,
+      "normalized_conductance": 0.3214706,
+      "gated": true,
+      "color": {
+        "r": 0.2978647,
+        "g": 0.4603794,
+        "b": 0.38072354,
+        "a": 0.36716473
+      }
+    },
+    {
+      "from": 5,
+      "to": 9,
+      "tier": 1,
+      "conductance": 0.24195862,
+      "normalized_conductance": 1.0,
+      "gated": true,
+      "color": {
+        "r": 0.42,
+        "g": 0.81999993,
+        "b": 0.53,
+        "a": 0.72
+      }
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "tier": 2,
+      "conductance": 0.030641211,
+      "normalized_conductance": 0.12663823,
+      "gated": true,
+      "color": {
+        "r": 0.26279488,
+        "g": 0.35711825,
+        "b": 0.3378604,
+        "a": 0.26585189
+      }
+    },
+    {
+      "from": 5,
+      "to": 0,
+      "tier": 2,
+      "conductance": 0.073013015,
+      "normalized_conductance": 0.30175826,
+      "gated": true,
+      "color": {
+        "r": 0.29431647,
+        "g": 0.44993186,
+        "b": 0.37638682,
+        "a": 0.3569143
+      }
+    },
+    {
+      "from": 5,
+      "to": 10,
+      "tier": 2,
+      "conductance": 0.07298143,
+      "normalized_conductance": 0.30162776,
+      "gated": true,
+      "color": {
+        "r": 0.294293,
+        "g": 0.4498627,
+        "b": 0.3763581,
+        "a": 0.35684645
+      }
+    },
+    {
+      "from": 6,
+      "to": 2,
+      "tier": 1,
+      "conductance": 0.090560205,
+      "normalized_conductance": 0.37427974,
+      "gated": true,
+      "color": {
+        "r": 0.30737033,
+        "g": 0.48836824,
+        "b": 0.39234152,
+        "a": 0.39462548
+      }
+    },
+    {
+      "from": 6,
+      "to": 4,
+      "tier": 1,
+      "conductance": 0.20049399,
+      "normalized_conductance": 0.82862926,
+      "gated": true,
+      "color": {
+        "r": 0.38915324,
+        "g": 0.7291735,
+        "b": 0.49229842,
+        "a": 0.63088727
+      }
+    },
+    {
+      "from": 6,
+      "to": 10,
+      "tier": 1,
+      "conductance": 0.20123886,
+      "normalized_conductance": 0.8317077,
+      "gated": true,
+      "color": {
+        "r": 0.3897074,
+        "g": 0.73080504,
+        "b": 0.49297565,
+        "a": 0.6324881
+      }
+    },
+    {
+      "from": 6,
+      "to": 5,
+      "tier": 2,
+      "conductance": 0.030641211,
+      "normalized_conductance": 0.12663823,
+      "gated": true,
+      "color": {
+        "r": 0.26279488,
+        "g": 0.35711825,
+        "b": 0.3378604,
+        "a": 0.26585189
+      }
+    },
+    {
+      "from": 6,
+      "to": 9,
+      "tier": 2,
+      "conductance": 0.032589816,
+      "normalized_conductance": 0.13469169,
+      "gated": true,
+      "color": {
+        "r": 0.2642445,
+        "g": 0.3613866,
+        "b": 0.33963215,
+        "a": 0.27003968
+      }
+    },
+    {
+      "from": 6,
+      "to": 0,
+      "tier": 2,
+      "conductance": 0.056919053,
+      "normalized_conductance": 0.23524292,
+      "gated": true,
+      "color": {
+        "r": 0.28234372,
+        "g": 0.41467872,
+        "b": 0.36175343,
+        "a": 0.32232633
+      }
+    },
+    {
+      "from": 7,
+      "to": 0,
+      "tier": 1,
+      "conductance": 0.05378148,
+      "normalized_conductance": 0.22227553,
+      "gated": true,
+      "color": {
+        "r": 0.2800096,
+        "g": 0.407806,
+        "b": 0.3589006,
+        "a": 0.3155833
+      }
+    },
+    {
+      "from": 7,
+      "to": 9,
+      "tier": 1,
+      "conductance": 0.076233424,
+      "normalized_conductance": 0.31506804,
+      "gated": true,
+      "color": {
+        "r": 0.29671225,
+        "g": 0.45698604,
+        "b": 0.37931496,
+        "a": 0.3638354
+      }
+    },
+    {
+      "from": 7,
+      "to": 1,
+      "tier": 1,
+      "conductance": 0.15740286,
+      "normalized_conductance": 0.6505363,
+      "gated": true,
+      "color": {
+        "r": 0.35709652,
+        "g": 0.6347842,
+        "b": 0.45311797,
+        "a": 0.5382789
+      }
+    },
+    {
+      "from": 7,
+      "to": 10,
+      "tier": 2,
+      "conductance": 0.01516728,
+      "normalized_conductance": 0.06268543,
+      "gated": true,
+      "color": {
+        "r": 0.25128338,
+        "g": 0.32322326,
+        "b": 0.3237908,
+        "a": 0.23259643
+      }
+    },
+    {
+      "from": 7,
+      "to": 8,
+      "tier": 2,
+      "conductance": 0.056822974,
+      "normalized_conductance": 0.23484583,
+      "gated": true,
+      "color": {
+        "r": 0.28227225,
+        "g": 0.4144683,
+        "b": 0.36166608,
+        "a": 0.32211983
+      }
+    },
+    {
+      "from": 7,
+      "to": 11,
+      "tier": 2,
+      "conductance": 0.04311916,
+      "normalized_conductance": 0.17820881,
+      "gated": true,
+      "color": {
+        "r": 0.2720776,
+        "g": 0.38445067,
+        "b": 0.34920594,
+        "a": 0.29266858
+      }
+    },
+    {
+      "from": 8,
+      "to": 1,
+      "tier": 1,
+      "conductance": 0.058202993,
+      "normalized_conductance": 0.24054937,
+      "gated": true,
+      "color": {
+        "r": 0.28329888,
+        "g": 0.41749114,
+        "b": 0.36292085,
+        "a": 0.3250857
+      }
+    },
+    {
+      "from": 8,
+      "to": 7,
+      "tier": 1,
+      "conductance": 0.20203723,
+      "normalized_conductance": 0.83500737,
+      "gated": true,
+      "color": {
+        "r": 0.39030132,
+        "g": 0.73255384,
+        "b": 0.49370158,
+        "a": 0.63420385
+      }
+    },
+    {
+      "from": 8,
+      "to": 0,
+      "tier": 1,
+      "conductance": 0.21423389,
+      "normalized_conductance": 0.88541543,
+      "gated": true,
+      "color": {
+        "r": 0.39937478,
+        "g": 0.7592702,
+        "b": 0.5047914,
+        "a": 0.66041607
+      }
+    },
+    {
+      "from": 8,
+      "to": 10,
+      "tier": 2,
+      "conductance": 0.06052865,
+      "normalized_conductance": 0.25016117,
+      "gated": true,
+      "color": {
+        "r": 0.285029,
+        "g": 0.4225854,
+        "b": 0.36503544,
+        "a": 0.33008382
+      }
+    },
+    {
+      "from": 8,
+      "to": 9,
+      "tier": 2,
+      "conductance": 0.07109622,
+      "normalized_conductance": 0.29383627,
+      "gated": true,
+      "color": {
+        "r": 0.29289052,
+        "g": 0.4457332,
+        "b": 0.37464398,
+        "a": 0.3527949
+      }
+    },
+    {
+      "from": 8,
+      "to": 4,
+      "tier": 2,
+      "conductance": 0.060704917,
+      "normalized_conductance": 0.25088966,
+      "gated": true,
+      "color": {
+        "r": 0.28516012,
+        "g": 0.4229715,
+        "b": 0.36519572,
+        "a": 0.33046263
+      }
+    },
+    {
+      "from": 9,
+      "to": 0,
+      "tier": 1,
+      "conductance": 0.069739014,
+      "normalized_conductance": 0.28822702,
+      "gated": true,
+      "color": {
+        "r": 0.29188085,
+        "g": 0.4427603,
+        "b": 0.37340993,
+        "a": 0.34987807
+      }
+    },
+    {
+      "from": 9,
+      "to": 10,
+      "tier": 1,
+      "conductance": 0.069240876,
+      "normalized_conductance": 0.28616825,
+      "gated": true,
+      "color": {
+        "r": 0.29151028,
+        "g": 0.44166917,
+        "b": 0.372957,
+        "a": 0.3488075
+      }
+    },
+    {
+      "from": 9,
+      "to": 7,
+      "tier": 1,
+      "conductance": 0.076233424,
+      "normalized_conductance": 0.31506804,
+      "gated": true,
+      "color": {
+        "r": 0.29671225,
+        "g": 0.45698604,
+        "b": 0.37931496,
+        "a": 0.3638354
+      }
+    },
+    {
+      "from": 9,
+      "to": 4,
+      "tier": 2,
+      "conductance": 0.0193848,
+      "normalized_conductance": 0.080116175,
+      "gated": true,
+      "color": {
+        "r": 0.2544209,
+        "g": 0.33246157,
+        "b": 0.32762557,
+        "a": 0.24166042
+      }
+    },
+    {
+      "from": 9,
+      "to": 3,
+      "tier": 2,
+      "conductance": 0.045677572,
+      "normalized_conductance": 0.18878259,
+      "gated": true,
+      "color": {
+        "r": 0.27398086,
+        "g": 0.39005476,
+        "b": 0.35153216,
+        "a": 0.29816696
+      }
+    },
+    {
+      "from": 9,
+      "to": 5,
+      "tier": 2,
+      "conductance": 0.06805086,
+      "normalized_conductance": 0.28125,
+      "gated": true,
+      "color": {
+        "r": 0.29062498,
+        "g": 0.43906248,
+        "b": 0.371875,
+        "a": 0.34625
+      }
+    },
+    {
+      "from": 10,
+      "to": 0,
+      "tier": 1,
+      "conductance": 0.05244308,
+      "normalized_conductance": 0.216744,
+      "gated": true,
+      "color": {
+        "r": 0.2790139,
+        "g": 0.40487432,
+        "b": 0.3576837,
+        "a": 0.3127069
+      }
+    },
+    {
+      "from": 10,
+      "to": 4,
+      "tier": 1,
+      "conductance": 0.052403774,
+      "normalized_conductance": 0.21658155,
+      "gated": true,
+      "color": {
+        "r": 0.27898467,
+        "g": 0.4047882,
+        "b": 0.35764793,
+        "a": 0.31262243
+      }
+    },
+    {
+      "from": 10,
+      "to": 9,
+      "tier": 1,
+      "conductance": 0.069240876,
+      "normalized_conductance": 0.28616825,
+      "gated": true,
+      "color": {
+        "r": 0.29151028,
+        "g": 0.44166917,
+        "b": 0.372957,
+        "a": 0.3488075
+      }
+    },
+    {
+      "from": 10,
+      "to": 7,
+      "tier": 2,
+      "conductance": 0.01516728,
+      "normalized_conductance": 0.06268543,
+      "gated": true,
+      "color": {
+        "r": 0.25128338,
+        "g": 0.32322326,
+        "b": 0.3237908,
+        "a": 0.23259643
+      }
+    },
+    {
+      "from": 10,
+      "to": 1,
+      "tier": 2,
+      "conductance": 0.049094636,
+      "normalized_conductance": 0.20290509,
+      "gated": true,
+      "color": {
+        "r": 0.2765229,
+        "g": 0.39753968,
+        "b": 0.3546391,
+        "a": 0.30551064
+      }
+    },
+    {
+      "from": 10,
+      "to": 6,
+      "tier": 2,
+      "conductance": 0.056598432,
+      "normalized_conductance": 0.23391782,
+      "gated": true,
+      "color": {
+        "r": 0.2821052,
+        "g": 0.41397643,
+        "b": 0.3614619,
+        "a": 0.32163727
+      }
+    },
+    {
+      "from": 11,
+      "to": 3,
+      "tier": 1,
+      "conductance": 0.080635145,
+      "normalized_conductance": 0.33326006,
+      "gated": true,
+      "color": {
+        "r": 0.2999868,
+        "g": 0.4666278,
+        "b": 0.3833172,
+        "a": 0.37329525
+      }
+    },
+    {
+      "from": 11,
+      "to": 7,
+      "tier": 1,
+      "conductance": 0.15331255,
+      "normalized_conductance": 0.6336313,
+      "gated": true,
+      "color": {
+        "r": 0.35405362,
+        "g": 0.6258246,
+        "b": 0.44939888,
+        "a": 0.5294883
+      }
+    },
+    {
+      "from": 11,
+      "to": 9,
+      "tier": 1,
+      "conductance": 0.07276714,
+      "normalized_conductance": 0.3007421,
+      "gated": true,
+      "color": {
+        "r": 0.29413357,
+        "g": 0.44939327,
+        "b": 0.37616324,
+        "a": 0.3563859
+      }
+    },
+    {
+      "from": 11,
+      "to": 5,
+      "tier": 2,
+      "conductance": 0.048839074,
+      "normalized_conductance": 0.20184886,
+      "gated": true,
+      "color": {
+        "r": 0.2763328,
+        "g": 0.39697987,
+        "b": 0.35440674,
+        "a": 0.3049614
+      }
+    },
+    {
+      "from": 11,
+      "to": 0,
+      "tier": 2,
+      "conductance": 0.038684037,
+      "normalized_conductance": 0.15987873,
+      "gated": true,
+      "color": {
+        "r": 0.26877818,
+        "g": 0.3747357,
+        "b": 0.34517333,
+        "a": 0.28313696
+      }
+    },
+    {
+      "from": 11,
+      "to": 1,
+      "tier": 2,
+      "conductance": 0.073002756,
+      "normalized_conductance": 0.30171588,
+      "gated": true,
+      "color": {
+        "r": 0.29430884,
+        "g": 0.4499094,
+        "b": 0.3763775,
+        "a": 0.3568923
+      }
+    }
+  ],
+  "current_regions": [
+    {
+      "term_id": "current.optics_bioelectric_leak",
+      "kind": "leak",
+      "node_indices": [],
+      "all_nodes": true,
+      "color": {
+        "r": 0.68,
+        "g": 0.7,
+        "b": 0.66,
+        "a": 0.18
+      }
+    },
+    {
+      "term_id": "current.optics_bioelectric_pump",
+      "kind": "pump",
+      "node_indices": [],
+      "all_nodes": true,
+      "color": {
+        "r": 0.46,
+        "g": 0.68,
+        "b": 0.52,
+        "a": 0.22
+      }
+    },
+    {
+      "term_id": "current.optics_bioelectric_voltage_gate",
+      "kind": "voltage_gated",
+      "node_indices": [],
+      "all_nodes": true,
+      "color": {
+        "r": 0.88,
+        "g": 0.68,
+        "b": 0.36,
+        "a": 0.22
+      }
+    },
+    {
+      "term_id": "current.optics_bioelectric_source",
+      "kind": "source",
+      "node_indices": [
+        3,
+        9,
+        5,
+        7
+      ],
+      "all_nodes": false,
+      "color": {
+        "r": 0.96,
+        "g": 0.56,
+        "b": 0.28,
+        "a": 0.28
+      }
+    },
+    {
+      "term_id": "current.optics_bioelectric_sink",
+      "kind": "sink",
+      "node_indices": [
+        4,
+        10,
+        0,
+        9
+      ],
+      "all_nodes": false,
+      "color": {
+        "r": 0.3,
+        "g": 0.72,
+        "b": 0.72,
+        "a": 0.28
+      }
+    }
+  ],
+  "memory_samples": [
+    {
+      "node_index": 0,
+      "value": 0.0,
+      "color": {
+        "r": 0.18,
+        "g": 0.2,
+        "b": 0.22,
+        "a": 0.32
+      }
+    },
+    {
+      "node_index": 1,
+      "value": 0.0,
+      "color": {
+        "r": 0.18,
+        "g": 0.2,
+        "b": 0.22,
+        "a": 0.32
+      }
+    },
+    {
+      "node_index": 2,
+      "value": 0.0,
+      "color": {
+        "r": 0.18,
+        "g": 0.2,
+        "b": 0.22,
+        "a": 0.32
+      }
+    },
+    {
+      "node_index": 3,
+      "value": 0.0,
+      "color": {
+        "r": 0.18,
+        "g": 0.2,
+        "b": 0.22,
+        "a": 0.32
+      }
+    },
+    {
+      "node_index": 4,
+      "value": 0.0,
+      "color": {
+        "r": 0.18,
+        "g": 0.2,
+        "b": 0.22,
+        "a": 0.32
+      }
+    },
+    {
+      "node_index": 5,
+      "value": 0.0,
+      "color": {
+        "r": 0.18,
+        "g": 0.2,
+        "b": 0.22,
+        "a": 0.32
+      }
+    },
+    {
+      "node_index": 6,
+      "value": 0.0,
+      "color": {
+        "r": 0.18,
+        "g": 0.2,
+        "b": 0.22,
+        "a": 0.32
+      }
+    },
+    {
+      "node_index": 7,
+      "value": 0.0,
+      "color": {
+        "r": 0.18,
+        "g": 0.2,
+        "b": 0.22,
+        "a": 0.32
+      }
+    },
+    {
+      "node_index": 8,
+      "value": 0.0,
+      "color": {
+        "r": 0.18,
+        "g": 0.2,
+        "b": 0.22,
+        "a": 0.32
+      }
+    },
+    {
+      "node_index": 9,
+      "value": 0.0,
+      "color": {
+        "r": 0.18,
+        "g": 0.2,
+        "b": 0.22,
+        "a": 0.32
+      }
+    },
+    {
+      "node_index": 10,
+      "value": 0.0,
+      "color": {
+        "r": 0.18,
+        "g": 0.2,
+        "b": 0.22,
+        "a": 0.32
+      }
+    },
+    {
+      "node_index": 11,
+      "value": 0.0,
+      "color": {
+        "r": 0.18,
+        "g": 0.2,
+        "b": 0.22,
+        "a": 0.32
+      }
+    }
+  ],
+  "readout_layers": [
+    {
+      "layer_id": "readout.optics_bioelectric_voltage",
+      "min_value": 0.0003953493,
+      "max_value": 0.0040633874,
+      "samples": [
+        {
+          "node_index": 0,
+          "value": 0.0025619334,
+          "normalized_value": 0.59066564,
+          "color": {
+            "r": 0.35263965,
+            "g": 0.62258613,
+            "b": 0.35357308,
+            "a": 0.84994644
+          }
+        },
+        {
+          "node_index": 1,
+          "value": 0.0038052704,
+          "normalized_value": 0.92963076,
+          "color": {
+            "r": 0.47466707,
+            "g": 0.81918585,
+            "b": 0.44170398,
+            "a": 0.92451876
+          }
+        },
+        {
+          "node_index": 2,
+          "value": 0.0003953493,
+          "normalized_value": 0.0,
+          "color": {
+            "r": 0.14,
+            "g": 0.28,
+            "b": 0.2,
+            "a": 0.72
+          }
+        },
+        {
+          "node_index": 3,
+          "value": 0.0010990469,
+          "normalized_value": 0.19184576,
+          "color": {
+            "r": 0.20906448,
+            "g": 0.39127055,
+            "b": 0.2498799,
+            "a": 0.7622061
+          }
+        },
+        {
+          "node_index": 4,
+          "value": 0.002546922,
+          "normalized_value": 0.5865732,
+          "color": {
+            "r": 0.35116637,
+            "g": 0.62021244,
+            "b": 0.35250902,
+            "a": 0.8490461
+          }
+        },
+        {
+          "node_index": 5,
+          "value": 0.00049227115,
+          "normalized_value": 0.026423344,
+          "color": {
+            "r": 0.14951241,
+            "g": 0.29532555,
+            "b": 0.20687008,
+            "a": 0.72581315
+          }
+        },
+        {
+          "node_index": 6,
+          "value": 0.0011343084,
+          "normalized_value": 0.20145893,
+          "color": {
+            "r": 0.21252522,
+            "g": 0.39684618,
+            "b": 0.25237933,
+            "a": 0.76432097
+          }
+        },
+        {
+          "node_index": 7,
+          "value": 0.0028869323,
+          "normalized_value": 0.6792686,
+          "color": {
+            "r": 0.38453668,
+            "g": 0.6739758,
+            "b": 0.37660983,
+            "a": 0.8694391
+          }
+        },
+        {
+          "node_index": 8,
+          "value": 0.0040633874,
+          "normalized_value": 1.0,
+          "color": {
+            "r": 0.5,
+            "g": 0.86,
+            "b": 0.45999998,
+            "a": 0.94
+          }
+        },
+        {
+          "node_index": 9,
+          "value": 0.0022879543,
+          "normalized_value": 0.515972,
+          "color": {
+            "r": 0.32574993,
+            "g": 0.5792638,
+            "b": 0.33415273,
+            "a": 0.83351386
+          }
+        },
+        {
+          "node_index": 10,
+          "value": 0.002551346,
+          "normalized_value": 0.5877793,
+          "color": {
+            "r": 0.35160056,
+            "g": 0.620912,
+            "b": 0.3528226,
+            "a": 0.8493115
+          }
+        },
+        {
+          "node_index": 11,
+          "value": 0.0015070293,
+          "normalized_value": 0.30307207,
+          "color": {
+            "r": 0.24910595,
+            "g": 0.45578182,
+            "b": 0.27879873,
+            "a": 0.7866759
+          }
+        }
+      ]
+    }
+  ],
+  "diagnostics": {
+    "step_index": 1,
+    "visited_edges": 72,
+    "active_current_terms": 4,
+    "active_gates": 72,
+    "clamped_voltage_nodes": 0,
+    "clamped_conductance_edges": 0,
+    "memory_activated_nodes": 0,
+    "max_voltage_delta": 0.015400007,
+    "net_current_abs_sum": 3.8551476
+  }
+}

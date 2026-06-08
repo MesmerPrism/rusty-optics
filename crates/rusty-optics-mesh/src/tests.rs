@@ -1,7 +1,11 @@
 use rusty_matter_fields::{
-    SurfaceFieldDebugFrame, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
-    SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate,
-    SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
+    BioelectricCircuitConfig, BioelectricCircuitRuntime, BioelectricCircuitState,
+    BioelectricConductanceEdge, BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate,
+    BioelectricGateSource, BioelectricMemoryState, BioelectricReadoutLayer,
+    BioelectricVoltageField, BioelectricVoltageUnit, SurfaceFieldDebugFrame,
+    SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldRuntime,
+    SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField,
+    SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
 };
 use rusty_matter_mesh::{
     DynamicMeshCollider, DynamicMeshColliderConfig, MeshCoordinateFrameConfig, MeshCoordinateMap,
@@ -11,8 +15,8 @@ use rusty_matter_model::{TriangleMeshSnapshot, Vec3};
 use rusty_matter_sdf::{build_sdf_from_mesh, MeshToSdfConfig};
 
 use crate::{
-    MeshBrowserDebugFrame, MeshColliderVisual, MeshCoordinateVisual, MeshDebugFrame,
-    SdfSliceVisual, SurfaceFieldVisualFrame, SurfaceFieldVisualFrameSequence,
+    BioelectricCircuitVisualFrame, MeshBrowserDebugFrame, MeshColliderVisual, MeshCoordinateVisual,
+    MeshDebugFrame, SdfSliceVisual, SurfaceFieldVisualFrame, SurfaceFieldVisualFrameSequence,
 };
 
 #[test]
@@ -133,6 +137,39 @@ fn surface_field_visual_sequence_preserves_matter_timing() {
     assert_eq!(sequence.step_count, source.step_count);
     assert_eq!(sequence.frames[0].step_index, 0);
     assert!(sequence.frames.last().expect("final frame").time_seconds > 0.0);
+}
+
+#[test]
+fn bioelectric_circuit_visual_frame_resolves_circuit_layers() {
+    let (substrate, mut circuit) = sample_bioelectric_circuit();
+    let runtime =
+        BioelectricCircuitRuntime::new(BioelectricCircuitConfig::default()).expect("runtime");
+    let diagnostics = runtime
+        .step_fixed(&substrate, &mut circuit, 0)
+        .expect("circuit step");
+
+    let frame = BioelectricCircuitVisualFrame::from_matter_circuit_state(
+        "fields.visual.bioelectric_circuit.test",
+        &substrate,
+        &circuit,
+        Some(&diagnostics),
+    )
+    .expect("bioelectric visual frame");
+
+    assert_eq!(frame.nodes.len(), substrate.node_count());
+    assert_eq!(frame.voltage_samples.len(), substrate.node_count());
+    assert_eq!(
+        frame.conductance_edges.len(),
+        circuit.conductance_edges.len()
+    );
+    assert_eq!(frame.current_regions.len(), circuit.current_terms.len());
+    assert_eq!(frame.memory_samples.len(), substrate.node_count());
+    assert_eq!(frame.readout_layers.len(), 1);
+    assert!(frame.conductance_edges.iter().any(|edge| edge.gated));
+    assert!(frame
+        .diagnostics
+        .as_ref()
+        .is_some_and(|diagnostics| diagnostics.active_gates > 0));
 }
 
 fn sample_surface() -> TriangleMeshSurface {
@@ -260,4 +297,91 @@ fn sample_surface_field_debug_sequence() -> rusty_matter_fields::SurfaceFieldDeb
             3,
         )
         .expect("debug sequence")
+}
+
+fn sample_bioelectric_circuit() -> (SurfaceFieldSubstrate, BioelectricCircuitState) {
+    let surface = sample_surface();
+    let config = MeshSurfaceSampleConfig {
+        sample_config_id: "mesh.surface_sample.bioelectric_visual_test".to_owned(),
+        sample_set_id: "mesh.surface_samples.bioelectric_visual_test".to_owned(),
+        point_count: 10,
+        first_tier_neighbor_count: 3,
+        second_tier_neighbor_count: 3,
+        pattern: MeshSurfaceSamplePattern::LowDiscrepancy,
+        ..MeshSurfaceSampleConfig::default()
+    };
+    let samples = surface.sample_points(&config).expect("samples");
+    let substrate = SurfaceFieldSubstrate::from_sample_set(
+        "fields.substrate.bioelectric_visual_test",
+        &samples,
+    )
+    .expect("substrate");
+    let node_count = substrate.node_count();
+    let voltage_values = substrate
+        .nodes
+        .iter()
+        .map(|node| (node.position.x - 0.5) * 0.3 + (node.position.y - 0.5) * 0.12)
+        .collect::<Vec<_>>();
+    let gate = BioelectricGate::new(
+        "gate.bioelectric_visual_test",
+        BioelectricGateSource::VoltageDifference,
+        0.08,
+        0.025,
+        0.35,
+        1.4,
+    );
+    let conductance_edges =
+        BioelectricConductanceEdge::from_substrate_neighbors(&substrate, 0.16, 0.04, Some(gate))
+            .expect("conductance");
+    let mut source = BioelectricCurrentTerm::new(
+        "current.bioelectric_visual_source",
+        vec![0, 1],
+        BioelectricCurrentKind::Constant { current: 0.6 },
+    );
+    source.duration_steps = 4;
+    let current_terms = vec![
+        BioelectricCurrentTerm::new(
+            "current.bioelectric_visual_leak",
+            Vec::new(),
+            BioelectricCurrentKind::Leak {
+                conductance: 0.15,
+                reversal_voltage: 0.0,
+            },
+        ),
+        source,
+    ];
+    let memory = BioelectricMemoryState::zeroed(
+        "memory.bioelectric_visual_hysteresis",
+        node_count,
+        0.24,
+        -0.15,
+        2.0,
+        0.5,
+    );
+    let readout = BioelectricReadoutLayer::new(
+        "readout.bioelectric_visual_voltage",
+        vec![0.0; node_count],
+        0.75,
+        0.45,
+        0.05,
+        1.4,
+        -1.0,
+        1.0,
+    );
+    let circuit = BioelectricCircuitState::new(
+        "circuit.bioelectric_visual_test",
+        &substrate,
+        BioelectricVoltageField::new(
+            "field.bioelectric_voltage",
+            BioelectricVoltageUnit::Normalized,
+            0.0,
+            voltage_values,
+        ),
+        conductance_edges,
+        current_terms,
+        Some(memory),
+        vec![readout],
+    )
+    .expect("circuit");
+    (substrate, circuit)
 }

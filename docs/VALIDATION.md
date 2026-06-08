@@ -31,8 +31,10 @@ cargo run -p rusty-optics-fixtures -- export-surface-field-preview
 ```
 
 That command writes both `fixtures/fields/surface_field_visual_frame.json` and
-`fixtures/fields/surface_field_visual_sequence.json`. The browser preview
-defaults to the sequence for dynamic playback.
+`fixtures/fields/surface_field_visual_sequence.json`, plus
+`fixtures/fields/bioelectric_circuit_visual_frame.json`. The browser preview
+defaults to the sequence for dynamic playback and can switch to the circuit
+frame for voltage/conductance/memory/readout inspection.
 
 Start the static browser preview with:
 

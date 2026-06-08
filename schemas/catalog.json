@@ -90,6 +90,11 @@
       "schema_id": "rusty.optics.fields.surface.visual_sequence.v1",
       "owner": "rusty-optics",
       "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.fields.bioelectric_circuit.visual_frame.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
     }
   ]
 }

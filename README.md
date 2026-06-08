@@ -19,6 +19,8 @@ The first source slices focus on visual particles and mesh diagnostics:
 - mesh debug frames derived from Matter triangle mesh surfaces;
 - surface-field visual frames and playback sequences derived from Matter field
   debug frames/sequences;
+- bioelectric circuit visual frames derived from Matter circuit state and step
+  diagnostics;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over that same
   source surface;
 - a browser preview that renders generated mesh debug JSON and, for animated
@@ -67,6 +69,12 @@ default as a fallback. When `local-artifacts\matter_surface_field_wasm` is
 present, it runs the Matter-owned realtime surface-field Wasm runtime and uses
 the sequence only as fallback/evidence. Optics owns playback, colors, edge
 styling, perturbation highlights, and polarity arrows only.
+
+The same preview also has a `Circuit` view over
+`fixtures/fields/bioelectric_circuit_visual_frame.json`. That view shows the
+Matter-owned circuit snapshot as voltage colors, conductance edges, current
+regions, memory values, readout layers, and compact step diagnostics. It does
+not compute circuit dynamics in browser JavaScript.
 
 For animated hand-mesh sequence previews, build the Matter Wasm runtime into
 Optics local artifacts before launching:
