@@ -23,6 +23,8 @@ The first source slices focus on visual particles and mesh diagnostics:
   diagnostics;
 - planarian AP bioelectric visual sequences derived from Matter-owned
   planarian scenario runs;
+- planarian 3D pick selections and edit intents for renderer adapters that
+  request Matter-owned node, conductance, and gate mutations;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over that same
   source surface;
 - a browser preview that renders generated mesh debug JSON and, for animated
@@ -84,6 +86,11 @@ Matter-owned synthetic planarian anterior/posterior bioelectric scenario with
 AP region bands, voltage, memory, readout layers, conductance edges, and
 current-region highlights. Browser JavaScript only projects and draws the
 validated Optics sequence.
+
+The `Planarian 3D` view imports Matter Wasm for the live GLB-backed body mesh
+and circuit state. Browser raycasts become Optics pick-selection payloads, UI
+edits become Optics edit-intent payloads, and Matter remains the authority that
+accepts or rejects those edits and advances revisions.
 
 For animated hand-mesh sequence previews, build the Matter Wasm runtime into
 Optics local artifacts before launching:

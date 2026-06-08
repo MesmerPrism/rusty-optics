@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "source_visual_sequence_id": "fields.visual.planarian_ap.transient_memory",
+  "authority_note": "Optics validates pick/edit intent shape; Matter accepts or rejects mutations.",
+  "pick_selection": {
+    "schema_id": "rusty.optics.fields.planarian_bioelectric.pick_selection.v1",
+    "selection_id": "fields.planarian.pick.fixture.node_0007",
+    "visual_id": "fields.visual.planarian_ap.transient_memory",
+    "surface_id": "mesh.planarian_ap.synthetic_surface",
+    "substrate_id": "fields.substrate.planarian_ap.synthetic",
+    "target": {
+      "SurfaceNode": {
+        "node_index": 7,
+        "node_id": "fields.substrate.planarian_ap.synthetic.node.0007",
+        "region_id": "region_pharyngeal_trunk",
+        "ap_coordinate": 0.5579093,
+        "lateral_coordinate": -0.17721875
+      }
+    },
+    "normalized_pointer": {
+      "x": 0.18,
+      "y": -0.16
+    },
+    "distance": 0.42,
+    "view_revision": 0
+  },
+  "edit_intent": {
+    "schema_id": "rusty.optics.fields.planarian_bioelectric.edit_intent.v1",
+    "intent_id": "fields.planarian.intent.fixture.add_voltage.node_0007",
+    "selection_id": "fields.planarian.pick.fixture.node_0007",
+    "visual_id": "fields.visual.planarian_ap.transient_memory",
+    "surface_id": "mesh.planarian_ap.synthetic_surface",
+    "substrate_id": "fields.substrate.planarian_ap.synthetic",
+    "expected_revision": 0,
+    "target": {
+      "SurfaceNode": {
+        "node_index": 7,
+        "node_id": "fields.substrate.planarian_ap.synthetic.node.0007"
+      }
+    },
+    "operation": {
+      "AddNodeVoltage": {
+        "delta": 0.25
+      }
+    }
+  }
+}

@@ -3,10 +3,10 @@ use rusty_matter_fields::{
     BioelectricConductanceEdge, BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate,
     BioelectricGateSource, BioelectricMemoryState, BioelectricReadoutLayer,
     BioelectricVoltageField, BioelectricVoltageUnit, PlanarianBioelectricPresetConfig,
-    PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun, SurfaceFieldDebugFrame,
-    SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldRuntime,
-    SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField,
-    SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
+    PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun, PlanarianBodySurfaceSource,
+    SurfaceFieldDebugFrame, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
+    SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate,
+    SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
 };
 use rusty_matter_mesh::{
     DynamicMeshCollider, DynamicMeshColliderConfig, MeshCoordinateFrameConfig, MeshCoordinateMap,
@@ -14,10 +14,12 @@ use rusty_matter_mesh::{
 };
 use rusty_matter_model::{TriangleMeshSnapshot, Vec3};
 use rusty_matter_sdf::{build_sdf_from_mesh, MeshToSdfConfig};
+use rusty_optics_model::Vec2;
 
 use crate::{
     BioelectricCircuitVisualFrame, MeshBrowserDebugFrame, MeshColliderVisual, MeshCoordinateVisual,
-    MeshDebugFrame, PlanarianBioelectricVisualSequence, SdfSliceVisual, SurfaceFieldVisualFrame,
+    MeshDebugFrame, PlanarianBioelectricEditIntent, PlanarianBioelectricVisualSequence,
+    PlanarianPickSelection, SdfSliceVisual, SurfaceFieldVisualFrame,
     SurfaceFieldVisualFrameSequence,
 };
 
@@ -269,6 +271,106 @@ fn damaged_planarian_body_surface_triangle_is_rejected() {
     ));
 }
 
+#[test]
+fn planarian_pick_selection_and_edit_intent_reference_visual_targets() {
+    let source = sample_planarian_run();
+    let visual = PlanarianBioelectricVisualSequence::from_matter_planarian_run(
+        "fields.visual.planarian_ap.interaction",
+        &source,
+    )
+    .expect("planarian visual sequence");
+
+    let selection = PlanarianPickSelection::from_sequence_node(
+        "fields.planarian.pick.node_0003",
+        &visual,
+        3,
+        Some(Vec2::new(0.14, -0.28)),
+        0.52,
+        Some(17),
+    )
+    .expect("pick selection");
+    selection
+        .validate_for_sequence(&visual)
+        .expect("selection validates against visual sequence");
+    assert_eq!(selection.node_index(), Some(3));
+
+    let intent = PlanarianBioelectricEditIntent::add_node_voltage(
+        "fields.planarian.intent.add_voltage.node_0003",
+        &selection,
+        Some(17),
+        0.25,
+    )
+    .expect("edit intent");
+    intent
+        .validate_for_sequence(&visual)
+        .expect("intent validates against visual sequence");
+    intent
+        .validate_for_selection(&selection)
+        .expect("intent references source selection");
+    assert_eq!(intent.expected_revision, Some(17));
+}
+
+#[test]
+fn damaged_planarian_pick_selection_metadata_is_rejected() {
+    let source = sample_planarian_run();
+    let visual = PlanarianBioelectricVisualSequence::from_matter_planarian_run(
+        "fields.visual.planarian_ap.interaction_invalid",
+        &source,
+    )
+    .expect("planarian visual sequence");
+    let mut selection = PlanarianPickSelection::from_sequence_node(
+        "fields.planarian.pick.invalid_node",
+        &visual,
+        4,
+        Some(Vec2::ZERO),
+        0.40,
+        None,
+    )
+    .expect("pick selection");
+    if let crate::PlanarianPickTarget::SurfaceNode { region_id, .. } = &mut selection.target {
+        *region_id = "region_wrong".to_owned();
+    }
+    let error = selection
+        .validate_for_sequence(&visual)
+        .expect_err("stale node metadata rejects");
+
+    assert!(matches!(
+        error,
+        rusty_optics_model::OpticsError::InvalidPayload(_)
+    ));
+}
+
+#[test]
+fn damaged_planarian_edit_intent_value_is_rejected() {
+    let source = sample_planarian_run();
+    let visual = PlanarianBioelectricVisualSequence::from_matter_planarian_run(
+        "fields.visual.planarian_ap.interaction_bad_edit",
+        &source,
+    )
+    .expect("planarian visual sequence");
+    let selection = PlanarianPickSelection::from_sequence_node(
+        "fields.planarian.pick.bad_edit_node",
+        &visual,
+        5,
+        None,
+        0.33,
+        Some(2),
+    )
+    .expect("pick selection");
+    let error = PlanarianBioelectricEditIntent::add_node_voltage(
+        "fields.planarian.intent.bad_voltage",
+        &selection,
+        Some(2),
+        f32::NAN,
+    )
+    .expect_err("non-finite edit rejects");
+
+    assert!(matches!(
+        error,
+        rusty_optics_model::OpticsError::InvalidValue(_)
+    ));
+}
+
 fn sample_surface() -> TriangleMeshSurface {
     TriangleMeshSurface::new(
         "mesh.unit_square_surface",
@@ -487,6 +589,7 @@ fn sample_planarian_run() -> PlanarianBioelectricScenarioRun {
     PlanarianBioelectricScenarioRun::build(
         PlanarianBioelectricScenarioKind::TransientDepolarizationMemory,
         PlanarianBioelectricPresetConfig {
+            body_surface_source: PlanarianBodySurfaceSource::SyntheticAxis,
             sample_count: 64,
             step_count: 120,
             frame_stride: 12,

@@ -12,9 +12,12 @@ use rusty_matter_fields::{
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
 use rusty_optics_mesh::{
-    BioelectricCircuitVisualFrame, PlanarianBioelectricVisualSequence, SurfaceFieldVisualFrame,
+    BioelectricCircuitVisualFrame, PlanarianBioelectricEditIntent,
+    PlanarianBioelectricVisualSequence, PlanarianPickSelection, SurfaceFieldVisualFrame,
     SurfaceFieldVisualFrameSequence,
 };
+use rusty_optics_model::Vec2;
+use serde::Serialize;
 
 use crate::error::FixtureError;
 
@@ -70,6 +73,54 @@ pub fn bioelectric_circuit_visual_frame_json() -> Result<String, FixtureError> {
 
 /// Serializes the deterministic planarian AP bioelectric visual sequence.
 pub fn planarian_bioelectric_visual_sequence_json() -> Result<String, FixtureError> {
+    let visual = build_planarian_visual_sequence()?;
+    let mut json = serde_json::to_string_pretty(&visual)?;
+    json.push('\n');
+    Ok(json)
+}
+
+/// Serializes a deterministic Planarian 3D pick/edit-intent fixture.
+pub fn planarian_bioelectric_interaction_intent_json() -> Result<String, FixtureError> {
+    let visual = build_planarian_visual_sequence()?;
+    let selection = PlanarianPickSelection::from_sequence_node(
+        "fields.planarian.pick.fixture.node_0007",
+        &visual,
+        7,
+        Some(Vec2::new(0.18, -0.16)),
+        0.42,
+        Some(0),
+    )
+    .map_err(|error| FixtureError::Optics(error.to_string()))?;
+    let edit_intent = PlanarianBioelectricEditIntent::add_node_voltage(
+        "fields.planarian.intent.fixture.add_voltage.node_0007",
+        &selection,
+        Some(0),
+        0.25,
+    )
+    .map_err(|error| FixtureError::Optics(error.to_string()))?;
+    let fixture = PlanarianBioelectricInteractionFixture {
+        schema_version: 1,
+        source_visual_sequence_id: visual.sequence_id,
+        authority_note:
+            "Optics validates pick/edit intent shape; Matter accepts or rejects mutations.",
+        pick_selection: selection,
+        edit_intent,
+    };
+    let mut json = serde_json::to_string_pretty(&fixture)?;
+    json.push('\n');
+    Ok(json)
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+struct PlanarianBioelectricInteractionFixture {
+    schema_version: u32,
+    source_visual_sequence_id: String,
+    authority_note: &'static str,
+    pick_selection: PlanarianPickSelection,
+    edit_intent: PlanarianBioelectricEditIntent,
+}
+
+fn build_planarian_visual_sequence() -> Result<PlanarianBioelectricVisualSequence, FixtureError> {
     let source = PlanarianBioelectricScenarioRun::build(
         PlanarianBioelectricScenarioKind::TransientDepolarizationMemory,
         PlanarianBioelectricPresetConfig {
@@ -87,9 +138,7 @@ pub fn planarian_bioelectric_visual_sequence_json() -> Result<String, FixtureErr
         &source,
     )
     .map_err(|error| FixtureError::Optics(error.to_string()))?;
-    let mut json = serde_json::to_string_pretty(&visual)?;
-    json.push('\n');
-    Ok(json)
+    Ok(visual)
 }
 
 fn build_surface_field_debug_frame() -> Result<SurfaceFieldDebugFrame, FixtureError> {

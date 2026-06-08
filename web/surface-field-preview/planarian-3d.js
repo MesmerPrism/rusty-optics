@@ -2,6 +2,7 @@ const NODE_STRIDE = 9;
 const SNAPSHOT_STRIDE = 4;
 const EDGE_STRIDE = 4;
 const CONDUCTANCE_STRIDE = 6;
+const PICK_SELECTION_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.pick_selection.v1";
 
 export async function createPlanarianBioelectric3DView(options) {
   const three = await import(options.threeModuleUrl);
@@ -15,6 +16,10 @@ class PlanarianBioelectric3DView {
     this.THREE = three;
     this.container = options.container;
     this.runtime = options.runtime;
+    this.visualId = options.visualId || "fields.visual.planarian3d.live";
+    this.surfaceId = options.surfaceId || "mesh.planarian_ap.sketchfab_educational_surface";
+    this.substrateId = options.substrateId || "fields.substrate.planarian_ap.sketchfab_educational";
+    this.getViewRevision = options.getViewRevision || (() => null);
     this.onSelectNode = options.onSelectNode || (() => {});
     this.nodes = [];
     this.edges = [];
@@ -28,6 +33,7 @@ class PlanarianBioelectric3DView {
     this.mouse = new this.THREE.Vector2();
     this.raycaster = new this.THREE.Raycaster();
     this.nodeColor = new this.THREE.Color();
+    this.pickCounter = 0;
   }
 
   initialize() {
@@ -356,8 +362,39 @@ class PlanarianBioelectric3DView {
     const hits = this.raycaster.intersectObject(this.nodePoints, false);
     const hit = hits.find((entry) => Number.isInteger(entry.index));
     if (hit) {
-      this.onSelectNode(hit.index);
+      this.onSelectNode(this.selectionForNode(hit.index, hit.distance));
     }
+  }
+
+  selectionForNode(nodeIndex, distance) {
+    const node = this.nodes[nodeIndex];
+    const revision = this.getViewRevision();
+    this.pickCounter += 1;
+    return {
+      schema_id: PICK_SELECTION_SCHEMA_ID,
+      selection_id: [
+        this.visualId,
+        "pick",
+        `node_${String(nodeIndex).padStart(4, "0")}`,
+        revision === null ? "runknown" : `r${Math.trunc(revision)}`,
+        this.pickCounter,
+      ].join("."),
+      visual_id: this.visualId,
+      surface_id: this.surfaceId,
+      substrate_id: this.substrateId,
+      target: {
+        SurfaceNode: {
+          node_index: nodeIndex,
+          node_id: `${this.substrateId}.node.${String(nodeIndex).padStart(4, "0")}`,
+          region_id: regionIdForCode(node?.regionCode),
+          ap_coordinate: node?.ap ?? 0,
+          lateral_coordinate: node?.lateral ?? 0,
+        },
+      },
+      normalized_pointer: { x: this.mouse.x, y: this.mouse.y },
+      distance,
+      view_revision: revision,
+    };
   }
 
   render() {
@@ -480,6 +517,23 @@ function conductanceColor(THREE, normalized, tier) {
     color.setRGB(0.20 + t * 0.24, 0.28 + t * 0.30, 0.34 + t * 0.22);
   }
   return color;
+}
+
+function regionIdForCode(regionCode) {
+  switch (Math.trunc(regionCode || 0)) {
+    case 1:
+      return "region_tail";
+    case 2:
+      return "region_postpharyngeal_trunk";
+    case 3:
+      return "region_pharyngeal_trunk";
+    case 4:
+      return "region_prepharyngeal_trunk";
+    case 5:
+      return "region_head";
+    default:
+      return "region_unknown";
+  }
 }
 
 function createNodePointTexture(THREE) {

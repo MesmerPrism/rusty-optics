@@ -100,6 +100,16 @@
       "schema_id": "rusty.optics.fields.planarian_bioelectric.visual_sequence.v1",
       "owner": "rusty-optics",
       "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.fields.planarian_bioelectric.pick_selection.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.fields.planarian_bioelectric.edit_intent.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
     }
   ]
 }

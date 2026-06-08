@@ -33,16 +33,23 @@ cargo run -p rusty-optics-fixtures -- export-surface-field-preview
 That command writes both `fixtures/fields/surface_field_visual_frame.json` and
 `fixtures/fields/surface_field_visual_sequence.json`, plus
 `fixtures/fields/bioelectric_circuit_visual_frame.json` and
-`fixtures/fields/planarian_bioelectric_visual_sequence.json`. The browser
+`fixtures/fields/planarian_bioelectric_visual_sequence.json` and
+`fixtures/fields/planarian_bioelectric_interaction_intent.json`. The browser
 preview defaults to the sequence for dynamic playback and can switch to the
-circuit frame for voltage/conductance/memory/readout inspection or the
-planarian sequence for AP-region bioelectric playback.
+circuit frame for voltage/conductance/memory/readout inspection, the planarian
+sequence for AP-region bioelectric playback, or the live Planarian 3D view for
+Matter-Wasm-backed picking and edit-intent requests.
 
 The committed planarian visual sequence intentionally uses Matter's compact
 synthetic AP surface so the Optics fixture remains a deterministic visual
 contract, not a copied body-asset cache. The browser's live Planarian 3D mode
 uses the Matter Wasm runtime and receives the reviewed GLB-derived body surface
 from Matter at runtime.
+
+The interaction-intent fixture records one renderer-neutral Planarian 3D node
+pick and one voltage edit intent. It validates Optics' request shape only;
+Matter remains the authority that accepts, rejects, clamps, mutates, and
+advances revisions.
 
 Start the static browser preview with:
 

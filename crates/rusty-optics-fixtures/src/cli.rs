@@ -3,8 +3,9 @@ use std::path::PathBuf;
 use crate::{
     error::FixtureError,
     fields::{
-        bioelectric_circuit_visual_frame_json, planarian_bioelectric_visual_sequence_json,
-        surface_field_visual_frame_json, surface_field_visual_sequence_json,
+        bioelectric_circuit_visual_frame_json, planarian_bioelectric_interaction_intent_json,
+        planarian_bioelectric_visual_sequence_json, surface_field_visual_frame_json,
+        surface_field_visual_sequence_json,
     },
     hand_mesh::{hand_mesh_browser_frame_json, hand_mesh_browser_frame_json_from_surface},
     summary::summary_json,
@@ -33,6 +34,8 @@ fn export_surface_field_preview(
     let mut circuit_output = PathBuf::from("fixtures/fields/bioelectric_circuit_visual_frame.json");
     let mut planarian_output =
         PathBuf::from("fixtures/fields/planarian_bioelectric_visual_sequence.json");
+    let mut planarian_interaction_output =
+        PathBuf::from("fixtures/fields/planarian_bioelectric_interaction_intent.json");
     let mut args = args.into_iter();
     while let Some(argument) = args.next() {
         match argument.as_str() {
@@ -69,6 +72,14 @@ fn export_surface_field_preview(
                 };
                 planarian_output = PathBuf::from(path);
             }
+            "--planarian-interaction-output" => {
+                let Some(path) = args.next() else {
+                    return Err(FixtureError::InvalidArgument(
+                        "--planarian-interaction-output requires a path".to_owned(),
+                    ));
+                };
+                planarian_interaction_output = PathBuf::from(path);
+            }
             _ => return Err(FixtureError::InvalidArgument(argument)),
         }
     }
@@ -96,6 +107,12 @@ fn export_surface_field_preview(
         planarian_bioelectric_visual_sequence_json()?,
         check,
         "planarian bioelectric visual sequence",
+    )?;
+    write_or_check_json(
+        planarian_interaction_output,
+        planarian_bioelectric_interaction_intent_json()?,
+        check,
+        "planarian bioelectric interaction intent",
     )
 }
 

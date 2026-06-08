@@ -24,6 +24,8 @@ Optics owns:
   diagnostics;
 - planarian AP bioelectric visual sequences over Matter-owned planarian
   scenario runs, with Optics-owned AP region colors and browser projection;
+- renderer-neutral planarian 3D pick selections and edit intents that visual
+  adapters can emit before Matter accepts or rejects the requested mutation;
 - deterministic fixture and schema artifacts;
 - renderer-neutral diagnostics for visual payloads.
 
@@ -69,6 +71,12 @@ voltage, memory, and readout layers and draw conductance/current overlays, but
 it must not own voltage, conductance, current, gate, memory, or readout update
 rules.
 
+For interactive planarian 3D previews, Optics owns the pick-selection and
+edit-intent payload shape: selected visual context, target node or conductance
+edge, normalized pointer, expected revision, and proposed operation. Matter
+remains the authority for edit validation, clamping, state mutation, acceptance
+or rejection, and revision advancement.
+
 ## Renderer Adapter Boundary
 
 Optics can prepare backend-neutral instance arrays and mask atlas pixels, but
@@ -96,6 +104,9 @@ The implemented foundation slice is CPU/data-only:
 - planarian AP bioelectric visual sequences over Matter planarian scenario
   runs, including AP region labels, node-region colors, voltage/memory/readout
   playback frames, and circuit overlays;
+- planarian 3D pick-selection and edit-intent contracts for renderer adapters
+  to propose node voltage, memory, current, and conductance/gate edits without
+  becoming simulation authority;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over one shared
   source mesh surface;
 - browser preview for generated mesh debug JSON and Matter-Wasm-backed animated
@@ -125,10 +136,13 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
   contracts over Matter field debug frames/sequences.
 - `rusty-optics-mesh/src/planarian_frame.rs`: renderer-neutral planarian AP
   bioelectric visual sequences over Matter planarian scenario runs.
+- `rusty-optics-mesh/src/planarian_interaction.rs`: renderer-neutral
+  planarian 3D pick-selection and bioelectric edit-intent contracts.
 - `web/surface-field-preview/app.js`: browser preview for visual sequences and
   live Matter surface-field Wasm snapshots, plus static bioelectric circuit
-  visual frames and planarian AP bioelectric sequence playback; owns playback
-  and drawing only.
+  visual frames, planarian AP bioelectric sequence playback, and live Planarian
+  3D pick/edit request UI; owns playback, drawing, and edit-intent construction
+  only.
 - `rusty-optics-mesh/src/mesh_frame.rs`: mesh wireframe and topology debug
   visuals.
 - `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug

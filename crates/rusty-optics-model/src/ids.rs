@@ -47,10 +47,16 @@ pub const BIOELECTRIC_CIRCUIT_VISUAL_FRAME_SCHEMA_ID: &str =
 /// Planarian bioelectric visual sequence schema.
 pub const PLANARIAN_BIOELECTRIC_VISUAL_SEQUENCE_SCHEMA_ID: &str =
     "rusty.optics.fields.planarian_bioelectric.visual_sequence.v1";
+/// Planarian bioelectric 3D pick selection schema.
+pub const PLANARIAN_BIOELECTRIC_PICK_SELECTION_SCHEMA_ID: &str =
+    "rusty.optics.fields.planarian_bioelectric.pick_selection.v1";
+/// Planarian bioelectric edit intent schema.
+pub const PLANARIAN_BIOELECTRIC_EDIT_INTENT_SCHEMA_ID: &str =
+    "rusty.optics.fields.planarian_bioelectric.edit_intent.v1";
 
 /// Returns the schema IDs currently emitted by Rusty Optics.
 #[must_use]
-pub const fn optics_schema_ids() -> [&'static str; 20] {
+pub const fn optics_schema_ids() -> [&'static str; 22] {
     [
         COLOR_RGBA_SCHEMA_ID,
         PARTICLE_VISUAL_SAMPLE_SCHEMA_ID,
@@ -72,5 +78,7 @@ pub const fn optics_schema_ids() -> [&'static str; 20] {
         SURFACE_FIELD_VISUAL_SEQUENCE_SCHEMA_ID,
         BIOELECTRIC_CIRCUIT_VISUAL_FRAME_SCHEMA_ID,
         PLANARIAN_BIOELECTRIC_VISUAL_SEQUENCE_SCHEMA_ID,
+        PLANARIAN_BIOELECTRIC_PICK_SELECTION_SCHEMA_ID,
+        PLANARIAN_BIOELECTRIC_EDIT_INTENT_SCHEMA_ID,
     ]
 }

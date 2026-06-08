@@ -31,7 +31,8 @@ runtime sockets, media stacks, or downstream app crates.
   transparency/depth policy, renderer-neutral budget summaries, mesh debug
   frames, coordinate-map visuals, collider visuals, SDF slice visuals, and
   surface-field visual frames/sequences over Matter-owned field payloads,
-  including planarian AP bioelectric visual sequences.
+  including planarian AP bioelectric visual sequences and renderer-neutral
+  planarian 3D pick/edit-intent contracts.
 - Renderer adapters own GPU buffers, shaders, draw calls, texture uploads,
   swapchains, platform frame lifecycle, and backend imports.
 - Lattice owns runtime-situated relation snapshots: reference spaces,
@@ -77,7 +78,7 @@ Current crate-root maps:
   `vec2`.
 - `rusty-optics-mesh/src/lib.rs`: facade over `browser_frame`,
   `circuit_frame`, `collider`, `coordinate`, `field_frame`, `mesh_frame`,
-  `planarian_frame`, `sdf_slice`, and tests.
+  `planarian_frame`, `planarian_interaction`, `sdf_slice`, and tests.
 - `rusty-optics-particles/src/lib.rs`: facade over `animation`, `appearance`,
   `billboard`, `mask`, `projection`, `tests`, and `visual_frame`.
 - `rusty-optics-fixtures/src/main.rs`: dispatch-only binary over `cli`, `error`,

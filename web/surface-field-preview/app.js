@@ -39,6 +39,10 @@ const initialView = params.get("view");
 const wasmBaseUrl = params.get("wasm") || "/local-artifacts/matter_surface_field_wasm";
 const threeModuleUrl = params.get("three")
   || new URL("/local-artifacts/web3d/three.module.js", window.location.href).href;
+const PLANARIAN_EDIT_INTENT_SCHEMA_ID = "rusty.optics.fields.planarian_bioelectric.edit_intent.v1";
+const PLANARIAN_3D_VISUAL_ID = "fields.visual.planarian3d.live";
+const PLANARIAN_3D_SURFACE_ID = "mesh.planarian_ap.sketchfab_educational_surface";
+const PLANARIAN_3D_SUBSTRATE_ID = "fields.substrate.planarian_ap.sketchfab_educational";
 
 let sequence = null;
 let frames = [];
@@ -64,6 +68,8 @@ let planarian3dView = null;
 let planarian3dStats = null;
 let planarian3dStepMs = 0;
 let selectedPlanarianNode = null;
+let selectedPlanarianPick = null;
+let lastPlanarianIntent = null;
 let lastPlanarianEdit = null;
 let planarian3dError = null;
 
@@ -219,22 +225,32 @@ controls.voltageDelta.addEventListener("input", () => {
 });
 
 controls.applyVoltage.addEventListener("click", () => {
-  applyPlanarian3DEdit((runtime, nodeIndex) => runtime.add_node_voltage(
-    nodeIndex,
-    Number(controls.voltageDelta.value) || 0,
-  ));
+  const delta = Number(controls.voltageDelta.value) || 0;
+  applyPlanarian3DEdit(
+    { AddNodeVoltage: { delta } },
+    (runtime, nodeIndex) => runtime.add_node_voltage(nodeIndex, delta),
+  );
 });
 
 controls.pulseCurrent.addEventListener("click", () => {
-  applyPlanarian3DEdit((runtime, nodeIndex) => runtime.add_transient_current(nodeIndex, 0.42, 72));
+  applyPlanarian3DEdit(
+    { AddTransientCurrent: { current: 0.42, duration_steps: 72 } },
+    (runtime, nodeIndex) => runtime.add_transient_current(nodeIndex, 0.42, 72),
+  );
 });
 
 controls.setMemory.addEventListener("click", () => {
-  applyPlanarian3DEdit((runtime, nodeIndex) => runtime.set_node_memory(nodeIndex, 1.0));
+  applyPlanarian3DEdit(
+    { SetNodeMemory: { memory_value: 1.0 } },
+    (runtime, nodeIndex) => runtime.set_node_memory(nodeIndex, 1.0),
+  );
 });
 
 controls.scaleGate.addEventListener("click", () => {
-  applyPlanarian3DEdit((runtime, nodeIndex) => runtime.scale_incident_conductance(nodeIndex, 0.5));
+  applyPlanarian3DEdit(
+    { ScaleIncidentConductance: { scale: 0.5 } },
+    (runtime, nodeIndex) => runtime.scale_incident_conductance(nodeIndex, 0.5),
+  );
 });
 
 canvas.addEventListener("pointerdown", (event) => {
@@ -397,8 +413,14 @@ async function initPlanarian3D() {
       container: viewport3d,
       runtime: planarian3dRuntime,
       threeModuleUrl,
-      onSelectNode: (nodeIndex) => {
-        selectedPlanarianNode = nodeIndex;
+      visualId: PLANARIAN_3D_VISUAL_ID,
+      surfaceId: PLANARIAN_3D_SURFACE_ID,
+      substrateId: PLANARIAN_3D_SUBSTRATE_ID,
+      getViewRevision: () => planarian3dStats?.revision ?? null,
+      onSelectNode: (selection) => {
+        selectedPlanarianPick = selection;
+        selectedPlanarianNode = selection?.target?.SurfaceNode?.node_index ?? null;
+        lastPlanarianIntent = null;
         updatePlanarian3DSelection();
         updateStats();
       },
@@ -1320,6 +1342,8 @@ function resetPlanarian3D() {
   }
   planarian3dRuntime.reset();
   selectedPlanarianNode = null;
+  selectedPlanarianPick = null;
+  lastPlanarianIntent = null;
   lastPlanarianEdit = null;
   planarian3dStepMs = 0;
   planarian3dView.selectNode(null);
@@ -1327,15 +1351,50 @@ function resetPlanarian3D() {
   updatePlanarian3DView();
 }
 
-function applyPlanarian3DEdit(apply) {
-  if (!isPlanarian3DMode() || selectedPlanarianNode === null) {
+function applyPlanarian3DEdit(operation, apply) {
+  if (!isPlanarian3DMode() || selectedPlanarianNode === null || !selectedPlanarianPick) {
+    return;
+  }
+  const intent = buildPlanarianEditIntent(operation);
+  if (!intent) {
     return;
   }
   const resultValues = apply(planarian3dRuntime, selectedPlanarianNode);
   lastPlanarianEdit = decodePlanarianEditResult(resultValues);
+  lastPlanarianIntent = intent;
   updatePlanarian3DView();
   updatePlanarian3DSelection();
   updateStats();
+}
+
+function buildPlanarianEditIntent(operation) {
+  const nodeTarget = selectedPlanarianPick?.target?.SurfaceNode;
+  if (!nodeTarget) {
+    return null;
+  }
+  const revision = Math.trunc(planarian3dStats?.revision ?? 0);
+  return {
+    schema_id: PLANARIAN_EDIT_INTENT_SCHEMA_ID,
+    intent_id: [
+      PLANARIAN_3D_VISUAL_ID,
+      "intent",
+      operationKind(operation),
+      `node_${String(nodeTarget.node_index).padStart(4, "0")}`,
+      `r${revision}`,
+    ].join("."),
+    selection_id: selectedPlanarianPick.selection_id,
+    visual_id: selectedPlanarianPick.visual_id,
+    surface_id: selectedPlanarianPick.surface_id,
+    substrate_id: selectedPlanarianPick.substrate_id,
+    expected_revision: revision,
+    target: {
+      SurfaceNode: {
+        node_index: nodeTarget.node_index,
+        node_id: nodeTarget.node_id,
+      },
+    },
+    operation,
+  };
 }
 
 function updatePlanarian3DSelection() {
@@ -1345,6 +1404,7 @@ function updatePlanarian3DSelection() {
   }
   if (lastPlanarianEdit) {
     controls.editStatus.textContent = [
+      lastPlanarianIntent ? operationKind(lastPlanarianIntent.operation) : null,
       lastPlanarianEdit.accepted ? "accepted" : "rejected",
       `r${Math.trunc(lastPlanarianEdit.revision_before)}->${Math.trunc(lastPlanarianEdit.revision_after)}`,
       lastPlanarianEdit.clamped_values > 0 ? `${Math.trunc(lastPlanarianEdit.clamped_values)} clamped` : null,
@@ -1358,6 +1418,10 @@ function updatePlanarian3DSelection() {
 function updateVoltageDeltaLabel() {
   const value = Number(controls.voltageDelta.value) || 0;
   controls.voltageDeltaValue.textContent = `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
+}
+
+function operationKind(operation) {
+  return Object.keys(operation || {})[0] || "Unknown";
 }
 
 function computeBounds(payload) {

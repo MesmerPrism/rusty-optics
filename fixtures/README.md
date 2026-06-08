@@ -63,6 +63,11 @@ Surface-field preview fixtures:
   planarian AP bioelectric scenario. It contains AP region bands, node-region
   colors, voltage/memory/readout playback frames, conductance edges, current
   regions, and diagnostics for browser inspection.
+- `fixtures/fields/planarian_bioelectric_interaction_intent.json`:
+  renderer-neutral Optics interaction fixture with one Planarian 3D node pick
+  selection and one voltage edit intent. It validates visual request shape and
+  target binding only; Matter still accepts, rejects, clamps, mutates, and
+  advances revisions.
 
 The planarian fixture stays on the compact synthetic AP surface by design. Live
 Planarian 3D browser sessions import Matter Wasm and request Matter's
