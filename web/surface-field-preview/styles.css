@@ -221,6 +221,16 @@ canvas {
   white-space: normal;
 }
 
+#planarian-event-timeline {
+  display: block;
+  width: 100%;
+  height: 56px;
+  margin: 7px 0 0;
+  border: 1px solid rgba(60, 72, 86, 0.82);
+  border-radius: 6px;
+  background: #10151b;
+}
+
 #planarian-event-readout {
   display: block;
   margin: 7px 0 0;
@@ -300,6 +310,10 @@ canvas {
 
   #planarian-selection-readout {
     font-size: 11px;
+  }
+
+  #planarian-event-timeline {
+    height: 48px;
   }
 
   #planarian-event-readout {

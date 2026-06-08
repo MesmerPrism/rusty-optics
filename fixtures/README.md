@@ -78,4 +78,6 @@ The live outcome plot also uses Matter Wasm outcome traces and comparison trace
 sets at runtime rather than committing GLB-body trace caches into Optics
 fixtures. Planarian 3D preview code refuses a low-count procedural body in this
 mode and displays the Matter-exported triangle body mesh underneath the sampled
-node and conductance-edge graph.
+node and conductance-edge graph. The browser edit-event timeline is likewise a
+runtime view over the Optics feedback-frame shape, not a committed timeline
+fixture.

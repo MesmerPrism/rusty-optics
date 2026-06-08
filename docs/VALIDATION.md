@@ -64,12 +64,13 @@ no-memory presets, render the Matter-exported outcome trace panel, compare
 against alternate Matter scenario traces, pick both surface nodes and
 conductance edges, apply a node voltage edit and an edge gate-threshold edit,
 show the Matter-exported selection inspector for both targets, show the
-Matter-exported recent edit event trail, highlight recently affected nodes and
-conductance edges from Matter-exported target rows through the Optics
-feedback-frame shape, and keep those intents routed back into Matter Wasm after
-switching. The Planarian 3D browser adapter intentionally rejects a low-count
-body surface in this mode so a stale synthetic/procedural body cannot be
-mistaken for the reviewed GLB-derived Matter surface.
+Matter-exported recent edit event trail, draw the compact edit-event timeline,
+highlight recently affected nodes and conductance edges from Matter-exported
+target rows through the Optics feedback-frame shape, and keep those intents
+routed back into Matter Wasm after switching. The Planarian 3D browser adapter
+intentionally rejects a low-count body surface in this mode so a stale
+synthetic/procedural body cannot be mistaken for the reviewed GLB-derived
+Matter surface.
 
 Start the static browser preview with:
 

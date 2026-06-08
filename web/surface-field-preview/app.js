@@ -24,6 +24,7 @@ const controls = {
   planarianOutcomeReadout: document.querySelector("#planarian-outcome-readout"),
   planarianSelectionPanel: document.querySelector("#planarian-selection-panel"),
   planarianSelectionReadout: document.querySelector("#planarian-selection-readout"),
+  planarianEventTimeline: document.querySelector("#planarian-event-timeline"),
   planarianEventReadout: document.querySelector("#planarian-event-readout"),
   selectedNode: document.querySelector("#selected-node"),
   voltageDelta: document.querySelector("#voltage-delta"),
@@ -75,6 +76,7 @@ const PLANARIAN_REGION_LABELS = new Map([
 const PLANARIAN_OUTCOME_TRACE_STRIDE = 7;
 const PLANARIAN_EDIT_EVENT_STRIDE = 15;
 const PLANARIAN_EDIT_TARGET_STRIDE = 8;
+const PLANARIAN_EVENT_TIMELINE_LIMIT = 8;
 const PLANARIAN_OUTCOME_METRICS = [
   { key: "posterior_memory", label: "post memory", color: "#73d9bb" },
   { key: "posterior_head_identity", label: "post head", color: "#f1c65c" },
@@ -1558,9 +1560,8 @@ function readPlanarianEditFeedbackFrame() {
   };
 }
 
-function recentPlanarianEditTargets() {
-  const targets = readPlanarianEditFeedbackFrame().targets
-    .filter((target) => target.accepted);
+function recentPlanarianEditTargets(feedbackFrame = readPlanarianEditFeedbackFrame()) {
+  const targets = feedbackFrame.targets.filter((target) => target.accepted);
   if (targets.length === 0) {
     return [];
   }
@@ -1581,16 +1582,18 @@ function updatePlanarian3DView() {
     return;
   }
   planarian3dStats = readPlanarian3DStats();
+  const feedbackFrame = readPlanarianEditFeedbackFrame();
   planarian3dView.updateSnapshot(
     planarian3dRuntime.snapshot(),
     planarian3dRuntime.conductance_values(),
     controls.scalarLayer.value || "circuit.voltage",
   );
   planarian3dView.setVisibility(controls.edges.checked, controls.tier2.checked);
-  planarian3dView.updateEditHighlights(recentPlanarianEditTargets());
+  planarian3dView.updateEditHighlights(recentPlanarianEditTargets(feedbackFrame));
   planarian3dView.render();
   updatePlanarian3DSelectionReadout();
-  updatePlanarian3DEventReadout();
+  updatePlanarian3DEventReadout(feedbackFrame);
+  drawPlanarianEventTimeline(feedbackFrame);
   drawPlanarianOutcomeTrace();
 }
 
@@ -1827,7 +1830,7 @@ function updatePlanarian3DSelectionReadout() {
   controls.planarianSelectionReadout.textContent = `${selectedPlanarianTargetLabel("full")} readout unavailable`;
 }
 
-function updatePlanarian3DEventReadout() {
+function updatePlanarian3DEventReadout(feedbackFrame = readPlanarianEditFeedbackFrame()) {
   if (!controls.planarianEventReadout) {
     return;
   }
@@ -1835,7 +1838,7 @@ function updatePlanarian3DEventReadout() {
     controls.planarianEventReadout.textContent = "events none";
     return;
   }
-  const events = readPlanarianEditFeedbackFrame().events;
+  const events = feedbackFrame.events;
   if (events.length === 0) {
     controls.planarianEventReadout.textContent = "events none";
     return;
@@ -1844,6 +1847,155 @@ function updatePlanarian3DEventReadout() {
   controls.planarianEventReadout.textContent = recent
     .map((event) => formatPlanarianEditEvent(event))
     .join("  |  ");
+}
+
+function drawPlanarianEventTimeline(feedbackFrame = readPlanarianEditFeedbackFrame()) {
+  const timelineCanvas = controls.planarianEventTimeline;
+  if (!timelineCanvas) {
+    return;
+  }
+  const timelineCtx = timelineCanvas.getContext("2d");
+  const rect = timelineCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const width = Math.max(180, Math.round(rect.width * dpr));
+  const height = Math.max(44, Math.round(rect.height * dpr));
+  if (timelineCanvas.width !== width || timelineCanvas.height !== height) {
+    timelineCanvas.width = width;
+    timelineCanvas.height = height;
+  }
+  timelineCtx.clearRect(0, 0, width, height);
+  timelineCtx.fillStyle = "#10151b";
+  timelineCtx.fillRect(0, 0, width, height);
+
+  const events = isPlanarian3DMode()
+    ? feedbackFrame.events.slice(-PLANARIAN_EVENT_TIMELINE_LIMIT)
+    : [];
+  timelineCanvas.dataset.eventCount = String(events.length);
+  timelineCanvas.dataset.latestEvent = events.length
+    ? String(events[events.length - 1].event_index)
+    : "";
+  timelineCanvas.dataset.latestAccepted = events.length && events[events.length - 1].accepted
+    ? "true"
+    : "false";
+  if (events.length === 0) {
+    drawEmptyPlanarianEventTimeline(timelineCtx, width, height, dpr);
+    return;
+  }
+
+  const targetsByEvent = new Map();
+  for (const target of feedbackFrame.targets) {
+    if (!targetsByEvent.has(target.event_index)) {
+      targetsByEvent.set(target.event_index, []);
+    }
+    targetsByEvent.get(target.event_index).push(target);
+  }
+  const plot = {
+    x: 12 * dpr,
+    y: 10 * dpr,
+    width: width - 24 * dpr,
+    height: height - 24 * dpr,
+  };
+  const maxAffected = Math.max(
+    1,
+    ...events.map((event) => planarianEventAffectedCount(event, targetsByEvent)),
+  );
+  timelineCtx.strokeStyle = "rgba(92, 106, 122, 0.40)";
+  timelineCtx.lineWidth = 1 * dpr;
+  timelineCtx.beginPath();
+  timelineCtx.moveTo(plot.x, plot.y + plot.height);
+  timelineCtx.lineTo(plot.x + plot.width, plot.y + plot.height);
+  timelineCtx.stroke();
+
+  const slotWidth = plot.width / PLANARIAN_EVENT_TIMELINE_LIMIT;
+  const startSlot = PLANARIAN_EVENT_TIMELINE_LIMIT - events.length;
+  for (let eventOffset = 0; eventOffset < events.length; eventOffset += 1) {
+    const event = events[eventOffset];
+    const slotIndex = startSlot + eventOffset;
+    const centerX = plot.x + slotWidth * (slotIndex + 0.5);
+    const affectedCount = planarianEventAffectedCount(event, targetsByEvent);
+    const barHeight = Math.max(4 * dpr, plot.height * clamp(affectedCount / maxAffected, 0, 1));
+    const barWidth = Math.max(6 * dpr, slotWidth * 0.48);
+    const barX = centerX - barWidth * 0.5;
+    const barY = plot.y + plot.height - barHeight;
+    timelineCtx.fillStyle = planarianTimelineEventColor(event);
+    timelineCtx.globalAlpha = event.accepted ? 0.92 : 0.58;
+    timelineCtx.fillRect(barX, barY, barWidth, barHeight);
+    timelineCtx.globalAlpha = 1;
+    drawPlanarianTimelineTargets(
+      timelineCtx,
+      targetsByEvent.get(event.event_index) || [],
+      centerX,
+      plot.y + plot.height + 5 * dpr,
+      slotWidth,
+      dpr,
+    );
+  }
+
+  const latest = events[events.length - 1];
+  timelineCanvas.dataset.latestAffectedNodes = String(latest.affected_nodes);
+  timelineCanvas.dataset.latestAffectedEdges = String(latest.affected_edges);
+  timelineCtx.font = `${10 * dpr}px Inter, sans-serif`;
+  timelineCtx.fillStyle = "#d5dde6";
+  timelineCtx.fillText(
+    `#${latest.event_index} ${PLANARIAN_EDIT_OPERATION_LABELS.get(latest.operation_code) || "edit"}`,
+    plot.x,
+    8 * dpr,
+  );
+}
+
+function drawEmptyPlanarianEventTimeline(timelineCtx, width, height, dpr) {
+  timelineCtx.strokeStyle = "rgba(92, 106, 122, 0.34)";
+  timelineCtx.lineWidth = 1 * dpr;
+  timelineCtx.beginPath();
+  timelineCtx.moveTo(12 * dpr, height - 13 * dpr);
+  timelineCtx.lineTo(width - 12 * dpr, height - 13 * dpr);
+  timelineCtx.stroke();
+  timelineCtx.font = `${10 * dpr}px Inter, sans-serif`;
+  timelineCtx.fillStyle = "#7f8d9a";
+  timelineCtx.fillText("events none", 12 * dpr, 17 * dpr);
+}
+
+function drawPlanarianTimelineTargets(timelineCtx, targets, centerX, y, slotWidth, dpr) {
+  if (targets.length === 0) {
+    return;
+  }
+  const maxTicks = Math.min(4, targets.length);
+  const tickWidth = Math.max(2 * dpr, Math.min(5 * dpr, slotWidth / 7));
+  for (let index = 0; index < maxTicks; index += 1) {
+    const target = targets[index];
+    const offset = (index - (maxTicks - 1) / 2) * tickWidth * 1.45;
+    timelineCtx.fillStyle = target.target_kind === 2 ? "#f1c65c" : "#b9e6ff";
+    timelineCtx.fillRect(centerX + offset - tickWidth * 0.5, y, tickWidth, 3 * dpr);
+  }
+}
+
+function planarianEventAffectedCount(event, targetsByEvent) {
+  const targetCount = targetsByEvent.get(event.event_index)?.length || 0;
+  return Math.max(
+    targetCount,
+    event.affected_nodes + event.affected_edges + event.affected_currents,
+  );
+}
+
+function planarianTimelineEventColor(event) {
+  if (!event.accepted) {
+    return "#cf6c72";
+  }
+  switch (event.operation_code) {
+    case 2:
+    case 1:
+      return "#83a7ff";
+    case 3:
+      return "#73d9bb";
+    case 4:
+    case 5:
+    case 6:
+      return "#f1c65c";
+    case 7:
+      return "#d58cff";
+    default:
+      return "#d5dde6";
+  }
 }
 
 function formatPlanarianEditEvent(event) {
