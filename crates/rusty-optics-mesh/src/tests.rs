@@ -186,6 +186,22 @@ fn planarian_visual_sequence_preserves_ap_regions_and_memory_readout() {
     assert_eq!(visual.frames.len(), source.sequence.frames.len());
     assert_eq!(visual.region_bands.len(), 5);
     assert_eq!(visual.node_regions.len(), source.substrate.node_count());
+    assert_eq!(
+        visual.body_surface.surface_id,
+        source.source_surface.surface_id
+    );
+    assert_eq!(
+        visual.body_surface.topology_index_hash,
+        source.source_surface.topology_key().index_hash
+    );
+    assert_eq!(
+        visual.body_surface.vertices.len(),
+        source.source_surface.vertex_count()
+    );
+    assert_eq!(
+        visual.body_surface.triangles.len(),
+        source.source_surface.triangle_count()
+    );
     assert_eq!(visual.diagnostic_count, source.sequence.diagnostics.len());
     assert!(visual
         .region_bands
@@ -226,6 +242,26 @@ fn damaged_planarian_visual_node_region_is_rejected() {
     .expect("planarian visual sequence");
     visual.node_regions[0].node_index = visual.node_regions.len();
     let error = visual.validate().expect_err("bad node region rejects");
+
+    assert!(matches!(
+        error,
+        rusty_optics_model::OpticsError::InvalidPayload(_)
+    ));
+}
+
+#[test]
+fn damaged_planarian_body_surface_triangle_is_rejected() {
+    let source = sample_planarian_run();
+    let mut visual = PlanarianBioelectricVisualSequence::from_matter_planarian_run(
+        "fields.visual.planarian_ap.invalid_body",
+        &source,
+    )
+    .expect("planarian visual sequence");
+    visual.body_surface.triangles[0].vertex_indices[0] =
+        u32::try_from(visual.body_surface.vertices.len()).expect("vertex count fits u32");
+    let error = visual
+        .validate()
+        .expect_err("bad body triangle target rejects");
 
     assert!(matches!(
         error,

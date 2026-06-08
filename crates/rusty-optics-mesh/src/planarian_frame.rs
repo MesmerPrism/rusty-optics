@@ -2,6 +2,7 @@ use rusty_matter_fields::{
     BioelectricCircuitDebugFrame, BioelectricCircuitState, PlanarianAxisMap, PlanarianAxisRegion,
     PlanarianBioelectricScenarioRun, PLANARIAN_BIOELECTRIC_SCENARIO_RUN_SCHEMA_ID,
 };
+use rusty_matter_model::Vec3;
 use rusty_optics_model::{ColorRgba, OpticsError, PLANARIAN_BIOELECTRIC_VISUAL_SEQUENCE_SCHEMA_ID};
 
 use crate::BioelectricCircuitVisualFrame;
@@ -38,6 +39,52 @@ pub struct PlanarianAxisNodeVisualRegion {
     pub color: ColorRgba,
 }
 
+/// One renderer-neutral planarian body-surface vertex.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianBodySurfaceVisualVertex {
+    /// Source mesh vertex index.
+    pub vertex_index: usize,
+    /// Vertex position in Matter source coordinates.
+    pub position: Vec3,
+    /// AP region identifier assigned from the Matter axis bands.
+    pub region_id: String,
+    /// Region color.
+    pub color: ColorRgba,
+}
+
+/// One renderer-neutral planarian body-surface triangle.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianBodySurfaceVisualTriangle {
+    /// Source mesh triangle index.
+    pub triangle_index: usize,
+    /// Source mesh vertex indices.
+    pub vertex_indices: [u32; 3],
+    /// AP region identifier assigned from the triangle centroid.
+    pub region_id: String,
+    /// Region color.
+    pub color: ColorRgba,
+}
+
+/// Renderer-neutral planarian body-surface visual contract.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianBodySurfaceVisual {
+    /// Source Matter surface identifier.
+    pub surface_id: String,
+    /// Source topology index hash.
+    pub topology_index_hash: u64,
+    /// Minimum body position bound.
+    pub bounds_min: Vec3,
+    /// Maximum body position bound.
+    pub bounds_max: Vec3,
+    /// Source mesh vertices with visual region metadata.
+    pub vertices: Vec<PlanarianBodySurfaceVisualVertex>,
+    /// Source mesh triangles with visual region metadata.
+    pub triangles: Vec<PlanarianBodySurfaceVisualTriangle>,
+}
+
 /// Renderer-neutral visual sequence for a synthetic planarian AP bioelectric run.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -72,6 +119,8 @@ pub struct PlanarianBioelectricVisualSequence {
     pub diagnostic_count: usize,
     /// Compact literature/design anchors copied from Matter.
     pub literature_anchors: Vec<String>,
+    /// Matter-owned body surface prepared as a renderer-neutral 3D visual payload.
+    pub body_surface: PlanarianBodySurfaceVisual,
     /// AP region bands with Optics-owned colors.
     pub region_bands: Vec<PlanarianAxisRegionVisualBand>,
     /// One AP visual region assignment per node.
@@ -130,6 +179,7 @@ impl PlanarianBioelectricVisualSequence {
             frame_stride: source.sequence.frame_stride,
             diagnostic_count: source.sequence.diagnostics.len(),
             literature_anchors: source.literature_anchors.clone(),
+            body_surface: visual_body_surface(source)?,
             region_bands: visual_region_bands(&source.axis_map)?,
             node_regions: visual_node_regions(&source.axis_map)?,
             frames,
@@ -164,6 +214,11 @@ impl PlanarianBioelectricVisualSequence {
         if self.substrate_id.trim().is_empty() || self.surface_id.trim().is_empty() {
             return Err(OpticsError::EmptyId("planarian visual source"));
         }
+        if self.body_surface.surface_id != self.surface_id {
+            return Err(OpticsError::InvalidPayload(
+                "planarian body surface id must match sequence surface id",
+            ));
+        }
         if !self.fixed_step_seconds.is_finite() || self.fixed_step_seconds <= 0.0 {
             return Err(OpticsError::InvalidValue(
                 "planarian visual fixed_step_seconds",
@@ -182,6 +237,7 @@ impl PlanarianBioelectricVisualSequence {
         for band in &self.region_bands {
             validate_region_band(band)?;
         }
+        validate_body_surface(&self.body_surface)?;
         for (expected_index, node_region) in self.node_regions.iter().enumerate() {
             validate_node_region(node_region, expected_index)?;
         }
@@ -217,6 +273,64 @@ impl PlanarianBioelectricVisualSequence {
     }
 }
 
+fn visual_body_surface(
+    source: &PlanarianBioelectricScenarioRun,
+) -> Result<PlanarianBodySurfaceVisual, OpticsError> {
+    source
+        .source_surface
+        .validate()
+        .map_err(|_| OpticsError::InvalidPayload("planarian source body surface invalid"))?;
+    let topology_key = source.source_surface.topology_key();
+    let (bounds_min, bounds_max) = bounds_for_positions(&source.source_surface.positions)?;
+    let vertices = source
+        .source_surface
+        .positions
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(vertex_index, position)| {
+            let region = region_for_z(&source.axis_map, position.z)?;
+            let vertex = PlanarianBodySurfaceVisualVertex {
+                vertex_index,
+                position,
+                region_id: region.region_id().to_owned(),
+                color: region_color(region),
+            };
+            validate_body_vertex(&vertex, vertex_index)?;
+            Ok(vertex)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let triangles = source
+        .source_surface
+        .triangles
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(triangle_index, vertex_indices)| {
+            let centroid_z = triangle_centroid_z(&source.source_surface.positions, vertex_indices)?;
+            let region = region_for_z(&source.axis_map, centroid_z)?;
+            let triangle = PlanarianBodySurfaceVisualTriangle {
+                triangle_index,
+                vertex_indices,
+                region_id: region.region_id().to_owned(),
+                color: region_color(region),
+            };
+            validate_body_triangle(&triangle, triangle_index, vertices.len())?;
+            Ok(triangle)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let visual = PlanarianBodySurfaceVisual {
+        surface_id: source.source_surface.surface_id.clone(),
+        topology_index_hash: topology_key.index_hash,
+        bounds_min,
+        bounds_max,
+        vertices,
+        triangles,
+    };
+    validate_body_surface(&visual)?;
+    Ok(visual)
+}
+
 trait VisualFrameStep {
     fn step_index(&self) -> u32;
 }
@@ -237,14 +351,14 @@ fn visual_frame_from_debug_frame(
 ) -> Result<BioelectricCircuitVisualFrame, OpticsError> {
     let mut state = template.clone();
     state.time_seconds = frame.time_seconds;
-    state.voltage.values = frame.voltage_values.clone();
+    state.voltage.values.clone_from(&frame.voltage_values);
     if let Some(memory_values) = &frame.memory_values {
         let Some(memory) = state.memory.as_mut() else {
             return Err(OpticsError::InvalidPayload(
                 "planarian debug frame contains memory but template does not",
             ));
         };
-        memory.values = memory_values.clone();
+        memory.values.clone_from(memory_values);
     }
     for readout in &mut state.readout_layers {
         let Some(source_layer) = frame
@@ -311,6 +425,68 @@ fn visual_node_regions(
         .collect()
 }
 
+fn bounds_for_positions(positions: &[Vec3]) -> Result<(Vec3, Vec3), OpticsError> {
+    let mut bounds = positions.iter().copied();
+    let Some(first) = bounds.next() else {
+        return Err(OpticsError::InvalidCount("planarian body vertices"));
+    };
+    if !first.is_finite() {
+        return Err(OpticsError::NonFiniteVec3("planarian body vertex"));
+    }
+    let mut bounds_min = first;
+    let mut bounds_max = first;
+    for position in bounds {
+        if !position.is_finite() {
+            return Err(OpticsError::NonFiniteVec3("planarian body vertex"));
+        }
+        bounds_min = bounds_min.min(position);
+        bounds_max = bounds_max.max(position);
+    }
+    if !bounds_min.is_finite() || !bounds_max.is_finite() {
+        return Err(OpticsError::NonFiniteVec3("planarian body bounds"));
+    }
+    Ok((bounds_min, bounds_max))
+}
+
+fn triangle_centroid_z(positions: &[Vec3], indices: [u32; 3]) -> Result<f32, OpticsError> {
+    let [a, b, c] = indices;
+    let a = usize::try_from(a).map_err(|_| OpticsError::InvalidPayload("planarian triangle"))?;
+    let b = usize::try_from(b).map_err(|_| OpticsError::InvalidPayload("planarian triangle"))?;
+    let c = usize::try_from(c).map_err(|_| OpticsError::InvalidPayload("planarian triangle"))?;
+    let Some(a) = positions.get(a) else {
+        return Err(OpticsError::InvalidPayload("planarian triangle vertex"));
+    };
+    let Some(b) = positions.get(b) else {
+        return Err(OpticsError::InvalidPayload("planarian triangle vertex"));
+    };
+    let Some(c) = positions.get(c) else {
+        return Err(OpticsError::InvalidPayload("planarian triangle vertex"));
+    };
+    let centroid_z = (a.z + b.z + c.z) / 3.0;
+    if !centroid_z.is_finite() {
+        return Err(OpticsError::InvalidValue("planarian triangle centroid"));
+    }
+    Ok(centroid_z)
+}
+
+fn region_for_z(axis_map: &PlanarianAxisMap, z: f32) -> Result<PlanarianAxisRegion, OpticsError> {
+    if !z.is_finite() {
+        return Err(OpticsError::InvalidValue("planarian AP z"));
+    }
+    let final_index = axis_map.bands.len().saturating_sub(1);
+    axis_map
+        .bands
+        .iter()
+        .enumerate()
+        .find_map(|(index, band)| {
+            (z >= band.z_min && (z < band.z_max || (index == final_index && z <= band.z_max)))
+                .then_some(band.region)
+        })
+        .ok_or(OpticsError::InvalidPayload(
+            "planarian body vertex outside AP bands",
+        ))
+}
+
 fn validate_region_band(band: &PlanarianAxisRegionVisualBand) -> Result<(), OpticsError> {
     if band.region_id.trim().is_empty() || band.label.trim().is_empty() {
         return Err(OpticsError::EmptyId("planarian region band"));
@@ -320,6 +496,66 @@ fn validate_region_band(band: &PlanarianAxisRegionVisualBand) -> Result<(), Opti
     }
     if !band.color.is_finite() {
         return Err(OpticsError::NonFiniteColor("planarian region band"));
+    }
+    Ok(())
+}
+
+fn validate_body_surface(surface: &PlanarianBodySurfaceVisual) -> Result<(), OpticsError> {
+    if surface.surface_id.trim().is_empty() {
+        return Err(OpticsError::EmptyId("planarian body surface"));
+    }
+    if surface.vertices.is_empty() || surface.triangles.is_empty() {
+        return Err(OpticsError::InvalidCount("planarian body surface"));
+    }
+    if !surface.bounds_min.is_finite() || !surface.bounds_max.is_finite() {
+        return Err(OpticsError::NonFiniteVec3("planarian body bounds"));
+    }
+    for (expected_index, vertex) in surface.vertices.iter().enumerate() {
+        validate_body_vertex(vertex, expected_index)?;
+    }
+    for (expected_index, triangle) in surface.triangles.iter().enumerate() {
+        validate_body_triangle(triangle, expected_index, surface.vertices.len())?;
+    }
+    Ok(())
+}
+
+fn validate_body_vertex(
+    vertex: &PlanarianBodySurfaceVisualVertex,
+    expected_index: usize,
+) -> Result<(), OpticsError> {
+    if vertex.vertex_index != expected_index || vertex.region_id.trim().is_empty() {
+        return Err(OpticsError::InvalidPayload("planarian body vertex"));
+    }
+    if !vertex.position.is_finite() {
+        return Err(OpticsError::NonFiniteVec3("planarian body vertex"));
+    }
+    if !vertex.color.is_finite() {
+        return Err(OpticsError::NonFiniteColor("planarian body vertex"));
+    }
+    Ok(())
+}
+
+fn validate_body_triangle(
+    triangle: &PlanarianBodySurfaceVisualTriangle,
+    expected_index: usize,
+    vertex_count: usize,
+) -> Result<(), OpticsError> {
+    if triangle.triangle_index != expected_index || triangle.region_id.trim().is_empty() {
+        return Err(OpticsError::InvalidPayload("planarian body triangle"));
+    }
+    let mut seen = [usize::MAX; 3];
+    for (slot, vertex_index) in triangle.vertex_indices.iter().copied().enumerate() {
+        let as_usize = usize::try_from(vertex_index)
+            .map_err(|_| OpticsError::InvalidPayload("planarian body triangle target"))?;
+        if as_usize >= vertex_count || seen[..slot].contains(&as_usize) {
+            return Err(OpticsError::InvalidPayload(
+                "planarian body triangle target",
+            ));
+        }
+        seen[slot] = as_usize;
+    }
+    if !triangle.color.is_finite() {
+        return Err(OpticsError::NonFiniteColor("planarian body triangle"));
     }
     Ok(())
 }
