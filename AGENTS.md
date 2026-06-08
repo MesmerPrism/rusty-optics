@@ -32,6 +32,11 @@ runtime sockets, media stacks, or downstream app crates.
   frames, coordinate-map visuals, collider visuals, and SDF slice visuals.
 - Renderer adapters own GPU buffers, shaders, draw calls, texture uploads,
   swapchains, platform frame lifecycle, and backend imports.
+- Lattice owns runtime-situated relation snapshots: reference spaces,
+  transforms, tracked poses, view sets, spatial input roles, frame-state
+  binding, calibration, validity, confidence, and runtime capability evidence.
+  Optics may consume Lattice view sets for rendering decisions, but stereo
+  projection, lenses, homographies, and appearance policy stay Optics-owned.
 - Downstream apps own private visual-driver mappings, exact runtime tuning,
   oscillator coupling, breath/control bindings, study defaults, and product
   profiles.
