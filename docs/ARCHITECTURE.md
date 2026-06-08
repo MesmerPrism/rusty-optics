@@ -22,6 +22,8 @@ Optics owns:
   frames/sequences;
 - bioelectric circuit visual frames over Matter circuit state and step
   diagnostics;
+- planarian AP bioelectric visual sequences over Matter-owned planarian
+  scenario runs, with Optics-owned AP region colors and browser projection;
 - deterministic fixture and schema artifacts;
 - renderer-neutral diagnostics for visual payloads.
 
@@ -91,6 +93,9 @@ The implemented foundation slice is CPU/data-only:
   debug frames/sequences;
 - bioelectric circuit visual frames over Matter voltage, conductance, current,
   memory, readout, and step-diagnostic payloads;
+- planarian AP bioelectric visual sequences over Matter planarian scenario
+  runs, including AP region labels, node-region colors, voltage/memory/readout
+  playback frames, and circuit overlays;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over one shared
   source mesh surface;
 - browser preview for generated mesh debug JSON and Matter-Wasm-backed animated
@@ -118,9 +123,12 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
 - `rusty-optics-mesh/src/field_frame.rs`: renderer-neutral surface-field node,
   edge, scalar-color, perturbation-region, polarity-arrow, and visual sequence
   contracts over Matter field debug frames/sequences.
+- `rusty-optics-mesh/src/planarian_frame.rs`: renderer-neutral planarian AP
+  bioelectric visual sequences over Matter planarian scenario runs.
 - `web/surface-field-preview/app.js`: browser preview for visual sequences and
   live Matter surface-field Wasm snapshots, plus static bioelectric circuit
-  visual frames; owns playback and drawing only.
+  visual frames and planarian AP bioelectric sequence playback; owns playback
+  and drawing only.
 - `rusty-optics-mesh/src/mesh_frame.rs`: mesh wireframe and topology debug
   visuals.
 - `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug

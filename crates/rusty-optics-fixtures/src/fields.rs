@@ -2,7 +2,8 @@ use rusty_matter_fields::{
     BioelectricCircuitConfig, BioelectricCircuitRuntime, BioelectricCircuitState,
     BioelectricConductanceEdge, BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate,
     BioelectricGateSource, BioelectricMemoryState, BioelectricReadoutLayer,
-    BioelectricVoltageField, BioelectricVoltageUnit, SurfaceFieldDebugFrame,
+    BioelectricVoltageField, BioelectricVoltageUnit, PlanarianBioelectricPresetConfig,
+    PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun, SurfaceFieldDebugFrame,
     SurfaceFieldDebugFrameSequence, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
     SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate,
     SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
@@ -10,7 +11,8 @@ use rusty_matter_fields::{
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
 use rusty_optics_mesh::{
-    BioelectricCircuitVisualFrame, SurfaceFieldVisualFrame, SurfaceFieldVisualFrameSequence,
+    BioelectricCircuitVisualFrame, PlanarianBioelectricVisualSequence, SurfaceFieldVisualFrame,
+    SurfaceFieldVisualFrameSequence,
 };
 
 use crate::error::FixtureError;
@@ -58,6 +60,29 @@ pub fn bioelectric_circuit_visual_frame_json() -> Result<String, FixtureError> {
         &substrate,
         &circuit,
         Some(&diagnostics),
+    )
+    .map_err(|error| FixtureError::Optics(error.to_string()))?;
+    let mut json = serde_json::to_string_pretty(&visual)?;
+    json.push('\n');
+    Ok(json)
+}
+
+/// Serializes the deterministic planarian AP bioelectric visual sequence.
+pub fn planarian_bioelectric_visual_sequence_json() -> Result<String, FixtureError> {
+    let source = PlanarianBioelectricScenarioRun::build(
+        PlanarianBioelectricScenarioKind::TransientDepolarizationMemory,
+        PlanarianBioelectricPresetConfig {
+            sample_count: 80,
+            step_count: 150,
+            frame_stride: 15,
+            seed: 130_363,
+            ..PlanarianBioelectricPresetConfig::default()
+        },
+    )
+    .map_err(|error| FixtureError::Matter(error.to_string()))?;
+    let visual = PlanarianBioelectricVisualSequence::from_matter_planarian_run(
+        "fields.visual.planarian_ap.transient_memory",
+        &source,
     )
     .map_err(|error| FixtureError::Optics(error.to_string()))?;
     let mut json = serde_json::to_string_pretty(&visual)?;

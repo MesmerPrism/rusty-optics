@@ -58,3 +58,8 @@ Surface-field preview fixtures:
   Optics visual frame over a Matter-owned bioelectric circuit snapshot and step
   diagnostics. It contains voltage samples, conductance edges, current regions,
   memory samples, and readout layers for browser inspection.
+- `fixtures/fields/planarian_bioelectric_visual_sequence.json`:
+  renderer-neutral Optics visual sequence over a Matter-owned synthetic
+  planarian AP bioelectric scenario. It contains AP region bands, node-region
+  colors, voltage/memory/readout playback frames, conductance edges, current
+  regions, and diagnostics for browser inspection.

@@ -24,12 +24,17 @@ const sequenceUrl = params.get("sequence")
   || (frameUrl ? null : "/fixtures/fields/surface_field_visual_sequence.json");
 const payloadUrl = sequenceUrl || frameUrl || "/fixtures/fields/surface_field_visual_frame.json";
 const circuitUrl = params.get("circuit") || "/fixtures/fields/bioelectric_circuit_visual_frame.json";
+const planarianUrl = params.get("planarian") || "/fixtures/fields/planarian_bioelectric_visual_sequence.json";
+const initialView = params.get("view");
 const wasmBaseUrl = params.get("wasm") || "/local-artifacts/matter_surface_field_wasm";
 
 let sequence = null;
 let frames = [];
 let circuitFrame = null;
+let planarianSequence = null;
+let planarianFrames = [];
 let currentFrameIndex = 0;
+let currentPlanarianIndex = 0;
 let bounds = null;
 let view = { zoom: 1, offsetX: 0, offsetY: 0 };
 let drag = null;
@@ -45,12 +50,17 @@ let liveStepMs = 0;
 Promise.all([
   fetchJson(payloadUrl),
   fetchJson(circuitUrl).catch(() => null),
+  fetchJson(planarianUrl).catch(() => null),
 ])
-  .then(async ([payload, circuitPayload]) => {
+  .then(async ([payload, circuitPayload, planarianPayload]) => {
     loadPayload(payload);
     if (circuitPayload) {
       loadCircuitPayload(circuitPayload);
     }
+    if (planarianPayload) {
+      loadPlanarianPayload(planarianPayload);
+    }
+    applyInitialViewMode();
     await initLiveRuntime();
     requestAnimationFrame(animationLoop);
   })
@@ -65,10 +75,18 @@ controls.viewMode.addEventListener("change", () => {
     controls.viewMode.value = "surface";
     return;
   }
+  if (isPlanarianRequested() && !planarianSequence) {
+    controls.viewMode.value = "surface";
+    return;
+  }
   if (isCircuitMode()) {
     controls.live.checked = false;
     bounds = computeBounds(circuitFrame);
     setPlaying(false);
+  } else if (isPlanarianMode()) {
+    controls.live.checked = false;
+    bounds = computeBounds(activeFrame());
+    setPlaying(planarianFrames.length > 1);
   } else {
     if (liveRuntime) {
       controls.live.checked = true;
@@ -99,7 +117,7 @@ for (const input of [
 }
 
 controls.live.addEventListener("change", () => {
-  if (isCircuitMode()) {
+  if (isCircuitMode() || isPlanarianMode()) {
     controls.live.checked = false;
     return;
   }
@@ -128,6 +146,15 @@ controls.play.addEventListener("click", () => {
 
 controls.frameSlider.addEventListener("input", () => {
   if (isLiveMode()) {
+    return;
+  }
+  if (isPlanarianMode()) {
+    currentPlanarianIndex = Number(controls.frameSlider.value);
+    lastAnimationTime = null;
+    frameAccumulatorMs = 0;
+    updateTimelineControls();
+    updateStats();
+    draw();
     return;
   }
   currentFrameIndex = Number(controls.frameSlider.value);
@@ -224,6 +251,42 @@ function loadCircuitPayload(payload) {
   updateControlAvailability();
 }
 
+function loadPlanarianPayload(payload) {
+  if (!payload?.schema_id?.includes("planarian_bioelectric.visual_sequence") || !Array.isArray(payload.frames)) {
+    planarianSequence = null;
+    planarianFrames = [];
+    return;
+  }
+  planarianSequence = payload;
+  planarianFrames = payload.frames;
+  currentPlanarianIndex = 0;
+  updateControlAvailability();
+}
+
+function applyInitialViewMode() {
+  if (initialView === "planarian" && planarianSequence) {
+    controls.viewMode.value = "planarian";
+    controls.live.checked = false;
+    bounds = computeBounds(activeFrame());
+    setPlaying(planarianFrames.length > 1);
+    fillLayerSelect();
+    updateControlAvailability();
+    updateTimelineControls();
+    updateRuntimeStatus("planarian");
+    updateStats();
+  } else if (initialView === "circuit" && circuitFrame) {
+    controls.viewMode.value = "circuit";
+    controls.live.checked = false;
+    bounds = computeBounds(circuitFrame);
+    setPlaying(false);
+    fillLayerSelect();
+    updateControlAvailability();
+    updateTimelineControls();
+    updateRuntimeStatus("circuit");
+    updateStats();
+  }
+}
+
 async function initLiveRuntime() {
   try {
     const module = await import(`${wasmBaseUrl}/rusty_matter_fields_wasm.js`);
@@ -231,11 +294,11 @@ async function initLiveRuntime() {
     liveRuntime = new module.SurfaceFieldRealtimeRuntime();
     liveTopology = decodeLiveTopology(liveRuntime);
     liveFrame = buildLiveFrame();
-    controls.live.disabled = false;
-    controls.live.checked = !isCircuitMode();
+    controls.live.checked = !isCircuitMode() && !isPlanarianMode();
     bounds = computeBounds(activeFrame());
     fillLayerSelect();
     setPlaying(canAnimate());
+    updateControlAvailability();
     updateTimelineControls();
     updateRuntimeStatus("live");
     updateStats();
@@ -267,6 +330,14 @@ function animationLoop(timestamp) {
           updateStats();
           draw();
         }
+      } else if (isPlanarianMode()) {
+        while (frameAccumulatorMs >= intervalMs) {
+          frameAccumulatorMs -= intervalMs;
+          currentPlanarianIndex = (currentPlanarianIndex + 1) % planarianFrames.length;
+        }
+        updateTimelineControls();
+        updateStats();
+        draw();
       } else {
         while (frameAccumulatorMs >= intervalMs) {
           frameAccumulatorMs -= intervalMs;
@@ -291,6 +362,9 @@ function setPlaying(nextPlaying) {
 }
 
 function canAnimate() {
+  if (isPlanarianMode()) {
+    return planarianFrames.length > 1;
+  }
   return !isCircuitMode() && (isLiveMode() || frames.length > 1);
 }
 
@@ -302,22 +376,33 @@ function isCircuitMode() {
   return controls.viewMode.value === "circuit" && circuitFrame;
 }
 
+function isPlanarianRequested() {
+  return controls.viewMode.value === "planarian";
+}
+
+function isPlanarianMode() {
+  return isPlanarianRequested() && planarianSequence && planarianFrames.length > 0;
+}
+
 function updateControlAvailability() {
   const circuit = isCircuitMode();
+  const planarian = isPlanarianMode();
   controls.viewMode.querySelector('option[value="circuit"]').disabled = !circuitFrame;
-  controls.live.disabled = circuit || !liveRuntime;
-  controls.polarity.disabled = circuit;
+  controls.viewMode.querySelector('option[value="planarian"]').disabled = !planarianSequence;
+  controls.live.disabled = circuit || planarian || !liveRuntime;
+  controls.polarity.disabled = circuit || planarian;
 }
 
 function fillLayerSelect() {
   const selected = controls.scalarLayer.value;
   controls.scalarLayer.innerHTML = "";
-  if (isCircuitMode()) {
+  if (isCircuitMode() || isPlanarianMode()) {
+    const frame = activeCircuitFrame();
     addLayerOption("circuit.voltage", "voltage");
-    if (circuitFrame.memory_samples.length > 0) {
+    if (frame.memory_samples.length > 0) {
       addLayerOption("circuit.memory", "memory");
     }
-    for (const layer of circuitFrame.readout_layers) {
+    for (const layer of frame.readout_layers) {
       addLayerOption(`readout:${layer.layer_id}`, layer.layer_id.replace("readout.", ""));
     }
     if ([...controls.scalarLayer.options].some((option) => option.value === selected)) {
@@ -351,6 +436,14 @@ function resetView() {
 }
 
 function updateTimelineControls() {
+  if (isPlanarianMode()) {
+    const frameCount = Math.max(1, planarianFrames.length);
+    controls.frameSlider.max = String(frameCount - 1);
+    controls.frameSlider.value = String(currentPlanarianIndex);
+    controls.frameSlider.disabled = frameCount <= 1;
+    controls.framePosition.textContent = `${currentPlanarianIndex + 1}/${frameCount}`;
+    return;
+  }
   if (isCircuitMode()) {
     controls.frameSlider.disabled = true;
     controls.frameSlider.max = "0";
@@ -373,7 +466,9 @@ function updateTimelineControls() {
 }
 
 function updateRuntimeStatus(mode) {
-  if (isCircuitMode()) {
+  if (isPlanarianMode()) {
+    controls.runtimeStatus.textContent = "planarian";
+  } else if (isCircuitMode()) {
     controls.runtimeStatus.textContent = "circuit";
   } else {
     controls.runtimeStatus.textContent = mode === "live" ? "Matter live" : "sequence";
@@ -381,6 +476,10 @@ function updateRuntimeStatus(mode) {
 }
 
 function updateStats() {
+  if (isPlanarianMode()) {
+    updatePlanarianStats();
+    return;
+  }
   if (isCircuitMode()) {
     updateCircuitStats();
     return;
@@ -406,7 +505,7 @@ function updateStats() {
 }
 
 function updateCircuitStats() {
-  const frame = circuitFrame;
+  const frame = activeCircuitFrame();
   const diagnostics = frame.diagnostics;
   const layer = controls.scalarLayer.value || "circuit.voltage";
   const layerLabel = layer.replace("circuit.", "").replace("readout:", "");
@@ -424,12 +523,36 @@ function updateCircuitStats() {
   ].filter(Boolean).join("  ");
 }
 
+function updatePlanarianStats() {
+  const frame = activeCircuitFrame();
+  const diagnostics = frame.diagnostics;
+  const layer = controls.scalarLayer.value || "circuit.voltage";
+  const layerLabel = layer.replace("circuit.", "").replace("readout:", "");
+  stats.textContent = [
+    "planarian AP",
+    `${frame.nodes.length} nodes`,
+    `${frame.conductance_edges.length} conductance edges`,
+    `${planarianFrames.length} frames`,
+    `${planarianSequence.region_bands.length} AP regions`,
+    `step ${diagnostics?.step_index ?? 0}/${planarianSequence.step_count}`,
+    `t ${formatNumber(frame.time_seconds)}s`,
+    `${frame.memory_samples.length} memory`,
+    `${frame.readout_layers.length} readouts`,
+    diagnostics ? `dV ${formatNumber(diagnostics.max_voltage_delta)}` : null,
+    layerLabel,
+  ].filter(Boolean).join("  ");
+}
+
 function draw() {
   resizeCanvas();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
   if (!activeFrame()) {
     drawLoading();
+    return;
+  }
+  if (isPlanarianMode()) {
+    drawPlanarianFrame();
     return;
   }
   if (isCircuitMode()) {
@@ -461,6 +584,22 @@ function drawCircuitFrame() {
   drawCircuitNodes();
   if (controls.labels.checked) {
     drawLabels();
+  }
+}
+
+function drawPlanarianFrame() {
+  if (controls.regions.checked) {
+    drawPlanarianAxisBands();
+  }
+  if (controls.edges.checked) {
+    drawCircuitConductanceEdges();
+  }
+  if (controls.regions.checked) {
+    drawCircuitCurrentRegions();
+  }
+  drawCircuitNodes();
+  if (controls.labels.checked) {
+    drawPlanarianLabels();
   }
 }
 
@@ -513,7 +652,7 @@ function drawEdges() {
 }
 
 function drawCircuitConductanceEdges() {
-  const frame = circuitFrame;
+  const frame = activeCircuitFrame();
   ctx.lineCap = "round";
   const scale = window.devicePixelRatio || 1;
   for (const edge of frame.conductance_edges) {
@@ -558,7 +697,7 @@ function drawRegions() {
 }
 
 function drawCircuitCurrentRegions() {
-  const frame = circuitFrame;
+  const frame = activeCircuitFrame();
   const scale = window.devicePixelRatio || 1;
   for (const region of frame.current_regions) {
     if (region.all_nodes) {
@@ -602,7 +741,7 @@ function drawScalarNodes() {
 }
 
 function drawCircuitNodes() {
-  const frame = circuitFrame;
+  const frame = activeCircuitFrame();
   const samples = activeCircuitSamples();
   if (!samples.length) {
     return;
@@ -652,6 +791,50 @@ function drawLabels() {
   }
 }
 
+function drawPlanarianAxisBands() {
+  if (!planarianSequence) {
+    return;
+  }
+  const scale = window.devicePixelRatio || 1;
+  for (const band of planarianSequence.region_bands) {
+    const left = project({ x: 0, y: 0, z: band.z_min });
+    const right = project({ x: 0, y: 0, z: band.z_max });
+    const x0 = Math.min(left.x, right.x);
+    const x1 = Math.max(left.x, right.x);
+    ctx.fillStyle = rgba({ ...band.color, a: Math.min(0.18, band.color.a * 0.45) });
+    ctx.fillRect(x0, 0, Math.max(1, x1 - x0), canvas.height);
+    ctx.strokeStyle = rgba({ ...band.color, a: Math.min(0.42, band.color.a * 1.4) });
+    ctx.lineWidth = 1 * scale;
+    ctx.beginPath();
+    ctx.moveTo(x0, 0);
+    ctx.lineTo(x0, canvas.height);
+    ctx.stroke();
+  }
+}
+
+function drawPlanarianLabels() {
+  drawPlanarianRegionLabels();
+  drawLabels();
+}
+
+function drawPlanarianRegionLabels() {
+  if (!planarianSequence) {
+    return;
+  }
+  const scale = window.devicePixelRatio || 1;
+  ctx.font = `${12 * scale}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  for (const band of planarianSequence.region_bands) {
+    const centerZ = (band.z_min + band.z_max) * 0.5;
+    const point = project({ x: 0, y: 0, z: centerZ });
+    ctx.fillStyle = rgba({ ...band.color, a: 0.86 });
+    ctx.fillText(band.label, point.x, 10 * scale);
+  }
+  ctx.textAlign = "start";
+  ctx.textBaseline = "alphabetic";
+}
+
 function drawArrowHead(start, end, size) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -678,6 +861,9 @@ function drawArrowHead(start, end, size) {
 }
 
 function activeFrame() {
+  if (isPlanarianMode()) {
+    return planarianFrames[currentPlanarianIndex] || planarianFrames[0] || null;
+  }
   if (isCircuitMode()) {
     return circuitFrame;
   }
@@ -685,6 +871,13 @@ function activeFrame() {
     return liveFrame;
   }
   return frames[currentFrameIndex] || frames[0] || null;
+}
+
+function activeCircuitFrame() {
+  if (isPlanarianMode()) {
+    return planarianFrames[currentPlanarianIndex] || planarianFrames[0] || null;
+  }
+  return circuitFrame;
 }
 
 function activeScalarLayer() {
@@ -698,18 +891,19 @@ function activeScalarLayer() {
 }
 
 function activeCircuitSamples() {
-  if (!circuitFrame) {
+  const frame = activeCircuitFrame();
+  if (!frame) {
     return [];
   }
   const selected = controls.scalarLayer.value;
   if (selected === "circuit.memory") {
-    return circuitFrame.memory_samples;
+    return frame.memory_samples;
   }
   if (selected.startsWith("readout:")) {
     const layerId = selected.slice("readout:".length);
-    return circuitFrame.readout_layers.find((layer) => layer.layer_id === layerId)?.samples || [];
+    return frame.readout_layers.find((layer) => layer.layer_id === layerId)?.samples || [];
   }
-  return circuitFrame.voltage_samples;
+  return frame.voltage_samples;
 }
 
 function decodeLiveTopology(runtime) {
@@ -928,10 +1122,26 @@ function visualNodeRadius(topologyBounds) {
 
 function project(point) {
   const scale = screenScale();
+  const projected = projectedPoint(point);
+  const center = projectedCenter();
   return {
-    x: canvas.width * 0.5 + (point.x - bounds.center.x) * scale + view.offsetX,
-    y: canvas.height * 0.52 - (point.y - bounds.center.y) * scale + view.offsetY,
+    x: canvas.width * 0.5 + (projected.x - center.x) * scale + view.offsetX,
+    y: canvas.height * 0.52 - (projected.y - center.y) * scale + view.offsetY,
   };
+}
+
+function projectedPoint(point) {
+  if (isPlanarianMode()) {
+    return { x: point.z, y: point.x };
+  }
+  return { x: point.x, y: point.y };
+}
+
+function projectedCenter() {
+  if (isPlanarianMode()) {
+    return { x: bounds.center.z, y: bounds.center.x };
+  }
+  return { x: bounds.center.x, y: bounds.center.y };
 }
 
 function screenScale() {
@@ -943,6 +1153,9 @@ function nodeScreenRadius(node) {
 }
 
 function frameIntervalSeconds() {
+  if (isPlanarianMode()) {
+    return Math.max(0.01, planarianSequence.fixed_step_seconds * planarianSequence.frame_stride);
+  }
   if (isLiveMode()) {
     return liveStats?.fixed_step_seconds || 1 / 30;
   }

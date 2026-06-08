@@ -44,10 +44,13 @@ pub const SURFACE_FIELD_VISUAL_SEQUENCE_SCHEMA_ID: &str =
 /// Bioelectric circuit visual frame schema.
 pub const BIOELECTRIC_CIRCUIT_VISUAL_FRAME_SCHEMA_ID: &str =
     "rusty.optics.fields.bioelectric_circuit.visual_frame.v1";
+/// Planarian bioelectric visual sequence schema.
+pub const PLANARIAN_BIOELECTRIC_VISUAL_SEQUENCE_SCHEMA_ID: &str =
+    "rusty.optics.fields.planarian_bioelectric.visual_sequence.v1";
 
 /// Returns the schema IDs currently emitted by Rusty Optics.
 #[must_use]
-pub const fn optics_schema_ids() -> [&'static str; 19] {
+pub const fn optics_schema_ids() -> [&'static str; 20] {
     [
         COLOR_RGBA_SCHEMA_ID,
         PARTICLE_VISUAL_SAMPLE_SCHEMA_ID,
@@ -68,5 +71,6 @@ pub const fn optics_schema_ids() -> [&'static str; 19] {
         SURFACE_FIELD_VISUAL_FRAME_SCHEMA_ID,
         SURFACE_FIELD_VISUAL_SEQUENCE_SCHEMA_ID,
         BIOELECTRIC_CIRCUIT_VISUAL_FRAME_SCHEMA_ID,
+        PLANARIAN_BIOELECTRIC_VISUAL_SEQUENCE_SCHEMA_ID,
     ]
 }

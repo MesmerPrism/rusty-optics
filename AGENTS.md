@@ -30,7 +30,8 @@ runtime sockets, media stacks, or downstream app crates.
   projection, animation-mask descriptors, trail appearance descriptors,
   transparency/depth policy, renderer-neutral budget summaries, mesh debug
   frames, coordinate-map visuals, collider visuals, SDF slice visuals, and
-  surface-field visual frames/sequences over Matter-owned field payloads.
+  surface-field visual frames/sequences over Matter-owned field payloads,
+  including planarian AP bioelectric visual sequences.
 - Renderer adapters own GPU buffers, shaders, draw calls, texture uploads,
   swapchains, platform frame lifecycle, and backend imports.
 - Animated hand-mesh browser previews must call Matter runtime code through the
@@ -71,7 +72,7 @@ Current crate-root maps:
   `vec2`.
 - `rusty-optics-mesh/src/lib.rs`: facade over `browser_frame`,
   `circuit_frame`, `collider`, `coordinate`, `field_frame`, `mesh_frame`,
-  `sdf_slice`, and tests.
+  `planarian_frame`, `sdf_slice`, and tests.
 - `rusty-optics-particles/src/lib.rs`: facade over `animation`, `appearance`,
   `billboard`, `mask`, `projection`, `tests`, and `visual_frame`.
 - `rusty-optics-fixtures/src/main.rs`: dispatch-only binary over `cli`, `error`,

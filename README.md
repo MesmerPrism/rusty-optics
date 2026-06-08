@@ -21,6 +21,8 @@ The first source slices focus on visual particles and mesh diagnostics:
   debug frames/sequences;
 - bioelectric circuit visual frames derived from Matter circuit state and step
   diagnostics;
+- planarian AP bioelectric visual sequences derived from Matter-owned
+  planarian scenario runs;
 - coordinate-map, dynamic-collider, and SDF-slice debug visuals over that same
   source surface;
 - a browser preview that renders generated mesh debug JSON and, for animated
@@ -75,6 +77,13 @@ The same preview also has a `Circuit` view over
 Matter-owned circuit snapshot as voltage colors, conductance edges, current
 regions, memory values, readout layers, and compact step diagnostics. It does
 not compute circuit dynamics in browser JavaScript.
+
+The `Planarian` view consumes
+`fixtures/fields/planarian_bioelectric_visual_sequence.json`. It plays a
+Matter-owned synthetic planarian anterior/posterior bioelectric scenario with
+AP region bands, voltage, memory, readout layers, conductance edges, and
+current-region highlights. Browser JavaScript only projects and draws the
+validated Optics sequence.
 
 For animated hand-mesh sequence previews, build the Matter Wasm runtime into
 Optics local artifacts before launching:

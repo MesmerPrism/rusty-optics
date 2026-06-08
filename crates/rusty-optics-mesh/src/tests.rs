@@ -2,7 +2,8 @@ use rusty_matter_fields::{
     BioelectricCircuitConfig, BioelectricCircuitRuntime, BioelectricCircuitState,
     BioelectricConductanceEdge, BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate,
     BioelectricGateSource, BioelectricMemoryState, BioelectricReadoutLayer,
-    BioelectricVoltageField, BioelectricVoltageUnit, SurfaceFieldDebugFrame,
+    BioelectricVoltageField, BioelectricVoltageUnit, PlanarianBioelectricPresetConfig,
+    PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun, SurfaceFieldDebugFrame,
     SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldRuntime,
     SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField,
     SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
@@ -16,7 +17,8 @@ use rusty_matter_sdf::{build_sdf_from_mesh, MeshToSdfConfig};
 
 use crate::{
     BioelectricCircuitVisualFrame, MeshBrowserDebugFrame, MeshColliderVisual, MeshCoordinateVisual,
-    MeshDebugFrame, SdfSliceVisual, SurfaceFieldVisualFrame, SurfaceFieldVisualFrameSequence,
+    MeshDebugFrame, PlanarianBioelectricVisualSequence, SdfSliceVisual, SurfaceFieldVisualFrame,
+    SurfaceFieldVisualFrameSequence,
 };
 
 #[test]
@@ -170,6 +172,65 @@ fn bioelectric_circuit_visual_frame_resolves_circuit_layers() {
         .diagnostics
         .as_ref()
         .is_some_and(|diagnostics| diagnostics.active_gates > 0));
+}
+
+#[test]
+fn planarian_visual_sequence_preserves_ap_regions_and_memory_readout() {
+    let source = sample_planarian_run();
+    let visual = PlanarianBioelectricVisualSequence::from_matter_planarian_run(
+        "fields.visual.planarian_ap.test",
+        &source,
+    )
+    .expect("planarian visual sequence");
+
+    assert_eq!(visual.frames.len(), source.sequence.frames.len());
+    assert_eq!(visual.region_bands.len(), 5);
+    assert_eq!(visual.node_regions.len(), source.substrate.node_count());
+    assert_eq!(visual.diagnostic_count, source.sequence.diagnostics.len());
+    assert!(visual
+        .region_bands
+        .iter()
+        .any(|band| band.region_id == "region_head"));
+    assert!(visual
+        .region_bands
+        .iter()
+        .any(|band| band.region_id == "region_tail"));
+
+    let posterior_nodes = visual
+        .node_regions
+        .iter()
+        .filter_map(|node| {
+            (node.region_id == "region_tail" || node.region_id == "region_postpharyngeal_trunk")
+                .then_some(node.node_index)
+        })
+        .collect::<Vec<_>>();
+    let final_frame = visual.frames.last().expect("final frame");
+    let memory_average = average_memory(final_frame, &posterior_nodes);
+    let head_readout = average_readout(
+        final_frame,
+        "readout.planarian_ap.head_identity",
+        &posterior_nodes,
+    );
+
+    assert!(memory_average > 0.35);
+    assert!(head_readout > 0.50);
+}
+
+#[test]
+fn damaged_planarian_visual_node_region_is_rejected() {
+    let source = sample_planarian_run();
+    let mut visual = PlanarianBioelectricVisualSequence::from_matter_planarian_run(
+        "fields.visual.planarian_ap.invalid",
+        &source,
+    )
+    .expect("planarian visual sequence");
+    visual.node_regions[0].node_index = visual.node_regions.len();
+    let error = visual.validate().expect_err("bad node region rejects");
+
+    assert!(matches!(
+        error,
+        rusty_optics_model::OpticsError::InvalidPayload(_)
+    ));
 }
 
 fn sample_surface() -> TriangleMeshSurface {
@@ -384,4 +445,43 @@ fn sample_bioelectric_circuit() -> (SurfaceFieldSubstrate, BioelectricCircuitSta
     )
     .expect("circuit");
     (substrate, circuit)
+}
+
+fn sample_planarian_run() -> PlanarianBioelectricScenarioRun {
+    PlanarianBioelectricScenarioRun::build(
+        PlanarianBioelectricScenarioKind::TransientDepolarizationMemory,
+        PlanarianBioelectricPresetConfig {
+            sample_count: 64,
+            step_count: 120,
+            frame_stride: 12,
+            seed: 88_003,
+            ..PlanarianBioelectricPresetConfig::default()
+        },
+    )
+    .expect("planarian run")
+}
+
+fn average_memory(frame: &BioelectricCircuitVisualFrame, node_indices: &[usize]) -> f32 {
+    let sum = node_indices
+        .iter()
+        .map(|node_index| frame.memory_samples[*node_index].value)
+        .sum::<f32>();
+    sum / node_indices.len() as f32
+}
+
+fn average_readout(
+    frame: &BioelectricCircuitVisualFrame,
+    layer_id: &str,
+    node_indices: &[usize],
+) -> f32 {
+    let layer = frame
+        .readout_layers
+        .iter()
+        .find(|layer| layer.layer_id == layer_id)
+        .expect("readout layer");
+    let sum = node_indices
+        .iter()
+        .map(|node_index| layer.samples[*node_index].value)
+        .sum::<f32>();
+    sum / node_indices.len() as f32
 }
