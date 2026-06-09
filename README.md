@@ -19,9 +19,9 @@ The first source slices focus on visual particles and mesh diagnostics:
 - a static browser preview that renders the generated mesh debug JSON without
   renderer backend imports.
 
-Optics does not own particle simulation, mesh/SDF truth, private visual-driver
-bindings, shader source, GPU uploads, OpenXR/Vulkan/WebGL/Makepad integrations,
-or downstream product profiles.
+Optics does not own particle simulation, mesh/SDF truth, downstream
+visual-driver bindings, shader source, GPU uploads, OpenXR/Vulkan/WebGL/Makepad
+integrations, or downstream product profiles.
 
 ## Hand Mesh Browser Preview
 

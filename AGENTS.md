@@ -1,7 +1,7 @@
 # Rusty Optics Agent Notes
 
 This is the clean source repository for Rusty Optics. Keep committed content
-self-contained and free of private planning paths, downstream app names,
+self-contained and free of local-only planning paths, downstream app names,
 platform-specific runtime handles, shader backend imports, and historical
 naming drift.
 
@@ -48,9 +48,8 @@ runtime sockets, media stacks, or downstream app crates.
   binding, calibration, validity, confidence, and runtime capability evidence.
   Optics may consume Lattice view sets for rendering decisions, but stereo
   projection, lenses, homographies, and appearance policy stay Optics-owned.
-- Downstream apps own private visual-driver mappings, exact runtime tuning,
-  oscillator coupling, breath/control bindings, study defaults, and product
-  profiles.
+- Downstream apps own visual-driver mappings, exact runtime tuning,
+  app-specific coupling/control behavior, study defaults, and product profiles.
 - Use `rusty.optics.*` schema IDs for default Optics contracts. Legacy names may
   appear only in explicitly named compatibility layers outside Optics core.
 - Keep high-rate particle arrays out of command/control JSON routes; use

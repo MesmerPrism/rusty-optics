@@ -9,10 +9,6 @@ from pathlib import Path
 FORBIDDEN_CARGO_TERMS = {
     "rusty-xr",
     "rusty_xr",
-    "viscereality",
-    "astralkaratedojo",
-    "akd",
-    "kuramoto",
     "makepad",
     "openxr",
     "vulkan",
@@ -25,9 +21,6 @@ FORBIDDEN_SOURCE_TERMS = {
     "rusty.xr.",
     "debug.rustyxr.",
     "/rustyxr/v1/",
-    "viscereality",
-    "astralkaratedojo",
-    "kuramoto",
 }
 
 SCAN_EXTENSIONS = {".rs", ".toml", ".json", ".js", ".html", ".css"}
