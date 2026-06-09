@@ -13,6 +13,8 @@ pub struct Vec2 {
 impl Vec2 {
     /// Zero vector.
     pub const ZERO: Self = Self::new(0.0, 0.0);
+    /// Unit vector.
+    pub const ONE: Self = Self::new(1.0, 1.0);
 
     /// Creates a vector.
     #[must_use]

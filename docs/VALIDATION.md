@@ -12,6 +12,7 @@ The check runs:
 - `cargo test --workspace`
 - fixture summary validation
 - hand-mesh browser debug fixture validation
+- projection geometry and source-valid footprint unit tests
 - schema catalog validation
 - Optics boundary scan
 

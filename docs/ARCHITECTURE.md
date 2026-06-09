@@ -13,6 +13,8 @@ Optics owns:
   transparency, spin, and frame phase from Matter particle snapshots;
 - appearance profiles and material policy descriptors;
 - view/projection contracts;
+- target footprints, source-sampling modes, homography footprints, source-valid
+  screen UV summaries, and per-view projection geometry reports;
 - billboard instance preparation;
 - animated mask atlas descriptors and CPU reference generation;
 - trail appearance descriptors and particle render-budget summaries;
@@ -32,6 +34,8 @@ Optics owns:
 Optics does not own:
 
 - mesh, field, SDF, or particle simulation truth;
+- reference-space, pose, view-set, or runtime capability state owned by
+  Lattice;
 - platform hand mesh acquisition;
 - command/session/stream authority;
 - GPU buffers, shaders, draw calls, texture uploads, or swapchains;
@@ -113,6 +117,16 @@ Optics can prepare backend-neutral instance arrays and mask atlas pixels, but
 renderer adapters decide how to allocate GPU resources and submit draw calls.
 Shader code, platform frame lifecycle, swapchain behavior, runtime profiles,
 and texture upload mechanics belong to adapters.
+
+## Lattice / Optics Boundary
+
+Lattice owns runtime relation state: reference spaces, tracked poses, stereo
+view sets, validity, confidence, staleness, and capability snapshots. Optics
+owns what a renderer does with visual content in those views: target footprints,
+source sampling modes, homography-derived screen coverage, source-valid
+footprints, and projection geometry reports. A headset or app adapter should
+convert runtime view data into Lattice contracts, then feed Optics projection
+contracts without importing platform handles into either core repo.
 
 ## Current Slices
 

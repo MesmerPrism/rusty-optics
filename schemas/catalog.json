@@ -115,6 +115,21 @@
       "schema_id": "rusty.optics.fields.planarian_bioelectric.edit_feedback_frame.v1",
       "owner": "rusty-optics",
       "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.target_screen_footprint.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.source_sampling_mode.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.video_projection_geometry.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
     }
   ]
 }

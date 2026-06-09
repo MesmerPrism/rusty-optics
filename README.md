@@ -14,6 +14,9 @@ The first source slices focus on visual particles and mesh diagnostics:
   particle snapshots;
 - CPU billboard instance preparation for renderer adapters;
 - flat-screen projection for desktop, browser, phone, or test previews;
+- renderer-neutral target footprints, source-sampling modes, homography
+  footprints, and video projection geometry reports for camera/projection
+  adapters;
 - animated morphed-ring mask atlas generation;
 - transparent particle render-budget summaries;
 - mesh debug frames derived from Matter triangle mesh surfaces;
@@ -33,9 +36,9 @@ The first source slices focus on visual particles and mesh diagnostics:
   hand-mesh sequences, drives realtime SDF/particle queries through the Matter
   WebAssembly runtime without renderer backend imports.
 
-Optics does not own particle simulation, mesh/SDF truth, downstream
-visual-driver bindings, shader source, GPU uploads, OpenXR/Vulkan/WebGL/Makepad
-integrations, or downstream product profiles.
+Optics does not own particle simulation, mesh/SDF truth, tracked-space runtime
+state, downstream visual-driver bindings, shader source, GPU uploads,
+OpenXR/Vulkan/WebGL/Makepad integrations, or downstream product profiles.
 
 ## Hand Mesh Browser Preview
 

@@ -84,8 +84,10 @@ runtime sockets, media stacks, or downstream app crates.
 
 Current crate-root maps:
 
-- `rusty-optics-model/src/lib.rs`: facade over `color`, `error`, `ids`, and
-  `vec2`.
+- `rusty-optics-model/src/lib.rs`: facade over `color`, `error`, `ids`,
+  `projection`, and `vec2`. The `projection` module owns target footprints,
+  source sampling modes, source-valid screen UV summaries, homography helpers,
+  and renderer-neutral projection geometry reports.
 - `rusty-optics-mesh/src/lib.rs`: facade over `browser_frame`,
   `circuit_frame`, `collider`, `coordinate`, `field_frame`, `mesh_frame`,
   `planarian_frame`, `planarian_interaction`, `sdf_slice`, and tests. The
