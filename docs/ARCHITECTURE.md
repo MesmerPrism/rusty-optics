@@ -36,8 +36,8 @@ Optics does not own:
 - command/session/stream authority;
 - GPU buffers, shaders, draw calls, texture uploads, or swapchains;
 - OpenXR, Vulkan, WebGL, Android, Quest, Makepad, or UI framework imports;
-- downstream private scene behavior, visual-driver bindings, runtime tuning, or
-  product profiles.
+- downstream app-specific scene behavior, visual-driver bindings, runtime
+  tuning, or product profiles.
 
 ## Matter / Optics Boundary
 
