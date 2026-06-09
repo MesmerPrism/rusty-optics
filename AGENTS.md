@@ -40,7 +40,10 @@ runtime sockets, media stacks, or downstream app crates.
 - Optics owns visual particle frames, billboard preparation contracts, flat
   projection, animation-mask descriptors, trail appearance descriptors,
   transparency/depth policy, renderer-neutral budget summaries, mesh debug
-  frames, coordinate-map visuals, collider visuals, and SDF slice visuals.
+  frames, coordinate-map visuals, collider visuals, SDF slice visuals, and
+  surface-field visual frames/sequences over Matter-owned field payloads,
+  including planarian AP bioelectric visual sequences and renderer-neutral
+  planarian 3D pick/edit-intent contracts.
 - Renderer adapters own GPU buffers, shaders, draw calls, texture uploads,
   swapchains, platform frame lifecycle, and backend imports.
 - Lattice owns runtime-situated relation snapshots: reference spaces,
@@ -48,6 +51,13 @@ runtime sockets, media stacks, or downstream app crates.
   binding, calibration, validity, confidence, and runtime capability evidence.
   Optics may consume Lattice view sets for rendering decisions, but stereo
   projection, lenses, homographies, and appearance policy stay Optics-owned.
+- Animated hand-mesh browser previews must call Matter runtime code through the
+  Matter Wasm package for mesh-distance/SDF/particle queries. Do not re-add
+  browser-owned brute-force triangle-distance simulation as the default path.
+- Surface-field browser previews must call Matter runtime code through the
+  Matter surface-field Wasm package for live dynamics. Browser code may own
+  playback and drawing, but not diffusion, decay, perturbation, or vector
+  update rules.
 - Downstream apps own visual-driver mappings, exact runtime tuning,
   app-specific coupling/control behavior, study defaults, and product profiles.
 - Use `rusty.optics.*` schema IDs for default Optics contracts. Legacy names may
@@ -76,12 +86,15 @@ Current crate-root maps:
 
 - `rusty-optics-model/src/lib.rs`: facade over `color`, `error`, `ids`, and
   `vec2`.
-- `rusty-optics-mesh/src/lib.rs`: facade over `browser_frame`, `collider`,
-  `coordinate`, `mesh_frame`, `sdf_slice`, and tests.
-- `rusty-optics-particles/src/lib.rs`: facade over `appearance`, `billboard`,
-  `mask`, `projection`, `tests`, and `visual_frame`.
+- `rusty-optics-mesh/src/lib.rs`: facade over `browser_frame`,
+  `circuit_frame`, `collider`, `coordinate`, `field_frame`, `mesh_frame`,
+  `planarian_frame`, `planarian_interaction`, `sdf_slice`, and tests. The
+  `planarian_interaction` module owns pick-selection, edit-intent, and
+  edit-feedback frame contracts for Planarian 3D renderer adapters.
+- `rusty-optics-particles/src/lib.rs`: facade over `animation`, `appearance`,
+  `billboard`, `mask`, `projection`, `tests`, and `visual_frame`.
 - `rusty-optics-fixtures/src/main.rs`: dispatch-only binary over `cli`, `error`,
-  `hand_mesh`, and `summary`.
+  `fields`, `hand_mesh`, and `summary`.
 - `rusty-optics-schema/src/main.rs`: dispatch-only binary over `catalog`, `cli`,
   and `error`.
 

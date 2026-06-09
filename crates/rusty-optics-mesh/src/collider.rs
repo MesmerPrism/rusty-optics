@@ -48,6 +48,38 @@ impl MeshColliderVisual {
         shell: Option<&DynamicMeshColliderShell>,
         contact: Option<&DynamicMeshColliderContact>,
     ) -> Result<Self, OpticsError> {
+        Self::from_collider_payload_with_contact_scale(
+            visual_id,
+            source_surface_id,
+            update,
+            shell,
+            contact,
+            0.018,
+            0.08,
+        )
+    }
+
+    /// Builds a collider diagnostic visual with explicit contact marker scale.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpticsError`] when the source payloads, contact scale, or
+    /// generated visual are invalid.
+    pub fn from_collider_payload_with_contact_scale(
+        visual_id: impl Into<String>,
+        source_surface_id: impl Into<String>,
+        update: &DynamicMeshColliderUpdate,
+        shell: Option<&DynamicMeshColliderShell>,
+        contact: Option<&DynamicMeshColliderContact>,
+        contact_radius: f32,
+        contact_normal_length: f32,
+    ) -> Result<Self, OpticsError> {
+        if !contact_radius.is_finite() || contact_radius < 0.0 {
+            return Err(OpticsError::InvalidValue("contact_radius"));
+        }
+        if !contact_normal_length.is_finite() || contact_normal_length <= 0.0 {
+            return Err(OpticsError::InvalidValue("contact_normal_length"));
+        }
         if update.schema_id != DYNAMIC_MESH_COLLIDER_UPDATE_SCHEMA_ID {
             return Err(OpticsError::UnexpectedSchema {
                 expected: DYNAMIC_MESH_COLLIDER_UPDATE_SCHEMA_ID,
@@ -75,13 +107,13 @@ impl MeshColliderVisual {
             contact_points.push(MeshDebugPoint::new(
                 "mesh.collider.contact.0000",
                 contact.point,
-                0.018,
+                contact_radius,
                 MeshDebugPointRole::ColliderContact,
                 ColorRgba::new(1.0, 0.26, 0.76, 1.0),
             ));
             contact_normals.push(MeshDebugLine::new(
                 contact.point,
-                contact.point + contact.normal * 0.08,
+                contact.point + contact.normal * contact_normal_length,
                 MeshDebugLineRole::ContactNormal,
                 ColorRgba::new(1.0, 0.26, 0.76, 1.0),
             ));

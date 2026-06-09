@@ -20,6 +20,7 @@ body {
   display: grid;
   grid-template-rows: auto 1fr;
   min-height: 100vh;
+  position: relative;
 }
 
 .toolbar {
@@ -80,6 +81,29 @@ canvas {
   background-size: 28px 28px;
 }
 
+.perf-panel {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  width: min(560px, calc(100vw - 24px));
+  max-height: min(42vh, 360px);
+  overflow: hidden;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #2d3844;
+  border-radius: 6px;
+  background: rgba(10, 13, 18, 0.86);
+  color: #d9e0e8;
+  font: 12px/1.45 "Cascadia Mono", Consolas, monospace;
+  white-space: pre-wrap;
+  pointer-events: none;
+}
+
+.perf-panel[hidden] {
+  display: none;
+}
+
 @media (max-width: 720px) {
   .toolbar {
     flex-wrap: wrap;
@@ -90,5 +114,14 @@ canvas {
   output {
     flex-basis: 100%;
     margin-left: 0;
+  }
+
+  .perf-panel {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    max-height: 34vh;
+    font-size: 11px;
   }
 }

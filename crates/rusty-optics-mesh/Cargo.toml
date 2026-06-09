@@ -10,6 +10,7 @@ rust-version.workspace = true
 default = []
 serde = [
     "dep:serde",
+    "rusty-matter-fields/serde",
     "rusty-matter-mesh/serde",
     "rusty-matter-model/serde",
     "rusty-matter-sdf/serde",
@@ -17,6 +18,7 @@ serde = [
 ]
 
 [dependencies]
+rusty-matter-fields = { path = "../../../rusty-matter/crates/rusty-matter-fields" }
 rusty-matter-mesh = { path = "../../../rusty-matter/crates/rusty-matter-mesh" }
 rusty-matter-model = { path = "../../../rusty-matter/crates/rusty-matter-model" }
 rusty-matter-sdf = { path = "../../../rusty-matter/crates/rusty-matter-sdf" }

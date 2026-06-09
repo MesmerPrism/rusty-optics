@@ -1,5 +1,6 @@
 //! Renderer-neutral visual particle contracts for Rusty Optics.
 
+mod animation;
 mod appearance;
 mod billboard;
 mod mask;
@@ -8,6 +9,7 @@ mod projection;
 mod tests;
 mod visual_frame;
 
+pub use animation::*;
 pub use appearance::*;
 pub use billboard::*;
 pub use mask::*;

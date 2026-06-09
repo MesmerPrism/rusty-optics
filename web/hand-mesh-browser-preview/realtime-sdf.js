@@ -1,0 +1,559 @@
+const RealtimeHandSdf = (() => {
+  const SURFACE_SEQUENCE_SCHEMA_ID = "rusty.matter.tools.glb_mesh_surface_sequence.v1";
+  const DEFAULT_PARTICLE_COUNT = 1000;
+  const VISUAL_PARTICLE_PROFILE = {
+    animationCyclesPerSecond: 0.85,
+    indexPhaseStride: 0.013,
+    sizeMin: 0.92,
+    sizeMax: 1.12,
+    alphaMin: 0.22,
+    alphaMax: 0.58,
+    opacityMultiplier: 0.72,
+    maxAlpha: 0.42,
+    colorLow: { r: 0.10, g: 0.72, b: 1.0, a: 1.0 },
+    colorMid: { r: 0.36, g: 0.94, b: 0.98, a: 1.0 },
+    colorHigh: { r: 0.76, g: 1.0, b: 0.82, a: 1.0 },
+  };
+  const meshLineColor = { r: 1.0, g: 0.63, b: 0.10, a: 1.0 };
+  const colliderLineColor = { r: 0.98, g: 0.68, b: 0.24, a: 0.78 };
+  const coordinateColor = { r: 0.2, g: 0.74, b: 1.0, a: 0.90 };
+  const DEFAULT_WASM_LEAF_TRIANGLE_COUNT = 8;
+  let matterWasm = null;
+  let matterWasmUrl = "";
+
+  async function initialize(options = {}) {
+    const nextUrl = options.matterWasmUrl || "/local-artifacts/matter_wasm/rusty_matter_handmesh_wasm.js";
+    if (matterWasm && nextUrl === matterWasmUrl) {
+      return matterWasm;
+    }
+    const module = await import(nextUrl);
+    await module.default();
+    matterWasm = module;
+    matterWasmUrl = nextUrl;
+    return matterWasm;
+  }
+
+  function isSurfaceSequence(payload) {
+    return payload?.schema_id === SURFACE_SEQUENCE_SCHEMA_ID && Array.isArray(payload.frames);
+  }
+
+  function normalizeSurfaceSequence(payload) {
+    if (!isSurfaceSequence(payload)) {
+      throw new Error("payload is not a Matter surface sequence");
+    }
+    if (!Array.isArray(payload.triangles) || payload.triangles.length === 0) {
+      throw new Error("surface sequence is missing triangle topology");
+    }
+    if (!payload.frames.length) {
+      throw new Error("surface sequence has no frames");
+    }
+    const vertexCount = payload.vertex_count || payload.frames[0].positions.length;
+    const edgePairs = uniqueEdgePairs(payload.triangles);
+    const bounds = {
+      min: payload.bounds_min || payload.frames[0].bounds_min,
+      max: payload.bounds_max || payload.frames[0].bounds_max,
+    };
+    const size = subtract(bounds.max, bounds.min);
+    const radius = Math.max(0.001, length(size) * 0.5);
+    const durationSeconds = Math.max(0.001, payload.duration_seconds || payload.frames.length / 12);
+    return {
+      schema_id: payload.schema_id,
+      sequence_id: payload.sequence_id || "mesh.surface_sequence.browser",
+      mesh_name: payload.mesh_name || "mesh",
+      animation_name: payload.animation_name || "animation",
+      duration_seconds: durationSeconds,
+      frame_count: payload.frames.length,
+      frame_seconds: durationSeconds / payload.frames.length,
+      vertex_count: vertexCount,
+      triangle_count: payload.triangles.length,
+      triangles: payload.triangles,
+      triangle_buffer: flattenTriangles(payload.triangles),
+      edge_pairs: edgePairs,
+      frames: payload.frames,
+      bounds_min: bounds.min,
+      bounds_max: bounds.max,
+      center: scale(add(bounds.min, bounds.max), 0.5),
+      radius,
+      cloud_radius: radius * 2.45,
+      particle_count: DEFAULT_PARTICLE_COUNT,
+    };
+  }
+
+  function buildRuntimeFrame(sequence, frameIndex, metrics = null) {
+    const startedAt = nowMs();
+    const source = sequence.frames[frameIndex % sequence.frames.length];
+    const positions = source.positions;
+    const boundsMin = source.bounds_min || boundsForPositions(positions).min;
+    const boundsMax = source.bounds_max || boundsForPositions(positions).max;
+    const distanceRuntime = buildMatterDistanceRuntime(sequence, positions, metrics);
+    const edges = sequence.edge_pairs.map(([startIndex, endIndex]) => ({
+      start: positions[startIndex],
+      end: positions[endIndex],
+      role: "SurfaceEdge",
+      color: meshLineColor,
+    }));
+    const colliderEdges = sequence.edge_pairs.map(([startIndex, endIndex]) => ({
+      start: positions[startIndex],
+      end: positions[endIndex],
+      role: "ColliderShell",
+      color: colliderLineColor,
+    }));
+    const coordinates = coordinateVisual(sequence, positions, boundsMin, boundsMax);
+    const runtimeSurface = {
+      positions,
+      triangles: sequence.triangles,
+      distance_runtime: distanceRuntime.runtime,
+      distance_stats: distanceRuntime.stats,
+      bounds_min: boundsMin,
+      bounds_max: boundsMax,
+      center: scale(add(boundsMin, boundsMax), 0.5),
+      radius: Math.max(0.001, length(subtract(boundsMax, boundsMin)) * 0.5),
+      sequence_center: sequence.center,
+      sequence_cloud_radius: sequence.cloud_radius,
+      triangle_count: sequence.triangle_count,
+    };
+    const frame = {
+      schema_id: "rusty.optics.mesh.browser.realtime_frame.v1",
+      frame_id: `${sequence.sequence_id}.browser_frame.${source.frame_index}`,
+      source_frame_id: source.surface_id,
+      source_surface_id: source.surface_id,
+      realtime_surface_sequence: true,
+      realtime_frame_index: source.frame_index,
+      realtime_time_seconds: source.time_seconds,
+      mesh: {
+        schema_id: "rusty.optics.mesh.debug.frame.v1",
+        frame_id: `${source.surface_id}.mesh_debug`,
+        source_surface_id: source.surface_id,
+        source_schema_id: "rusty.matter.mesh.surface.v1",
+        topology_index_hash: 0,
+        vertices: positions.map((position, index) => ({ index, position })),
+        triangles: sequence.triangles,
+        edges,
+        bounds_min: boundsMin,
+        bounds_max: boundsMax,
+      },
+      coordinates,
+      collider: {
+        schema_id: "rusty.optics.mesh.collider.visual.v1",
+        visual_id: `${source.surface_id}.runtime_collider`,
+        source_surface_id: source.surface_id,
+        update_status: "runtime_recomputed",
+        collider_vertex_count: positions.length,
+        collider_triangle_count: sequence.triangles.length,
+        shell_edges: colliderEdges,
+        contact_points: [],
+        contact_normals: [],
+      },
+      sdf_slice: sdfSliceVisual(runtimeSurface, metrics),
+      runtime_surface: runtimeSurface,
+    };
+    addMetric(metrics, "runtimeFrameBuildMs", nowMs() - startedAt);
+    return frame;
+  }
+
+  function resetParticles(sequence, runtimeFrame, seed) {
+    if (!matterWasm?.HandMeshParticleRuntime) {
+      throw new Error("Matter Wasm particle runtime is required for realtime hand-mesh particles");
+    }
+    const count = sequence.particle_count || DEFAULT_PARTICLE_COUNT;
+    const sphereRadius = sequence.cloud_radius;
+    const particleRadius = Math.max(sequence.radius * 0.009, 0.0012);
+    const runtime = new matterWasm.HandMeshParticleRuntime();
+    runtime.reset_random_sphere(
+      sequence.center.x,
+      sequence.center.y,
+      sequence.center.z,
+      count,
+      sphereRadius,
+      particleRadius,
+      sequence.radius,
+      seed >>> 0,
+    );
+    const particles = [];
+    attachParticleRuntime(particles, runtime);
+    syncParticlesFromSnapshot(particles, runtime.snapshot(), runtimeFrame.runtime_surface, false);
+    return particles;
+  }
+
+  function stepParticles(particles, runtimeFrame, deltaSeconds, options = {}) {
+    const startedAt = nowMs();
+    const trailsEnabled = Boolean(options.trailsEnabled);
+    const metrics = options.metrics || null;
+    const surface = runtimeFrame.runtime_surface;
+    const runtime = particles?.matterParticleRuntime;
+    if (!runtime) {
+      throw new Error("live realtime particles are missing their Matter Wasm runtime");
+    }
+    const stats = Array.from(runtime.step_against_surface(
+      surface.distance_runtime,
+      surface.sequence_center.x,
+      surface.sequence_center.y,
+      surface.sequence_center.z,
+      surface.sequence_cloud_radius,
+      surface.radius,
+      deltaSeconds,
+    ));
+    syncParticlesFromSnapshot(particles, runtime.snapshot(), surface, trailsEnabled);
+    addMetric(metrics, "particleStepMs", nowMs() - startedAt);
+    setMetric(metrics, "particleSubsteps", stats[1] || 0);
+    setMetric(metrics, "particleClosestSamples", stats[2] || 0);
+    setMetric(metrics, "particleAffected", stats[3] || 0);
+    setMetric(metrics, "particleRejected", stats[4] || 0);
+    setMetric(metrics, "particleClamped", stats[5] || 0);
+    setMetric(metrics, "particleNodeTests", stats[6] || 0);
+    setMetric(metrics, "particleLeafTests", stats[7] || 0);
+    setMetric(metrics, "particleTriangleChecks", stats[8] || 0);
+    setMetric(metrics, "particleMaxSpeed", stats[9] || 0);
+    setMetric(metrics, "particleRuntimeMatterWasm", 1);
+    setMetric(metrics, "runtimeTriangleCount", surface.triangle_count);
+  }
+
+  function attachParticleRuntime(particles, runtime) {
+    Object.defineProperty(particles, "matterParticleRuntime", {
+      configurable: true,
+      enumerable: false,
+      value: runtime,
+      writable: true,
+    });
+  }
+
+  function syncParticlesFromSnapshot(particles, snapshot, surface, trailsEnabled) {
+    const stride = 10;
+    const count = Math.floor(snapshot.length / stride);
+    particles.length = count;
+    for (let index = 0; index < count; index += 1) {
+      const offset = index * stride;
+      const position = { x: snapshot[offset], y: snapshot[offset + 1], z: snapshot[offset + 2] };
+      const velocity = {
+        x: snapshot[offset + 3],
+        y: snapshot[offset + 4],
+        z: snapshot[offset + 5],
+      };
+      const radius = snapshot[offset + 6];
+      const speed = snapshot[offset + 7];
+      const ageSeconds = snapshot[offset + 8];
+      const distance = snapshot[offset + 9];
+      const visual = visualForSurfaceParticle(surface, distance, speed, ageSeconds, index, count);
+      const particle = particles[index] || {};
+      const trail = Array.isArray(particle.trail) ? particle.trail : [];
+      particle.position = position;
+      particle.velocity = velocity;
+      particle.radius = radius;
+      particle.visualRadius = Math.max(radius * visual.radiusMultiplier, radius);
+      particle.color = visual.color;
+      particle.frame01 = visual.frame01;
+      particle.rotationRadians = visual.rotationRadians;
+      particle.speed01 = visual.speed01;
+      if (trailsEnabled) {
+        trail.push(position);
+        while (trail.length > 10) {
+          trail.shift();
+        }
+        particle.trail = trail;
+      } else {
+        particle.trail = [position];
+      }
+      particles[index] = particle;
+    }
+  }
+
+  function visualForSurfaceParticle(surface, distance, speed, ageSeconds, index, count) {
+    const profile = VISUAL_PARTICLE_PROFILE;
+    const phase01 = cyclePhase01(
+      (Number.isFinite(ageSeconds) ? ageSeconds : 0) * profile.animationCyclesPerSecond
+        + (index / Math.max(1, count)) * profile.indexPhaseStride,
+    );
+    const hump = Math.max(0, Math.sin(phase01 * Math.PI));
+    const distance01 = Number.isFinite(distance)
+      ? clamp(distance / Math.max(surface.radius * 0.22, 0.001), 0, 1)
+      : 1;
+    const speed01 = Number.isFinite(speed)
+      ? clamp(speed / Math.max(surface.radius * 1.9, 0.001), 0, 1)
+      : 0;
+    const color = colorRamp(cyclePhase01(phase01 + speed01 * 0.18));
+    const alphaEnvelope = lerp(profile.alphaMin, profile.alphaMax, hump);
+    const surfaceAlpha = 0.72 + (1 - distance01) * 0.24;
+    color.a = clamp(alphaEnvelope * surfaceAlpha * profile.opacityMultiplier, 0.002, profile.maxAlpha);
+    const radiusMultiplier = lerp(profile.sizeMin, profile.sizeMax, hump) * (0.94 + speed01 * 0.12);
+    return {
+      color,
+      frame01: phase01,
+      radiusMultiplier,
+      rotationRadians: (Number.isFinite(ageSeconds) ? ageSeconds : 0) * Math.PI * 2 * 0.18
+        + phase01 * Math.PI * 2,
+      speed01,
+    };
+  }
+
+  function colorRamp(phase01) {
+    const profile = VISUAL_PARTICLE_PROFILE;
+    if (phase01 <= 0.5) {
+      return mixColor(profile.colorLow, profile.colorMid, phase01 * 2);
+    }
+    return mixColor(profile.colorMid, profile.colorHigh, (phase01 - 0.5) * 2);
+  }
+
+  function mixColor(left, right, t) {
+    const amount = clamp(t, 0, 1);
+    return {
+      r: lerp(left.r, right.r, amount),
+      g: lerp(left.g, right.g, amount),
+      b: lerp(left.b, right.b, amount),
+      a: lerp(left.a, right.a, amount),
+    };
+  }
+
+  function cyclePhase01(value) {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+    return ((value % 1) + 1) % 1;
+  }
+
+  function coordinateVisual(sequence, positions, boundsMin, boundsMax) {
+    const axisLength = Math.max(length(subtract(boundsMax, boundsMin)) * 0.035, 0.004);
+    const step = Math.max(1, Math.floor(positions.length / 48));
+    const anchors = [];
+    const axes = [];
+    for (let sourceIndex = 0; sourceIndex < positions.length && anchors.length < 48; sourceIndex += step) {
+      const position = positions[sourceIndex];
+      anchors.push({
+        point_id: `mesh.coordinate.runtime.${anchors.length.toString().padStart(4, "0")}`,
+        position,
+        radius: axisLength * 0.18,
+        role: "CoordinateAnchor",
+        color: coordinateColor,
+      });
+      axes.push({
+        start: position,
+        end: add(position, { x: axisLength, y: 0, z: 0 }),
+        role: "CoordinateAxisX",
+        color: { r: 0.25, g: 0.82, b: 1.0, a: 0.70 },
+      });
+    }
+    return {
+      schema_id: "rusty.optics.mesh.coordinate.visual.v1",
+      visual_id: `${sequence.sequence_id}.runtime_coordinates`,
+      source_surface_id: sequence.sequence_id,
+      anchors,
+      axes,
+    };
+  }
+
+  function sdfSliceVisual(surface, metrics = null) {
+    const startedAt = nowMs();
+    const boundsMin = surface.bounds_min;
+    const boundsMax = surface.bounds_max;
+    const size = subtract(boundsMax, boundsMin);
+    const pad = Math.max(surface.radius * 0.12, 0.01);
+    const min = subtract(boundsMin, { x: pad, y: pad, z: pad });
+    const max = add(boundsMax, { x: pad, y: pad, z: pad });
+    const width = clampInt(Math.round(size.x / Math.max(surface.radius * 0.035, 0.004)), 24, 42);
+    const height = clampInt(Math.round(size.y / Math.max(surface.radius * 0.035, 0.004)), 16, 32);
+    const z = surface.center.z;
+    const cells = [];
+    let minDistance = Number.POSITIVE_INFINITY;
+    let maxDistance = 0;
+    const triangleChecksBefore = metrics?.runtimeWasmTriangleTests || 0;
+    const nodeTestsBefore = metrics?.runtimeWasmNodeTests || 0;
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const point = {
+          x: min.x + (x + 0.5) * ((max.x - min.x) / width),
+          y: min.y + (y + 0.5) * ((max.y - min.y) / height),
+          z,
+        };
+        const sample = closestSurfaceSample(surface, point, metrics);
+        minDistance = Math.min(minDistance, sample.distance);
+        maxDistance = Math.max(maxDistance, sample.distance);
+        cells.push({
+          grid: [x, y, 0],
+          plane: [x, y],
+          position: point,
+          distance: sample.distance,
+          normalized_distance: 0.5,
+        });
+      }
+    }
+    const range = Math.max(maxDistance - minDistance, 1.0e-6);
+    for (const cell of cells) {
+      cell.normalized_distance = clamp((cell.distance - minDistance) / range, 0, 1);
+    }
+    addMetric(metrics, "runtimeSdfSliceMs", nowMs() - startedAt);
+    setMetric(metrics, "runtimeSdfCells", cells.length);
+    setMetric(metrics, "runtimeSdfTriangleChecks", (metrics?.runtimeWasmTriangleTests || 0) - triangleChecksBefore);
+    setMetric(metrics, "runtimeSdfNodeTests", (metrics?.runtimeWasmNodeTests || 0) - nodeTestsBefore);
+    return {
+      schema_id: "rusty.optics.sdf.slice.visual.v1",
+      visual_id: `${surface.sequence_id || "runtime"}.sdf_slice`,
+      source_grid_id: "runtime.recomputed.sdf_slice",
+      source_schema_id: "runtime.triangle_distance",
+      axis: "Z",
+      slice_index: 0,
+      width,
+      height,
+      min_distance: minDistance,
+      max_distance: maxDistance,
+      cells,
+    };
+  }
+
+  function buildMatterDistanceRuntime(sequence, positions, metrics = null) {
+    if (!matterWasm?.HandMeshDistanceRuntime) {
+      throw new Error("Matter Wasm runtime is required for realtime hand-mesh SDF");
+    }
+    const startedAt = nowMs();
+    const runtime = new matterWasm.HandMeshDistanceRuntime(
+      flattenPositions(positions),
+      sequence.triangle_buffer,
+      DEFAULT_WASM_LEAF_TRIANGLE_COUNT,
+    );
+    const stats = Array.from(runtime.stats());
+    addMetric(metrics, "runtimeWasmBuildMs", nowMs() - startedAt);
+    setMetric(metrics, "runtimeWasmVertexCount", stats[0] || positions.length);
+    setMetric(metrics, "runtimeWasmTriangleCount", stats[1] || sequence.triangle_count);
+    setMetric(metrics, "runtimeWasmNodeCount", stats[2] || 0);
+    setMetric(metrics, "runtimeWasmLeafCount", stats[3] || 0);
+    setMetric(metrics, "runtimeWasmMaxDepth", stats[4] || 0);
+    return { runtime, stats };
+  }
+
+  function closestSurfaceSample(surface, point, metrics = null) {
+    const result = surface.distance_runtime.sample(point.x, point.y, point.z);
+    if (!result.length || result[0] < 1) {
+      throw new Error("Matter Wasm surface-distance sample failed");
+    }
+    addMetric(metrics, "runtimeWasmNodeTests", result[9] || 0);
+    addMetric(metrics, "runtimeWasmLeafTests", result[10] || 0);
+    addMetric(metrics, "runtimeWasmTriangleTests", result[11] || 0);
+    return {
+      point: { x: result[1], y: result[2], z: result[3] },
+      normal: { x: result[4], y: result[5], z: result[6] },
+      distance: result[7],
+      triangle_index: result[8],
+    };
+  }
+
+  function flattenPositions(positions) {
+    const buffer = new Float32Array(positions.length * 3);
+    for (let index = 0; index < positions.length; index += 1) {
+      const position = positions[index];
+      const offset = index * 3;
+      buffer[offset] = position.x;
+      buffer[offset + 1] = position.y;
+      buffer[offset + 2] = position.z;
+    }
+    return buffer;
+  }
+
+  function flattenTriangles(triangles) {
+    const buffer = new Uint32Array(triangles.length * 3);
+    for (let index = 0; index < triangles.length; index += 1) {
+      const triangle = triangles[index];
+      const offset = index * 3;
+      buffer[offset] = triangle[0];
+      buffer[offset + 1] = triangle[1];
+      buffer[offset + 2] = triangle[2];
+    }
+    return buffer;
+  }
+
+  function uniqueEdgePairs(triangles) {
+    const seen = new Set();
+    const edges = [];
+    for (const triangle of triangles) {
+      for (const [left, right] of [[triangle[0], triangle[1]], [triangle[1], triangle[2]], [triangle[2], triangle[0]]]) {
+        const start = Math.min(left, right);
+        const end = Math.max(left, right);
+        const key = `${start}:${end}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          edges.push([start, end]);
+        }
+      }
+    }
+    return edges;
+  }
+
+  function boundsForPositions(positions) {
+    const min = { ...positions[0] };
+    const max = { ...positions[0] };
+    for (const position of positions.slice(1)) {
+      min.x = Math.min(min.x, position.x);
+      min.y = Math.min(min.y, position.y);
+      min.z = Math.min(min.z, position.z);
+      max.x = Math.max(max.x, position.x);
+      max.y = Math.max(max.y, position.y);
+      max.z = Math.max(max.z, position.z);
+    }
+    return { min, max };
+  }
+
+  function add(left, right) {
+    return { x: left.x + right.x, y: left.y + right.y, z: left.z + right.z };
+  }
+
+  function subtract(left, right) {
+    return { x: left.x - right.x, y: left.y - right.y, z: left.z - right.z };
+  }
+
+  function scale(vector, scalar) {
+    return { x: vector.x * scalar, y: vector.y * scalar, z: vector.z * scalar };
+  }
+
+  function length(vector) {
+    return Math.sqrt(dot(vector, vector));
+  }
+
+  function normalize(vector) {
+    const vectorLength = length(vector);
+    if (!Number.isFinite(vectorLength) || vectorLength <= 1.0e-8) {
+      return { x: 0, y: 1, z: 0 };
+    }
+    return scale(vector, 1 / vectorLength);
+  }
+
+  function dot(left, right) {
+    return left.x * right.x + left.y * right.y + left.z * right.z;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function lerp(left, right, t) {
+    return left + (right - left) * clamp(t, 0, 1);
+  }
+
+  function clampInt(value, min, max) {
+    return Math.round(clamp(value, min, max));
+  }
+
+  function nowMs() {
+    return globalThis.performance?.now?.() ?? Date.now();
+  }
+
+  function addMetric(metrics, key, value) {
+    if (!metrics || !Number.isFinite(value)) {
+      return;
+    }
+    metrics[key] = (metrics[key] || 0) + value;
+  }
+
+  function setMetric(metrics, key, value) {
+    if (!metrics || !Number.isFinite(value)) {
+      return;
+    }
+    metrics[key] = value;
+  }
+
+  return {
+    DEFAULT_PARTICLE_COUNT,
+    initialize,
+    isSurfaceSequence,
+    normalizeSurfaceSequence,
+    buildRuntimeFrame,
+    resetParticles,
+    stepParticles,
+  };
+})();

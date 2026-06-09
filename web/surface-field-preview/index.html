@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rusty Optics Surface Field</title>
+    <link rel="stylesheet" href="styles.css?v=planarian-neighborhood-brush-1">
+  </head>
+  <body>
+    <main class="app">
+      <div class="toolbar" aria-label="Surface field controls">
+        <label>
+          View
+          <select id="view-mode">
+            <option value="surface" selected>Surface</option>
+            <option value="circuit">Circuit</option>
+            <option value="planarian">Planarian</option>
+            <option value="planarian3d">Planarian 3D</option>
+          </select>
+        </label>
+        <label>
+          Layer
+          <select id="scalar-layer"></select>
+        </label>
+        <label><input id="toggle-live" type="checkbox" checked> Live</label>
+        <output id="runtime-status">sequence</output>
+        <button id="toggle-play" type="button">Play</button>
+        <label class="frame-control">
+          Frame
+          <input id="frame-slider" type="range" min="0" max="0" value="0">
+        </label>
+        <output id="frame-position">0/0</output>
+        <label>
+          Speed
+          <select id="playback-speed">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+            <option value="4">4x</option>
+          </select>
+        </label>
+        <label><input id="toggle-edges" type="checkbox" checked> Edges</label>
+        <label><input id="toggle-tier2" type="checkbox" checked> Tier 2</label>
+        <label class="planarian-3d-toggle" hidden><input id="toggle-body" type="checkbox" checked> Body</label>
+        <label class="planarian-3d-toggle" hidden><input id="toggle-nodes" type="checkbox" checked> Nodes</label>
+        <label><input id="toggle-regions" type="checkbox" checked> Regions</label>
+        <label><input id="toggle-polarity" type="checkbox" checked> Vectors</label>
+        <label><input id="toggle-labels" type="checkbox"> Labels</label>
+        <span id="planarian-3d-controls" class="edit-controls" hidden>
+          <label>
+            Scenario
+            <select id="planarian-scenario">
+              <option value="0">Baseline</option>
+              <option value="1">Wound</option>
+              <option value="2">Gap block</option>
+              <option value="3" selected>Memory</option>
+              <option value="4">No-memory</option>
+            </select>
+          </label>
+          <label>
+            Compare
+            <select id="planarian-compare-scenario">
+              <option value="-1">None</option>
+              <option value="0">Baseline</option>
+              <option value="1">Wound</option>
+              <option value="2">Gap block</option>
+              <option value="3">Memory</option>
+              <option value="4" selected>No-memory</option>
+            </select>
+          </label>
+          <label>Pick <output id="selected-node">none</output></label>
+          <label>
+            dV
+            <input id="voltage-delta" type="range" min="-1" max="1" step="0.05" value="0.25">
+            <output id="voltage-delta-value">+0.25</output>
+          </label>
+          <label>
+            Brush tier
+            <select id="brush-tier">
+              <option value="1" selected>1</option>
+              <option value="2">2</option>
+            </select>
+          </label>
+          <label>
+            Falloff
+            <input id="brush-falloff" type="range" min="0" max="1" step="0.05" value="0.65">
+            <output id="brush-falloff-value">0.65</output>
+          </label>
+          <label>
+            Gate θ
+            <input id="gate-threshold" type="range" min="-1" max="1" step="0.05" value="0.15">
+            <output id="gate-threshold-value">+0.15</output>
+          </label>
+          <button id="apply-voltage" type="button" title="Apply the selected voltage delta">Apply dV</button>
+          <button id="apply-neighborhood-voltage" type="button" title="Apply dV to the Matter-owned node neighborhood">Brush dV</button>
+          <button id="pulse-current" type="button" title="Add a short Matter current term to the selected node">Pulse</button>
+          <button id="set-memory" type="button" title="Set selected node memory to one">Memory</button>
+          <button id="scale-gate" type="button" title="Halve incident conductance on the selected node">Node g 0.5</button>
+          <button id="set-gate-threshold" type="button" title="Set the selected edge gate threshold">Gate θ</button>
+          <output id="edit-status">no edit</output>
+        </span>
+        <button id="reset-view" type="button">Reset</button>
+        <output id="stats">Loading</output>
+      </div>
+      <div class="viewport-shell">
+        <canvas id="viewport"></canvas>
+        <div id="viewport-3d" class="viewport-3d" hidden></div>
+        <div id="planarian-loading-panel" class="loading-panel" hidden>
+          <output id="planarian-loading-readout">loading Planarian 3D</output>
+        </div>
+        <div id="planarian-outcome-panel" class="outcome-panel" hidden>
+          <canvas id="planarian-outcome-trace" aria-label="Planarian outcome trace"></canvas>
+          <output id="planarian-outcome-readout">trace unavailable</output>
+        </div>
+        <div id="planarian-dynamics-panel" class="dynamics-panel" hidden>
+          <canvas id="planarian-dynamics-legend" aria-label="Planarian dynamics legend"></canvas>
+          <output id="planarian-dynamics-readout">activity unavailable</output>
+        </div>
+        <div id="planarian-selection-panel" class="selection-panel" hidden>
+          <output id="planarian-selection-readout">pick none</output>
+          <canvas id="planarian-event-timeline" aria-label="Planarian edit event timeline"></canvas>
+          <output id="planarian-event-readout">events none</output>
+        </div>
+      </div>
+    </main>
+    <script src="app.js?v=planarian-neighborhood-brush-1"></script>
+  </body>
+</html>

@@ -22,6 +22,7 @@ try {
     Invoke-Checked "cargo test" "cargo" @("test", "--workspace")
     Invoke-Checked "fixture export check" "cargo" @("run", "-p", "rusty-optics-fixtures", "--", "export", "--check")
     Invoke-Checked "hand mesh browser fixture check" "cargo" @("run", "-p", "rusty-optics-fixtures", "--", "export-hand-mesh-browser", "--check")
+    Invoke-Checked "surface field preview fixture check" "cargo" @("run", "-p", "rusty-optics-fixtures", "--", "export-surface-field-preview", "--check")
     Invoke-Checked "schema export check" "cargo" @("run", "-p", "rusty-optics-schema", "--", "export", "--check")
     Invoke-Checked "Optics boundary scan" "python" @("tools\check_optics_boundaries.py")
 } finally {

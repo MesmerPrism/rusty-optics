@@ -4,10 +4,11 @@ use rusty_optics_model::{ColorRgba, PARTICLE_VISUAL_FRAME_SCHEMA_ID};
 
 use crate::{
     build_morphed_ring_mask_atlas_rgba, morphed_ring_alpha, particle_billboard_render_budget,
-    project_particles_for_flat_screen, to_half_open_frame01, FlatScreenProjectionConfig,
-    MorphedRingMaskAtlasConfig, ParticleAppearanceProfile, ParticleBillboardBuildConfig,
-    ParticleBillboardInstance, ParticleBillboardSortCamera, ParticleSceneBasis,
-    ParticleVisualFrame,
+    project_particles_for_flat_screen, resolve_animated_particle_visual_frame,
+    to_half_open_frame01, FlatScreenProjectionConfig, MorphedRingMaskAtlasConfig,
+    ParticleAppearanceProfile, ParticleBillboardBuildConfig, ParticleBillboardInstance,
+    ParticleBillboardSortCamera, ParticleScalarEnvelope, ParticleSceneBasis,
+    ParticleVisualAnimationProfile, ParticleVisualFrame,
 };
 
 #[test]
@@ -136,6 +137,84 @@ fn appearance_profile_validates_animation_descriptor_and_trails() {
     assert_eq!(profile.trail.max_trail_instances(256), 1792);
 }
 
+#[test]
+fn animation_profile_resolves_size_alpha_color_and_phase() {
+    let payload = sample_payload();
+    let profile = ParticleVisualAnimationProfile::transparent_ring("particle.animation.test");
+
+    let frame = resolve_animated_particle_visual_frame(
+        "particle.visual.frame.animated",
+        &payload,
+        &profile,
+    )
+    .expect("animated frame");
+
+    assert_eq!(frame.source_payload_id, payload.payload_id);
+    assert_eq!(frame.samples.len(), 3);
+    assert!(frame
+        .samples
+        .iter()
+        .zip(payload.samples.iter())
+        .any(|(visual, source)| (visual.radius - source.radius).abs() > 1.0e-6));
+    assert!(frame.samples[1].color.a <= profile.max_alpha);
+    assert_ne!(frame.samples[0].color, frame.samples[1].color);
+    assert!((0.0..1.0).contains(&frame.samples[2].frame01));
+    assert!(frame.samples[0].rotation_radians.is_finite());
+    assert!(frame.samples[1].aux0 > frame.samples[0].aux0);
+    assert!(frame.samples[2].aux1 >= 0.0 && frame.samples[2].aux1 <= 1.0);
+}
+
+#[test]
+fn animation_profile_validation_rejects_bad_ranges() {
+    let bad_profile = ParticleVisualAnimationProfile {
+        alpha: ParticleScalarEnvelope {
+            minimum: 0.8,
+            maximum: 0.2,
+            ..ParticleScalarEnvelope::new(0.1, 0.9, 1.0, 0.0, true)
+        },
+        ..ParticleVisualAnimationProfile::transparent_ring("particle.animation.bad")
+    };
+
+    assert!(bad_profile.validate().is_err());
+}
+
+#[test]
+fn animated_visual_frame_projects_and_packs_transparency_fields() {
+    let payload = sample_payload();
+    let profile = ParticleVisualAnimationProfile::transparent_ring("particle.animation.pack");
+    let frame =
+        resolve_animated_particle_visual_frame("particle.visual.frame.pack", &payload, &profile)
+            .expect("animated frame");
+    let flat = project_particles_for_flat_screen(
+        "particle.flat.frame.pack",
+        &frame,
+        &FlatScreenProjectionConfig {
+            cull_offscreen: false,
+            ..FlatScreenProjectionConfig::default()
+        },
+    )
+    .expect("flat projection");
+
+    let mut sort_indices = Vec::new();
+    let mut instances = Vec::<ParticleBillboardInstance>::new();
+    let stats = crate::write_particle_billboard_instances(
+        &frame.samples,
+        ParticleSceneBasis::default(),
+        &ParticleBillboardBuildConfig {
+            sort_back_to_front: true,
+            ..ParticleBillboardBuildConfig::default()
+        },
+        Some(ParticleBillboardSortCamera::default()),
+        &mut sort_indices,
+        &mut instances,
+    );
+
+    assert_eq!(flat.visible_particle_count, 3);
+    assert_eq!(stats.emitted_count, 3);
+    assert_eq!(instances[0].normal_frame[3], frame.samples[0].frame01);
+    assert_eq!(instances[0].color[3], frame.samples[0].color.a);
+}
+
 fn sample_payload() -> ParticleRenderPayload {
     let mut set = ParticleSet::new("particle.set.optics_test");
     set.time_seconds = 0.25;
@@ -144,16 +223,22 @@ fn sample_payload() -> ParticleRenderPayload {
         Vec3::new(0.0, 0.0, 1.0),
         0.05,
     ));
+    set.particles[0].velocity = Vec3::new(0.1, 0.0, 0.0);
+    set.particles[0].age_seconds = 0.1;
     set.push(ParticleState::new(
         "particle.far",
         Vec3::new(0.0, 0.0, -2.0),
         0.08,
     ));
+    set.particles[1].velocity = Vec3::new(0.0, 0.6, 0.0);
+    set.particles[1].age_seconds = 0.5;
     set.push(ParticleState::new(
         "particle.hidden",
         Vec3::new(0.25, 0.0, 0.0),
         0.02,
     ));
+    set.particles[2].velocity = Vec3::new(0.0, 0.0, 0.2);
+    set.particles[2].age_seconds = 0.8;
     ParticleRenderPayload::from_particle_set("particle.render.optics_test", &set)
         .expect("matter payload")
 }

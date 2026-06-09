@@ -1,0 +1,406 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #101318;
+  color: #edf1f5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #101318;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  width: 100vw;
+  max-width: 100vw;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  min-height: 76px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #2b323c;
+  background: #171c23;
+  color: #d9e0e8;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.toolbar input {
+  width: 15px;
+  height: 15px;
+  accent-color: #76b7ff;
+}
+
+select,
+button {
+  min-height: 30px;
+  border: 1px solid #3b4652;
+  border-radius: 6px;
+  background: #202832;
+  color: #edf1f5;
+  font: inherit;
+}
+
+select {
+  min-width: 158px;
+  padding: 0 8px;
+}
+
+button {
+  min-width: 58px;
+  padding: 0 10px;
+}
+
+button:hover,
+select:focus {
+  border-color: #76b7ff;
+}
+
+output {
+  margin-left: auto;
+  color: #aeb9c4;
+  white-space: nowrap;
+}
+
+.frame-control {
+  min-width: 178px;
+}
+
+.frame-control input {
+  width: 132px;
+  accent-color: #76b7ff;
+}
+
+.edit-controls {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-left: 4px;
+}
+
+.edit-controls output {
+  margin-left: 0;
+  color: #d9e0e8;
+}
+
+.edit-controls input[type="range"] {
+  width: 96px;
+}
+
+.edit-controls button {
+  min-width: 68px;
+}
+
+#frame-position {
+  min-width: 42px;
+  margin-left: 0;
+  color: #d9e0e8;
+  text-align: center;
+}
+
+#runtime-status {
+  min-width: 74px;
+  margin-left: 0;
+  color: #d9e0e8;
+}
+
+#playback-speed {
+  min-width: 72px;
+}
+
+#brush-tier {
+  min-width: 54px;
+}
+
+#stats {
+  flex-basis: 100%;
+  margin-left: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  background:
+    linear-gradient(#131820 1px, transparent 1px),
+    linear-gradient(90deg, #131820 1px, transparent 1px),
+    #0c0f14;
+  background-size: 28px 28px;
+}
+
+.viewport-shell {
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#viewport,
+#viewport-3d {
+  position: absolute;
+  inset: 0;
+}
+
+#viewport-3d {
+  background: #0c0f14;
+}
+
+#viewport-3d canvas {
+  background: #0c0f14;
+}
+
+.loading-panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(380px, calc(100% - 24px));
+  padding: 14px 16px;
+  border: 1px solid rgba(84, 98, 114, 0.86);
+  border-radius: 8px;
+  background: rgba(13, 17, 22, 0.90);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.loading-panel output {
+  display: block;
+  margin: 0;
+  color: #d5dde6;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+.outcome-panel {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: min(380px, calc(100% - 24px));
+  padding: 9px;
+  border: 1px solid rgba(84, 98, 114, 0.86);
+  border-radius: 8px;
+  background: rgba(13, 17, 22, 0.88);
+  pointer-events: none;
+}
+
+.dynamics-panel {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: min(344px, calc(100% - 24px));
+  padding: 9px 10px;
+  border: 1px solid rgba(84, 98, 114, 0.86);
+  border-radius: 8px;
+  background: rgba(13, 17, 22, 0.88);
+  pointer-events: none;
+}
+
+.selection-panel {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  width: min(460px, calc(100% - 420px));
+  min-width: 280px;
+  padding: 9px 10px;
+  border: 1px solid rgba(84, 98, 114, 0.86);
+  border-radius: 8px;
+  background: rgba(13, 17, 22, 0.88);
+  pointer-events: none;
+}
+
+.outcome-panel canvas {
+  width: 100%;
+  height: 148px;
+  border: 1px solid rgba(60, 72, 86, 0.92);
+  border-radius: 6px;
+  background: #10151b;
+}
+
+.dynamics-panel canvas {
+  width: 100%;
+  height: 86px;
+  border: 1px solid rgba(60, 72, 86, 0.92);
+  border-radius: 6px;
+  background: #10151b;
+}
+
+#planarian-outcome-readout {
+  display: block;
+  margin: 6px 0 0;
+  color: #d5dde6;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+#planarian-dynamics-readout {
+  display: block;
+  margin: 6px 0 0;
+  color: #d5dde6;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+#planarian-selection-readout {
+  display: block;
+  margin: 0;
+  color: #d5dde6;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+#planarian-event-timeline {
+  display: block;
+  width: 100%;
+  height: 56px;
+  margin: 7px 0 0;
+  border: 1px solid rgba(60, 72, 86, 0.82);
+  border-radius: 6px;
+  background: #10151b;
+}
+
+#planarian-event-readout {
+  display: block;
+  margin: 7px 0 0;
+  padding-top: 7px;
+  border-top: 1px solid rgba(84, 98, 114, 0.58);
+  color: #aebdca;
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 720px) {
+  .toolbar {
+    min-height: 84px;
+    gap: 8px;
+    row-gap: 8px;
+    overflow: hidden;
+  }
+
+  select {
+    min-width: 112px;
+    max-width: 148px;
+  }
+
+  button {
+    min-width: 54px;
+    padding: 0 8px;
+  }
+
+  .frame-control {
+    min-width: 148px;
+  }
+
+  .frame-control input {
+    width: 108px;
+  }
+
+  .edit-controls {
+    gap: 7px;
+    max-width: 100%;
+  }
+
+  .edit-controls input[type="range"] {
+    width: 82px;
+  }
+
+  .edit-controls button {
+    min-width: 58px;
+  }
+
+  .outcome-panel {
+    right: 8px;
+    bottom: 8px;
+    width: min(312px, calc(100% - 16px));
+    padding: 7px;
+  }
+
+  .loading-panel {
+    width: min(312px, calc(100% - 16px));
+    padding: 12px;
+  }
+
+  .loading-panel output {
+    font-size: 12px;
+  }
+
+  .dynamics-panel {
+    left: 8px;
+    top: 8px;
+    width: min(312px, calc(100% - 16px));
+    padding: 7px;
+  }
+
+  .selection-panel {
+    left: 8px;
+    bottom: 158px;
+    width: min(312px, calc(100% - 16px));
+    min-width: 0;
+    padding: 7px;
+  }
+
+  .outcome-panel canvas {
+    height: 112px;
+  }
+
+  .dynamics-panel canvas {
+    height: 76px;
+  }
+
+  #planarian-outcome-readout {
+    font-size: 11px;
+  }
+
+  #planarian-dynamics-readout {
+    font-size: 11px;
+  }
+
+  #planarian-selection-readout {
+    font-size: 11px;
+  }
+
+  #planarian-event-timeline {
+    height: 48px;
+  }
+
+  #planarian-event-readout {
+    font-size: 10px;
+  }
+
+  output {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}

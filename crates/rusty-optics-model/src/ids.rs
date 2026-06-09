@@ -9,6 +9,9 @@ pub const PARTICLE_VISUAL_FRAME_SCHEMA_ID: &str = "rusty.optics.particles.visual
 /// Particle appearance profile schema.
 pub const PARTICLE_APPEARANCE_PROFILE_SCHEMA_ID: &str =
     "rusty.optics.particles.appearance.profile.v1";
+/// Particle visual animation profile schema.
+pub const PARTICLE_VISUAL_ANIMATION_PROFILE_SCHEMA_ID: &str =
+    "rusty.optics.particles.animation.profile.v1";
 /// Particle animated mask descriptor schema.
 pub const PARTICLE_ANIMATED_MASK_SCHEMA_ID: &str = "rusty.optics.particles.mask.animated.v1";
 /// Particle billboard build profile schema.
@@ -29,15 +32,40 @@ pub const MESH_COLLIDER_VISUAL_SCHEMA_ID: &str = "rusty.optics.mesh.collider.vis
 pub const SDF_SLICE_VISUAL_SCHEMA_ID: &str = "rusty.optics.sdf.slice.visual.v1";
 /// Browser-shaped mesh debug frame schema.
 pub const MESH_BROWSER_DEBUG_FRAME_SCHEMA_ID: &str = "rusty.optics.mesh.browser.debug_frame.v1";
+/// Browser SDF particle overlay schema.
+pub const PARTICLE_SDF_BROWSER_OVERLAY_SCHEMA_ID: &str =
+    "rusty.optics.particles.sdf.browser_overlay.v1";
+/// Surface-field visual frame schema.
+pub const SURFACE_FIELD_VISUAL_FRAME_SCHEMA_ID: &str =
+    "rusty.optics.fields.surface.visual_frame.v1";
+/// Surface-field visual sequence schema.
+pub const SURFACE_FIELD_VISUAL_SEQUENCE_SCHEMA_ID: &str =
+    "rusty.optics.fields.surface.visual_sequence.v1";
+/// Bioelectric circuit visual frame schema.
+pub const BIOELECTRIC_CIRCUIT_VISUAL_FRAME_SCHEMA_ID: &str =
+    "rusty.optics.fields.bioelectric_circuit.visual_frame.v1";
+/// Planarian bioelectric visual sequence schema.
+pub const PLANARIAN_BIOELECTRIC_VISUAL_SEQUENCE_SCHEMA_ID: &str =
+    "rusty.optics.fields.planarian_bioelectric.visual_sequence.v1";
+/// Planarian bioelectric 3D pick selection schema.
+pub const PLANARIAN_BIOELECTRIC_PICK_SELECTION_SCHEMA_ID: &str =
+    "rusty.optics.fields.planarian_bioelectric.pick_selection.v1";
+/// Planarian bioelectric edit intent schema.
+pub const PLANARIAN_BIOELECTRIC_EDIT_INTENT_SCHEMA_ID: &str =
+    "rusty.optics.fields.planarian_bioelectric.edit_intent.v1";
+/// Planarian bioelectric edit feedback visual frame schema.
+pub const PLANARIAN_BIOELECTRIC_EDIT_FEEDBACK_FRAME_SCHEMA_ID: &str =
+    "rusty.optics.fields.planarian_bioelectric.edit_feedback_frame.v1";
 
 /// Returns the schema IDs currently emitted by Rusty Optics.
 #[must_use]
-pub const fn optics_schema_ids() -> [&'static str; 14] {
+pub const fn optics_schema_ids() -> [&'static str; 23] {
     [
         COLOR_RGBA_SCHEMA_ID,
         PARTICLE_VISUAL_SAMPLE_SCHEMA_ID,
         PARTICLE_VISUAL_FRAME_SCHEMA_ID,
         PARTICLE_APPEARANCE_PROFILE_SCHEMA_ID,
+        PARTICLE_VISUAL_ANIMATION_PROFILE_SCHEMA_ID,
         PARTICLE_ANIMATED_MASK_SCHEMA_ID,
         PARTICLE_BILLBOARD_BUILD_SCHEMA_ID,
         PARTICLE_RENDER_BUDGET_SCHEMA_ID,
@@ -48,5 +76,13 @@ pub const fn optics_schema_ids() -> [&'static str; 14] {
         MESH_COLLIDER_VISUAL_SCHEMA_ID,
         SDF_SLICE_VISUAL_SCHEMA_ID,
         MESH_BROWSER_DEBUG_FRAME_SCHEMA_ID,
+        PARTICLE_SDF_BROWSER_OVERLAY_SCHEMA_ID,
+        SURFACE_FIELD_VISUAL_FRAME_SCHEMA_ID,
+        SURFACE_FIELD_VISUAL_SEQUENCE_SCHEMA_ID,
+        BIOELECTRIC_CIRCUIT_VISUAL_FRAME_SCHEMA_ID,
+        PLANARIAN_BIOELECTRIC_VISUAL_SEQUENCE_SCHEMA_ID,
+        PLANARIAN_BIOELECTRIC_PICK_SELECTION_SCHEMA_ID,
+        PLANARIAN_BIOELECTRIC_EDIT_INTENT_SCHEMA_ID,
+        PLANARIAN_BIOELECTRIC_EDIT_FEEDBACK_FRAME_SCHEMA_ID,
     ]
 }

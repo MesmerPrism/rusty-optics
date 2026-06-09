@@ -2,6 +2,7 @@
 
 mod cli;
 mod error;
+mod fields;
 mod hand_mesh;
 mod summary;
 

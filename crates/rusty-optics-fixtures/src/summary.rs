@@ -1,12 +1,12 @@
 use rusty_matter_model::Vec3;
 use rusty_matter_particles::{ParticleRenderPayload, ParticleSet, ParticleState};
-use rusty_optics_model::ColorRgba;
 use rusty_optics_particles::{
     build_morphed_ring_mask_atlas_rgba, particle_billboard_render_budget,
-    project_particles_for_flat_screen, write_particle_billboard_instances,
-    FlatScreenProjectionConfig, MorphedRingMaskAtlasConfig, ParticleAppearanceProfile,
-    ParticleBillboardBuildConfig, ParticleBillboardInstance, ParticleBillboardRenderBudget,
-    ParticleBillboardSortCamera, ParticleSceneBasis, ParticleVisualFrame,
+    project_particles_for_flat_screen, resolve_animated_particle_visual_frame,
+    write_particle_billboard_instances, FlatScreenProjectionConfig, MorphedRingMaskAtlasConfig,
+    ParticleAppearanceProfile, ParticleBillboardBuildConfig, ParticleBillboardInstance,
+    ParticleBillboardRenderBudget, ParticleBillboardSortCamera, ParticleSceneBasis,
+    ParticleVisualAnimationProfile,
 };
 use serde::Serialize;
 
@@ -27,6 +27,14 @@ pub struct OpticsParticleFixtureSummary {
     pub flat_visible_count: usize,
     /// Billboard emitted count.
     pub billboard_emitted_count: usize,
+    /// Visual animation profile identifier.
+    pub animation_profile_id: String,
+    /// Minimum resolved alpha in the visual frame.
+    pub resolved_alpha_min: f32,
+    /// Maximum resolved alpha in the visual frame.
+    pub resolved_alpha_max: f32,
+    /// Maximum resolved radius in the visual frame.
+    pub resolved_radius_max: f32,
     /// Mask atlas width in pixels.
     pub mask_atlas_width_px: usize,
     /// Mask atlas height in pixels.
@@ -43,17 +51,16 @@ pub struct OpticsParticleFixtureSummary {
 pub fn build_summary() -> Result<OpticsParticleFixtureSummary, FixtureError> {
     let matter_payload =
         sample_payload().map_err(|error| FixtureError::Matter(error.to_string()))?;
-    let mut visual_frame = ParticleVisualFrame::from_matter_payload(
+    let animation_profile =
+        ParticleVisualAnimationProfile::transparent_ring("particle.animation.fixture");
+    let visual_frame = resolve_animated_particle_visual_frame(
         "particle.visual.frame.fixture",
         &matter_payload,
-        ColorRgba::new(0.35, 0.75, 1.0, 0.8),
+        &animation_profile,
     )
     .map_err(|error| FixtureError::Optics(error.to_string()))?;
-    visual_frame.samples[1].frame01 = 0.5;
-    visual_frame.samples[2].rotation_radians = core::f32::consts::FRAC_PI_4;
-    visual_frame
-        .validate()
-        .map_err(|error| FixtureError::Optics(error.to_string()))?;
+    let (resolved_alpha_min, resolved_alpha_max, resolved_radius_max) =
+        resolved_visual_ranges(&visual_frame.samples);
 
     let flat = project_particles_for_flat_screen(
         "particle.flat.frame.fixture",
@@ -111,6 +118,10 @@ pub fn build_summary() -> Result<OpticsParticleFixtureSummary, FixtureError> {
         visual_sample_count: visual_frame.samples.len(),
         flat_visible_count: flat.visible_particle_count,
         billboard_emitted_count: billboard_stats.emitted_count,
+        animation_profile_id: animation_profile.profile_id,
+        resolved_alpha_min,
+        resolved_alpha_max,
+        resolved_radius_max,
         mask_atlas_width_px: mask.width_px,
         mask_atlas_height_px: mask.height_px,
         mask_frame_count: mask.frame_count,
@@ -134,15 +145,38 @@ fn sample_payload() -> Result<ParticleRenderPayload, rusty_matter_particles::Par
         Vec3::new(-0.25, 0.0, 1.0),
         0.04,
     ));
+    set.particles[0].velocity = Vec3::new(0.10, 0.20, 0.0);
+    set.particles[0].age_seconds = 0.10;
     set.push(ParticleState::new(
         "particle.fixture.1",
         Vec3::new(0.25, 0.1, -1.0),
         0.06,
     ));
+    set.particles[1].velocity = Vec3::new(0.0, 0.30, 0.10);
+    set.particles[1].age_seconds = 0.42;
     set.push(ParticleState::new(
         "particle.fixture.2",
         Vec3::new(0.0, -0.2, -2.0),
         0.08,
     ));
+    set.particles[2].velocity = Vec3::new(-0.15, 0.05, 0.25);
+    set.particles[2].age_seconds = 0.78;
     ParticleRenderPayload::from_particle_set("particle.render.optics_fixture", &set)
+}
+
+fn resolved_visual_ranges(
+    samples: &[rusty_optics_particles::ParticleVisualSample],
+) -> (f32, f32, f32) {
+    let mut alpha_min = f32::INFINITY;
+    let mut alpha_max = 0.0_f32;
+    let mut radius_max = 0.0_f32;
+    for sample in samples {
+        alpha_min = alpha_min.min(sample.color.a);
+        alpha_max = alpha_max.max(sample.color.a);
+        radius_max = radius_max.max(sample.radius);
+    }
+    if !alpha_min.is_finite() {
+        alpha_min = 0.0;
+    }
+    (alpha_min, alpha_max, radius_max)
 }
