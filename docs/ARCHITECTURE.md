@@ -18,8 +18,8 @@ Optics owns:
 - billboard instance preparation;
 - animated mask atlas descriptors and CPU reference generation;
 - trail appearance descriptors and particle render-budget summaries;
-- mesh debug frames, coordinate-map visuals, collider visuals, and SDF slice
-  visuals over Matter mesh payloads;
+- mesh debug frames, coordinate-map visuals, collider visuals, SDF slice
+  visuals, and ADF debug visuals over Matter mesh/field payloads;
 - surface-field visual frames and playback sequences over Matter field debug
   frames/sequences;
 - bioelectric circuit visual frames over Matter circuit state and step
@@ -54,14 +54,16 @@ billboard draw mode, projection, blend/depth policy, mask animation, trail
 appearance, and render-budget summaries. Optics references Matter payload IDs
 and schema IDs without duplicating particle simulation truth.
 
-For meshes, Matter owns the triangle mesh surface, hand validation mesh wrapper,
-coordinate map, dynamic collider payloads, SDF grid, and accelerated
+For meshes and fields, Matter owns the triangle mesh surface, hand validation
+mesh wrapper, coordinate map, dynamic collider payloads, SDF grid, ADF field,
+and accelerated
 surface-distance runtime. Optics converts those validated Matter contracts into
 bounded debug visuals: mesh wireframes, coordinate anchors and axes, collider
-shell/contact markers, and sampled SDF slices. The browser preview consumes the
-same renderer-neutral debug frame that a later renderer adapter can consume; for
-animated realtime hand-mesh previews it calls the Matter Wasm surface-distance
-runtime instead of owning triangle-distance math in browser code.
+shell/contact markers, sampled SDF slices, and ADF leaf-cell debug payloads.
+The browser preview consumes the same renderer-neutral debug frame that a later
+renderer adapter can consume; for animated realtime hand-mesh previews it calls
+the Matter Wasm surface-distance runtime instead of owning triangle-distance
+math in browser code.
 
 Historical browser-only brute-force SDF/particle previews are useful only as
 prototype evidence for controls, metrics, and smoke-test shape. They must not
@@ -158,8 +160,8 @@ traces, comparison trace sets, selected target readouts, recent edit events,
 recent affected-target highlights, an edit-event timeline over the Optics
 feedback-frame shape, live stats, and the Matter-exported GLB-derived
   triangle body surface plus GLB-anchor node graph;
-- coordinate-map, dynamic-collider, and SDF-slice debug visuals over one shared
-  source mesh surface;
+- coordinate-map, dynamic-collider, SDF-slice, and ADF debug visuals over
+  Matter mesh/field payloads;
 - browser preview for generated mesh debug JSON and Matter-Wasm-backed animated
   hand-mesh SDF/particle smoke;
 - fixture and schema catalog checks;
@@ -176,6 +178,8 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
 - `rusty-optics-model/src/vec2.rs`: two-dimensional projection points.
 - `rusty-optics-mesh/src/browser_frame.rs`: combined mesh debug frame for
   static browser previews and future renderer adapters.
+- `rusty-optics-mesh/src/adf_debug.rs`: renderer-neutral ADF leaf-cell debug
+  visuals over Matter adaptive distance fields.
 - `rusty-optics-mesh/src/circuit_frame.rs`: renderer-neutral bioelectric
   circuit visual frame contracts over Matter circuit state and diagnostics.
 - `rusty-optics-mesh/src/collider.rs`: dynamic mesh collider shell/contact

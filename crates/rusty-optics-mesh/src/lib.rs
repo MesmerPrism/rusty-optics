@@ -1,5 +1,6 @@
 //! Renderer-neutral mesh diagnostics for Rusty Optics.
 
+mod adf_debug;
 mod browser_frame;
 mod circuit_frame;
 mod collider;
@@ -12,6 +13,7 @@ mod sdf_slice;
 #[cfg(test)]
 mod tests;
 
+pub use adf_debug::*;
 pub use browser_frame::*;
 pub use circuit_frame::*;
 pub use collider::*;

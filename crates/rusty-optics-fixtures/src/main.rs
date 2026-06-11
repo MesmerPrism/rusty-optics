@@ -1,5 +1,6 @@
 //! Rusty Optics fixture command.
 
+mod adf;
 mod cli;
 mod error;
 mod fields;

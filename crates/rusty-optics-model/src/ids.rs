@@ -30,6 +30,8 @@ pub const MESH_COORDINATE_VISUAL_SCHEMA_ID: &str = "rusty.optics.mesh.coordinate
 pub const MESH_COLLIDER_VISUAL_SCHEMA_ID: &str = "rusty.optics.mesh.collider.visual.v1";
 /// SDF slice visualization schema.
 pub const SDF_SLICE_VISUAL_SCHEMA_ID: &str = "rusty.optics.sdf.slice.visual.v1";
+/// ADF debug visualization schema.
+pub const ADF_DEBUG_VISUAL_SCHEMA_ID: &str = "rusty.optics.adf.debug.visual.v1";
 /// Browser-shaped mesh debug frame schema.
 pub const MESH_BROWSER_DEBUG_FRAME_SCHEMA_ID: &str = "rusty.optics.mesh.browser.debug_frame.v1";
 /// Browser SDF particle overlay schema.
@@ -65,7 +67,7 @@ pub const VIDEO_PROJECTION_GEOMETRY_SCHEMA_ID: &str = "rusty.optics.video_projec
 
 /// Returns the schema IDs currently emitted by Rusty Optics.
 #[must_use]
-pub const fn optics_schema_ids() -> [&'static str; 26] {
+pub const fn optics_schema_ids() -> [&'static str; 27] {
     [
         COLOR_RGBA_SCHEMA_ID,
         PARTICLE_VISUAL_SAMPLE_SCHEMA_ID,
@@ -81,6 +83,7 @@ pub const fn optics_schema_ids() -> [&'static str; 26] {
         MESH_COORDINATE_VISUAL_SCHEMA_ID,
         MESH_COLLIDER_VISUAL_SCHEMA_ID,
         SDF_SLICE_VISUAL_SCHEMA_ID,
+        ADF_DEBUG_VISUAL_SCHEMA_ID,
         MESH_BROWSER_DEBUG_FRAME_SCHEMA_ID,
         PARTICLE_SDF_BROWSER_OVERLAY_SCHEMA_ID,
         SURFACE_FIELD_VISUAL_FRAME_SCHEMA_ID,

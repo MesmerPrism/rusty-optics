@@ -30,8 +30,8 @@ The first source slices focus on visual particles and mesh diagnostics:
   request Matter-owned node, conductance, and gate mutations;
 - planarian 3D edit-feedback frames for renderer adapters that display
   Matter-owned recent edit events and affected targets;
-- coordinate-map, dynamic-collider, and SDF-slice debug visuals over that same
-  source surface;
+- coordinate-map, dynamic-collider, SDF-slice, and ADF debug visuals over
+  Matter mesh/field payloads;
 - a browser preview that renders generated mesh debug JSON and, for animated
   hand-mesh sequences, drives realtime SDF/particle queries through the Matter
   WebAssembly runtime without renderer backend imports.

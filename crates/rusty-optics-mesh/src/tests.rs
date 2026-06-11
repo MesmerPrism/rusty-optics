@@ -1,3 +1,4 @@
+use rusty_matter_adf::{build_adf_from_sdf_grid, AdfBuildConfig};
 use rusty_matter_fields::{
     BioelectricCircuitConfig, BioelectricCircuitRuntime, BioelectricCircuitState,
     BioelectricConductanceEdge, BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate,
@@ -17,11 +18,12 @@ use rusty_matter_sdf::{build_sdf_from_mesh, MeshToSdfConfig};
 use rusty_optics_model::Vec2;
 
 use crate::{
-    BioelectricCircuitVisualFrame, MeshBrowserDebugFrame, MeshColliderVisual, MeshCoordinateVisual,
-    MeshDebugFrame, PlanarianBioelectricEditFeedbackFrame, PlanarianBioelectricEditIntent,
-    PlanarianBioelectricFeedbackEvent, PlanarianBioelectricFeedbackOperation,
-    PlanarianBioelectricFeedbackTarget, PlanarianBioelectricVisualSequence, PlanarianPickSelection,
-    SdfSliceVisual, SurfaceFieldVisualFrame, SurfaceFieldVisualFrameSequence,
+    AdfDebugVisual, BioelectricCircuitVisualFrame, MeshBrowserDebugFrame, MeshColliderVisual,
+    MeshCoordinateVisual, MeshDebugFrame, PlanarianBioelectricEditFeedbackFrame,
+    PlanarianBioelectricEditIntent, PlanarianBioelectricFeedbackEvent,
+    PlanarianBioelectricFeedbackOperation, PlanarianBioelectricFeedbackTarget,
+    PlanarianBioelectricVisualSequence, PlanarianPickSelection, SdfSliceVisual,
+    SurfaceFieldVisualFrame, SurfaceFieldVisualFrameSequence,
 };
 
 #[test]
@@ -103,6 +105,76 @@ fn browser_frame_combines_mesh_coordinate_collider_and_sdf_payloads() {
     assert!(browser.coordinates.anchors.len() >= 8);
     assert!(!browser.collider.shell_edges.is_empty());
     assert!(!browser.sdf_slice.cells.is_empty());
+}
+
+#[test]
+fn adf_debug_visual_resolves_matter_leaf_cells() {
+    let surface = sample_surface();
+    let sdf_mesh = TriangleMeshSnapshot::new(
+        "mesh.snapshot.adf_debug",
+        surface.positions.clone(),
+        surface.triangles.clone(),
+    );
+    let sdf = build_sdf_from_mesh(
+        &sdf_mesh,
+        MeshToSdfConfig {
+            voxel_size: 0.2,
+            padding_voxels: 1,
+            max_voxels: 4096,
+            ..MeshToSdfConfig::default()
+        },
+    )
+    .expect("sdf");
+    let adf = build_adf_from_sdf_grid(
+        &sdf,
+        AdfBuildConfig {
+            max_depth: 2,
+            max_cells: 512,
+            error_tolerance: 0.01,
+        },
+    )
+    .expect("adf");
+    let visual =
+        AdfDebugVisual::from_field("mesh.adf.debug_visual.test", &adf).expect("adf debug visual");
+
+    assert_eq!(visual.source_field_id, adf.field_id);
+    assert_eq!(visual.source_grid_id, sdf.grid_id);
+    assert_eq!(visual.cell_count, adf.cell_count());
+    assert!(visual.cells.iter().all(|cell| {
+        (0.0..=1.0).contains(&cell.normalized_center_distance)
+            && (0.0..=1.0).contains(&cell.normalized_range)
+    }));
+    assert!(visual.max_level <= adf.max_depth);
+}
+
+#[test]
+fn damaged_adf_debug_visual_cell_count_is_rejected() {
+    let surface = sample_surface();
+    let sdf_mesh = TriangleMeshSnapshot::new(
+        "mesh.snapshot.adf_debug_bad",
+        surface.positions.clone(),
+        surface.triangles.clone(),
+    );
+    let sdf = build_sdf_from_mesh(
+        &sdf_mesh,
+        MeshToSdfConfig {
+            voxel_size: 0.2,
+            padding_voxels: 1,
+            max_voxels: 4096,
+            ..MeshToSdfConfig::default()
+        },
+    )
+    .expect("sdf");
+    let adf = build_adf_from_sdf_grid(&sdf, AdfBuildConfig::default()).expect("adf");
+    let mut visual =
+        AdfDebugVisual::from_field("mesh.adf.debug_visual.bad", &adf).expect("adf debug visual");
+    visual.cell_count = visual.cell_count.saturating_add(1);
+
+    let error = visual.validate().expect_err("bad cell count rejects");
+    assert!(matches!(
+        error,
+        rusty_optics_model::OpticsError::InvalidCount(_)
+    ));
 }
 
 #[test]

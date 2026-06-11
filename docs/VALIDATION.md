@@ -11,6 +11,7 @@ The check runs:
 - `cargo fmt --all --check`
 - `cargo test --workspace`
 - fixture summary validation
+- ADF debug visual fixture validation
 - hand-mesh browser debug fixture validation
 - projection geometry and source-valid footprint unit tests
 - schema catalog validation
@@ -24,6 +25,17 @@ The hand-mesh browser fixture is regenerated with:
 ```powershell
 cargo run -p rusty-optics-fixtures -- export-hand-mesh-browser
 ```
+
+The ADF debug visual fixture is regenerated with:
+
+```powershell
+cargo run -p rusty-optics-fixtures -- export-adf-debug
+```
+
+That command builds a small Matter SDF grid, builds a Matter ADF field from
+it, and serializes only the Optics renderer-neutral ADF debug payload in
+`fixtures/mesh/adf_debug_visual.json`. Optics does not build ADF in production
+paths and does not own ADF sampling truth.
 
 The surface-field browser fixture is regenerated with:
 

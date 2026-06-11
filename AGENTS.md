@@ -89,14 +89,14 @@ Current crate-root maps:
   source sampling modes, source-valid screen UV summaries, homography helpers,
   and renderer-neutral projection geometry reports.
 - `rusty-optics-mesh/src/lib.rs`: facade over `browser_frame`,
-  `circuit_frame`, `collider`, `coordinate`, `field_frame`, `mesh_frame`,
-  `planarian_frame`, `planarian_interaction`, `sdf_slice`, and tests. The
-  `planarian_interaction` module owns pick-selection, edit-intent, and
-  edit-feedback frame contracts for Planarian 3D renderer adapters.
+  `adf_debug`, `circuit_frame`, `collider`, `coordinate`, `field_frame`,
+  `mesh_frame`, `planarian_frame`, `planarian_interaction`, `sdf_slice`, and
+  tests. The `planarian_interaction` module owns pick-selection, edit-intent,
+  and edit-feedback frame contracts for Planarian 3D renderer adapters.
 - `rusty-optics-particles/src/lib.rs`: facade over `animation`, `appearance`,
   `billboard`, `mask`, `projection`, `tests`, and `visual_frame`.
-- `rusty-optics-fixtures/src/main.rs`: dispatch-only binary over `cli`, `error`,
-  `fields`, `hand_mesh`, and `summary`.
+- `rusty-optics-fixtures/src/main.rs`: dispatch-only binary over `cli`,
+  `adf`, `error`, `fields`, `hand_mesh`, and `summary`.
 - `rusty-optics-schema/src/main.rs`: dispatch-only binary over `catalog`, `cli`,
   and `error`.
 

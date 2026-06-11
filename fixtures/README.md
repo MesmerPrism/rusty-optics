@@ -24,6 +24,19 @@ Regenerate and check the hand-mesh fixture with:
 cargo run -p rusty-optics-fixtures -- export-hand-mesh-browser --check
 ```
 
+## ADF Debug Visual
+
+`fixtures/mesh/adf_debug_visual.json` is a renderer-neutral debug payload over
+a Matter-owned adaptive distance field. The fixture generator builds a small
+Matter SDF grid, builds the Matter ADF reference field from that grid, and then
+asks Optics only to normalize/shape the leaf-cell debug visualization.
+
+Regenerate and check the ADF fixture with:
+
+```powershell
+cargo run -p rusty-optics-fixtures -- export-adf-debug --check
+```
+
 External Matter surface JSON can be converted into a local browser debug frame
 with:
 
