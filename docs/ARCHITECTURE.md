@@ -29,6 +29,11 @@ Optics owns:
 - renderer-neutral planarian 3D pick selections and edit intents that visual
   adapters can emit before Matter accepts or rejects the requested mutation;
 - deterministic fixture and schema artifacts;
+- procedural stimulus profiles, layer graphs, layer-local oscillator bindings,
+  Perlin-style noise controls, ripple/interference source controls, temporal
+  gating profiles, research-use notice policies, full-screen stereo-eye
+  presentation targets, mobile-GPU-portable compute-capable kernel ABI
+  descriptors, display-cadence run plans, and CPU reference samples;
 - renderer-neutral diagnostics for visual payloads.
 
 Optics does not own:
@@ -39,6 +44,7 @@ Optics does not own:
 - platform hand mesh acquisition;
 - command/session/stream authority;
 - GPU buffers, shaders, draw calls, texture uploads, or swapchains;
+- procedural shader source, GPU field generation, or runtime shader binding;
 - OpenXR, Vulkan, WebGL, Android, Quest, Makepad, or UI framework imports;
 - downstream app-specific scene behavior, visual-driver bindings, runtime
   tuning, or product profiles.
@@ -115,10 +121,33 @@ diagnostics, not simulation state.
 
 ## Renderer Adapter Boundary
 
-Optics can prepare backend-neutral instance arrays and mask atlas pixels, but
-renderer adapters decide how to allocate GPU resources and submit draw calls.
-Shader code, platform frame lifecycle, swapchain behavior, runtime profiles,
-and texture upload mechanics belong to adapters.
+Optics can prepare backend-neutral instance arrays, mask atlas pixels, and
+small CPU reference samples, but renderer adapters decide how to allocate GPU
+resources and submit draw or compute calls. Shader code, platform frame
+lifecycle, swapchain behavior, runtime profiles, texture upload mechanics,
+Vulkan storage images/buffers, barriers, command buffers, and descriptor sets
+belong to adapters.
+
+Procedural stimulus compute descriptors intentionally stay Vulkan/WebGPU
+neutral while carrying enough limits for a Quest Vulkan adapter to reject an
+unsupported profile before launch. The current mobile profile uses 8x8 or
+64x1 workgroups, caps workgroups at 64 invocations, caps requested resource
+dimensions to 2048 px, requires 16-byte parameter alignment, and does not
+require subgroup operations, shader device address, runtime descriptor arrays,
+or mandatory fp16 storage. A Quest adapter may prefer fp16 formats when
+available but must provide an adapter-level fallback or rejection receipt when
+a requested texture format is unsupported.
+
+The primary XR presentation target for procedural stimuli is a full-screen
+`StereoEyeField`: the adapter generates the requested field texture and submits
+it to both eye views, preferably through an XR composition layer when the
+runtime supports it. Surface panels and world-locked surfaces remain supported
+presentation variants for development previews, calibration targets, and
+non-full-field experiments, but they are not the default research-stimulus
+route. Optics describes coverage, stereo texture binding, and view-locking;
+Lattice owns the live view/reference-space relation, and Quest/Makepad adapters
+own OpenXR/Vulkan swapchain, image, barrier, descriptor, and submission
+details.
 
 ## Lattice / Optics Boundary
 
@@ -162,6 +191,21 @@ feedback-frame shape, live stats, and the Matter-exported GLB-derived
   triangle body surface plus GLB-anchor node graph;
 - coordinate-map, dynamic-collider, SDF-slice, and ADF debug visuals over
   Matter mesh/field payloads;
+- procedural stimulus descriptors for clean-room layer stacks, seeded
+  deterministic pattern controls, Perlin-style fBm noise, ripple/interference
+  fields, layer-local oscillators, temporal gates, externally governed
+  research-protocol metadata, full-screen stereo-eye presentation targets,
+  mobile-GPU-portable compute-pass ABI requirements, display-cadence run plans,
+  and small CPU reference samples;
+- browser-development stimulus adapter that loads the same profile fixture,
+  validates the `StereoEyeField` presentation contract, lowers layer/noise/
+  interference descriptors into a WebGPU compute field texture when available,
+  exposes bounded CPU/GPU probe summaries for browser validation, and keeps
+  browser-only tuning controls in a translator module that rebuilds the
+  renderer-neutral profile instead of becoming runtime authority, including a
+  post-layer geometry compositor for stack, weighted-mean, and selected-layer
+  crossfade exploration, local browser preset storage, and a Quest handoff
+  export that stages tuned Optics profiles beside low-rate Makepad settings;
 - browser preview for generated mesh debug JSON and Matter-Wasm-backed animated
   hand-mesh SDF/particle smoke;
 - fixture and schema catalog checks;
@@ -204,6 +248,16 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
   affected-target rows; owns playback, drawing, converted-GLB mesh styling,
   body/node/edge visibility toggles, feedback-frame timeline marks, and
   edit-intent construction only.
+- `web/stimulus-preview/app.js`: browser-development adapter for procedural
+  stimulus profiles. It owns WebGPU/CPU browser lowering, canvas resize,
+  full-screen preview controls, and bounded probe readouts; it is not core
+  shader authority and not the Quest runtime adapter.
+- `web/stimulus-preview/tuning.js`: browser-development tuning module for
+  compact hash presets, randomize/reset behavior, live control edits,
+  eccentricity controls, per-layer oscillator banks, and smooth flat-strobe to
+  geometry-layer transition state plus global geometry-stack blend controls. It
+  translates external preset vocabulary into an Optics `StimulusProfile` shape
+  and stays out of core crates, Quest adapters, and study-specific defaults.
 - `rusty-optics-mesh/src/mesh_frame.rs`: mesh wireframe and topology debug
   visuals.
 - `rusty-optics-mesh/src/sdf_slice.rs`: two-dimensional SDF slice debug
@@ -219,6 +273,31 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
   screen-space frames.
 - `rusty-optics-particles/src/visual_frame.rs`: visual particle samples and
   frames over Matter particle payloads.
+- `rusty-optics-stimulus/src/layers.rs`: procedural layer graphs, base-pattern
+  families, color ramps, coordinate mirroring, warp controls,
+  ripple/interference source controls, oscillator bindings, and
+  post-processing policy descriptors.
+- `rusty-optics-stimulus/src/noise.rs`: deterministic cell, smooth value, and
+  Perlin-style gradient fBm noise descriptors plus CPU oracle sampling.
+- `rusty-optics-stimulus/src/oscillator.rs`: renderer-neutral oscillator
+  waveforms and layer-parameter targets used by CPU references and later
+  shader adapters.
+- `rusty-optics-stimulus/src/presentation.rs`: full-screen stereo-eye,
+  mono-eye, surface-panel, and world-locked presentation descriptors.
+- `rusty-optics-stimulus/src/temporal.rs`: temporal pulse/gate profiles and
+  lead-in sampling.
+- `rusty-optics-stimulus/src/safety.rs`: preview/risk/research-protocol
+  notice policies and temporal cross-checks.
+- `rusty-optics-stimulus/src/kernel_abi.rs`: renderer-neutral procedural
+  stimulus kernel capability descriptors, including compute pass, field
+  texture, history, noise-cache, bounded-readback, and mobile GPU portability
+  metadata.
+- `rusty-optics-stimulus/src/run_plan.rs`: display-refresh frame quantization
+  for stimulus timing.
+- `rusty-optics-stimulus/src/profile.rs`: complete procedural stimulus profile
+  validation and run-plan entrypoint.
+- `rusty-optics-stimulus/src/cpu_reference.rs`: small deterministic CPU
+  sampler for fixtures and scorecards.
 - `rusty-optics-fixtures/src/main.rs`: dispatch-only fixture CLI.
 - `rusty-optics-fixtures/src/hand_mesh.rs`: deterministic hand-validation mesh
   debug fixture using Matter mesh, coordinate, collider, and SDF APIs.

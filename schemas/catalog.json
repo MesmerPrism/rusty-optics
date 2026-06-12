@@ -135,6 +135,41 @@
       "schema_id": "rusty.optics.video_projection_geometry.v1",
       "owner": "rusty-optics",
       "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.stimulus.profile.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.stimulus.layer_graph.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.stimulus.temporal_profile.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.stimulus.safety_profile.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.stimulus.presentation.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.stimulus.kernel_abi.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.optics.stimulus.run_plan.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
     }
   ]
 }

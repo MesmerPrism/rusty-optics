@@ -14,6 +14,10 @@ The check runs:
 - ADF debug visual fixture validation
 - hand-mesh browser debug fixture validation
 - projection geometry and source-valid footprint unit tests
+- procedural stimulus profile, research-protocol notice policy, full-screen
+  stereo-eye presentation, run-plan, oscillator, Perlin-style noise,
+  compute-pass ABI, mobile portability, seeded sampler, and CPU reference unit
+  tests
 - schema catalog validation
 - Optics boundary scan
 
@@ -54,6 +58,31 @@ sequence for AP-region bioelectric playback with sampled-node surface anchors,
 or the live Planarian 3D view for Matter-Wasm-backed scenario switching,
 node/edge picking, GLB triangle-anchor readout, Matter-exported node activity
 coloring, and edit-intent requests.
+
+The procedural stimulus browser preview is launched with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-StimulusPreview.ps1
+```
+
+Validate it by opening `http://127.0.0.1:8793/web/stimulus-preview/`,
+checking that the page reports a loaded backend, and confirming the bounded
+probe range is non-flat. WebGPU-capable browsers should report `webgpu
+compute`; other browsers may report `cpu canvas` while still proving fixture
+loading and full-screen presentation wiring.
+For tuning work, also verify that the control panel appears when chrome is
+visible, `Randomize` changes the probe/hashable tuning state, `Reset` restores
+the default profile-derived tuning, `Copy Link` places a hash URL in the
+address bar and copies it when clipboard access is available, and strobe-style
+hash fragments import into the local color/geometry/noise/layer controls
+without changing the renderer-neutral fixture. Eccentricity controls should
+change warp scale through profile lowering, flat-only transition should collapse
+the probe to a uniform field when `Geom=0`, `Flat Hz=0`, and temporal gate is
+off, and per-layer oscillator settings should persist independently when
+switching the selected layer target. The `Blend` mode should preserve the
+existing layer-local compositor in `Stack`, change the probe/hash when moved to
+weighted `Mean`, and use the selected layer target for `Cross` as the blend
+amount moves from base layer toward target layer.
 The live 3D browser preview loops the unedited educational scenario at the
 Matter trace horizon so transient dynamics remain visible; selecting or editing
 a target disables that loop until reset so inspected state is stable.
@@ -107,6 +136,32 @@ intentionally rejects a low-count
 body surface or malformed node-anchor stream in this mode so a stale
 synthetic/procedural body cannot be mistaken for the reviewed GLB-derived
 Matter surface.
+
+The Planarian 3D export smoke validates the default showcase export path for
+both body-surface and graph views. It drives the browser UI with Playwright,
+saves downloads, and decodes them with Pillow to check frame count and
+dimensions.
+
+GIF:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File .\tools\Run-Planarian3DExportSmoke.ps1 `
+  -Format gif -Width 720 -Height 860 -Fps 12 -DurationSeconds 8 -Views surface,graph -Density 3
+```
+
+APNG:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File .\tools\Run-Planarian3DExportSmoke.ps1 `
+  -Format apng -Width 720 -Height 860 -Fps 12 -DurationSeconds 8 -Views surface,graph -Density 3
+```
+
+The showcased dynamics remain Matter-owned synthetic educational planarian
+circuit frames. Optics only controls color/material/camera/export framing and
+the `Loop: Showcase` visual remapping described in
+`docs\PLANARIAN_3D_EXPORT.md`.
 
 Start the static browser preview with:
 

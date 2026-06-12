@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Rusty Optics Surface Field</title>
-    <link rel="stylesheet" href="styles.css?v=planarian-neighborhood-brush-1">
+    <link rel="stylesheet" href="styles.css?v=planarian-export-durable-1">
   </head>
   <body>
     <main class="app">
@@ -68,6 +68,92 @@
               <option value="4" selected>No-memory</option>
             </select>
           </label>
+          <label>
+            Graph
+            <select id="planarian-graph-density">
+              <option value="0">160 nodes</option>
+              <option value="1">320 nodes</option>
+              <option value="2" selected>360 nodes</option>
+              <option value="3">720 nodes</option>
+            </select>
+          </label>
+          <label>
+            Format
+            <select id="planarian-export-format">
+              <option value="apng" selected>APNG</option>
+              <option value="gif">GIF</option>
+              <option value="webm">WebM</option>
+              <option value="mp4">MP4</option>
+            </select>
+          </label>
+          <label>
+            View
+            <select id="planarian-gif-view">
+              <option value="surface" selected>Surface</option>
+              <option value="graph">Graph</option>
+            </select>
+          </label>
+          <label>
+            Palette
+            <select id="planarian-gif-palette">
+              <option value="neon-rgb" selected>Neon RGB</option>
+              <option value="teaching">Teaching</option>
+            </select>
+          </label>
+          <label>
+            Start
+            <select id="planarian-export-start">
+              <option value="reset" selected>Reset</option>
+              <option value="current">Current</option>
+            </select>
+          </label>
+          <label>
+            Loop
+            <select id="planarian-export-loop">
+              <option value="showcase" selected>Showcase</option>
+              <option value="forward">Forward</option>
+            </select>
+          </label>
+          <label>
+            Layer
+            <select id="planarian-export-layer">
+              <option value="current" selected>Current</option>
+              <option value="activity">Activity</option>
+            </select>
+          </label>
+          <label>
+            Material
+            <select id="planarian-export-material">
+              <option value="opaque" selected>Opaque</option>
+              <option value="boosted">Boosted</option>
+            </select>
+          </label>
+          <label>
+            Duration
+            <input id="planarian-gif-seconds" class="numeric-input" type="number" min="1" max="20" step="1" value="8">
+          </label>
+          <label>
+            FPS
+            <input id="planarian-gif-fps" class="numeric-input" type="number" min="4" max="24" step="1" value="12">
+          </label>
+          <label>
+            Width
+            <input id="planarian-gif-width" class="numeric-input" type="number" min="320" max="1280" step="40" value="720">
+          </label>
+          <label>
+            Height
+            <input id="planarian-gif-height" class="numeric-input" type="number" min="240" max="1440" step="20" value="860">
+          </label>
+          <label>
+            Step
+            <input id="planarian-gif-steps" class="numeric-input" type="number" min="1" max="8" step="1" value="1">
+          </label>
+          <label>
+            Warmup
+            <input id="planarian-export-warmup" class="numeric-input" type="number" min="0" max="240" step="1" value="0">
+          </label>
+          <button id="export-planarian-gif" type="button" title="Render the current Planarian 3D dynamics to an animation file">Export</button>
+          <output id="planarian-gif-status">export idle</output>
           <label>Pick <output id="selected-node">none</output></label>
           <label>
             dV
@@ -123,6 +209,6 @@
         </div>
       </div>
     </main>
-    <script src="app.js?v=planarian-neighborhood-brush-1"></script>
+    <script src="app.js?v=planarian-export-durable-1"></script>
   </body>
 </html>

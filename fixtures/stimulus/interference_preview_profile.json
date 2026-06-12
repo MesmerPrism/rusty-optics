@@ -1,0 +1,504 @@
+{
+  "schema_id": "rusty.optics.stimulus.profile.v1",
+  "profile_id": "stimulus.profile.interference_preview",
+  "layer_graph": {
+    "schema_id": "rusty.optics.stimulus.layer_graph.v1",
+    "graph_id": "stimulus.graph.interference_preview",
+    "layers": [
+      {
+        "layer_id": "stimulus.layer.stripes.primary",
+        "pattern": "Stripes",
+        "blend_mode": "Add",
+        "weight": 1.0,
+        "opacity": 1.0,
+        "spatial_frequency": 12.0,
+        "rotation_radians": 0.38,
+        "phase_offset": 0.0,
+        "seed": 1,
+        "mirror_mode": "None",
+        "warp": {
+          "scale": {
+            "x": 1.0,
+            "y": 1.0
+          },
+          "offset": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "twist": 0.0,
+          "pinch": 0.0,
+          "shear_x": 0.0,
+          "shear_y": 0.0
+        },
+        "interference": {
+          "source_a": {
+            "x": -0.24,
+            "y": 0.0
+          },
+          "source_b": {
+            "x": 0.24,
+            "y": 0.0
+          },
+          "source_b_weight": 1.0,
+          "radial_decay": 0.0,
+          "wave_modulation": 0.0
+        },
+        "temporal": {
+          "speed_hz": 0.125,
+          "phase_offset": 0.0,
+          "amplitude": 1.0
+        },
+        "oscillators": [
+          {
+            "oscillator_id": "stimulus.oscillator.stripes.phase_sway",
+            "target": "PhaseOffset",
+            "waveform": "Sine",
+            "frequency_hz": 0.07,
+            "phase_offset": 0.0,
+            "amplitude": 0.08,
+            "bias": 0.0,
+            "duty_cycle": 0.5
+          }
+        ],
+        "colors": [
+          {
+            "position": 0.0,
+            "color": {
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0
+            }
+          },
+          {
+            "position": 1.0,
+            "color": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            }
+          }
+        ]
+      },
+      {
+        "layer_id": "stimulus.layer.ripple.center",
+        "pattern": "Ripple",
+        "blend_mode": "Add",
+        "weight": 0.75,
+        "opacity": 1.0,
+        "spatial_frequency": 9.0,
+        "rotation_radians": 0.0,
+        "phase_offset": 0.15,
+        "seed": 1,
+        "mirror_mode": "None",
+        "warp": {
+          "scale": {
+            "x": 1.0,
+            "y": 1.0
+          },
+          "offset": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "twist": 0.0,
+          "pinch": 0.2,
+          "shear_x": 0.0,
+          "shear_y": 0.0
+        },
+        "interference": {
+          "source_a": {
+            "x": -0.24,
+            "y": 0.0
+          },
+          "source_b": {
+            "x": 0.24,
+            "y": 0.0
+          },
+          "source_b_weight": 1.0,
+          "radial_decay": 1.1,
+          "wave_modulation": 0.18
+        },
+        "temporal": {
+          "speed_hz": 0.0,
+          "phase_offset": 0.0,
+          "amplitude": 1.0
+        },
+        "oscillators": [],
+        "colors": [
+          {
+            "position": 0.0,
+            "color": {
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0
+            }
+          },
+          {
+            "position": 1.0,
+            "color": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            }
+          }
+        ]
+      },
+      {
+        "layer_id": "stimulus.layer.interference.dual_source",
+        "pattern": "Interference",
+        "blend_mode": "Add",
+        "weight": 0.72,
+        "opacity": 0.85,
+        "spatial_frequency": 7.0,
+        "rotation_radians": 0.0,
+        "phase_offset": 0.0,
+        "seed": 1,
+        "mirror_mode": "None",
+        "warp": {
+          "scale": {
+            "x": 1.0,
+            "y": 1.0
+          },
+          "offset": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "twist": 0.0,
+          "pinch": 0.0,
+          "shear_x": 0.0,
+          "shear_y": 0.0
+        },
+        "interference": {
+          "source_a": {
+            "x": -0.28,
+            "y": -0.08
+          },
+          "source_b": {
+            "x": 0.28,
+            "y": 0.08
+          },
+          "source_b_weight": 0.9,
+          "radial_decay": 0.35,
+          "wave_modulation": 0.0
+        },
+        "temporal": {
+          "speed_hz": 0.18,
+          "phase_offset": 0.0,
+          "amplitude": 1.0
+        },
+        "oscillators": [
+          {
+            "oscillator_id": "stimulus.oscillator.interference.luma",
+            "target": "LumaBias",
+            "waveform": "Sine",
+            "frequency_hz": 0.11,
+            "phase_offset": 0.0,
+            "amplitude": 0.08,
+            "bias": 0.0,
+            "duty_cycle": 0.5
+          }
+        ],
+        "colors": [
+          {
+            "position": 0.0,
+            "color": {
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0
+            }
+          },
+          {
+            "position": 1.0,
+            "color": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            }
+          }
+        ]
+      },
+      {
+        "layer_id": "stimulus.layer.rays.angular",
+        "pattern": "Rays",
+        "blend_mode": "Add",
+        "weight": 0.45,
+        "opacity": 0.8,
+        "spatial_frequency": 18.0,
+        "rotation_radians": 0.0,
+        "phase_offset": 0.0,
+        "seed": 1,
+        "mirror_mode": "Kaleidoscope6",
+        "warp": {
+          "scale": {
+            "x": 1.0,
+            "y": 1.0
+          },
+          "offset": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "twist": 0.0,
+          "pinch": 0.0,
+          "shear_x": 0.0,
+          "shear_y": 0.0
+        },
+        "interference": {
+          "source_a": {
+            "x": -0.24,
+            "y": 0.0
+          },
+          "source_b": {
+            "x": 0.24,
+            "y": 0.0
+          },
+          "source_b_weight": 1.0,
+          "radial_decay": 0.0,
+          "wave_modulation": 0.0
+        },
+        "temporal": {
+          "speed_hz": 0.05,
+          "phase_offset": 0.0,
+          "amplitude": 1.0
+        },
+        "oscillators": [],
+        "colors": [
+          {
+            "position": 0.0,
+            "color": {
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0
+            }
+          },
+          {
+            "position": 1.0,
+            "color": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            }
+          }
+        ]
+      },
+      {
+        "layer_id": "stimulus.layer.noise.perlin_fbm",
+        "pattern": "PerlinNoise",
+        "blend_mode": "Add",
+        "weight": 0.16,
+        "opacity": 0.5,
+        "spatial_frequency": 3.5,
+        "rotation_radians": 0.0,
+        "phase_offset": 0.0,
+        "seed": 17057,
+        "mirror_mode": "None",
+        "warp": {
+          "scale": {
+            "x": 1.0,
+            "y": 1.0
+          },
+          "offset": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "twist": 0.0,
+          "pinch": 0.0,
+          "shear_x": 0.0,
+          "shear_y": 0.0
+        },
+        "noise": {
+          "algorithm": "PerlinGradient",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "domain_warp_strength": 0.06,
+          "animation_velocity": {
+            "x": 0.01,
+            "y": -0.015
+          },
+          "amplitude": 1.0,
+          "bias": 0.0
+        },
+        "interference": {
+          "source_a": {
+            "x": -0.24,
+            "y": 0.0
+          },
+          "source_b": {
+            "x": 0.24,
+            "y": 0.0
+          },
+          "source_b_weight": 1.0,
+          "radial_decay": 0.0,
+          "wave_modulation": 0.0
+        },
+        "temporal": {
+          "speed_hz": 0.0,
+          "phase_offset": 0.0,
+          "amplitude": 1.0
+        },
+        "oscillators": [],
+        "colors": [
+          {
+            "position": 0.0,
+            "color": {
+              "r": 0.0,
+              "g": 0.0,
+              "b": 0.0,
+              "a": 1.0
+            }
+          },
+          {
+            "position": 1.0,
+            "color": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            }
+          }
+        ]
+      }
+    ],
+    "post": {
+      "contrast": 1.18,
+      "brightness": -0.04,
+      "edge_fade": 0.08,
+      "center_fade": 0.0,
+      "blur_radius_px": 0.0,
+      "noise_amount": 0.02,
+      "trail_decay": 0.18
+    }
+  },
+  "temporal": {
+    "schema_id": "rusty.optics.stimulus.temporal_profile.v1",
+    "temporal_id": "stimulus.temporal.preview_pulse",
+    "target_cycle_hz": 2.0,
+    "duty_cycle": 0.5,
+    "duration_seconds": 20.0,
+    "black_lead_in_seconds": 1.0,
+    "start_gate_required": true,
+    "phase_offset": 0.0
+  },
+  "safety": {
+    "schema_id": "rusty.optics.stimulus.safety_profile.v1",
+    "safety_id": "stimulus.safety.preview",
+    "class": "Preview",
+    "requires_acknowledgement": false,
+    "allow_autostart": false,
+    "max_duration_seconds": 60.0,
+    "max_cycle_hz": 3.0,
+    "max_luminance_delta": 0.5,
+    "require_black_lead_in": true
+  },
+  "presentation": {
+    "schema_id": "rusty.optics.stimulus.presentation.v1",
+    "presentation_id": "stimulus.presentation.stereo_eye_fullscreen",
+    "mode": "StereoEyeField",
+    "coverage": "FullViewport",
+    "stereo_binding": "SharedFieldBothEyes",
+    "reference_space": "ViewLocked",
+    "eye_count": 2,
+    "allow_per_eye_uv_transform": true,
+    "require_opaque_background": true,
+    "prefer_xr_composition_layer": true
+  },
+  "kernel_abi": {
+    "schema_id": "rusty.optics.stimulus.kernel_abi.v1",
+    "abi_id": "stimulus.kernel.compute_interference_v1",
+    "parameter_layout_version": 1,
+    "preferred_execution_model": "ComputeFieldTexture",
+    "supports_fragment": true,
+    "supports_compute": true,
+    "requires_history_buffer": true,
+    "requires_noise_texture": true,
+    "max_layers": 16,
+    "bounded_readback_samples": 512,
+    "portability": {
+      "profile_id": "stimulus.portability.mobile_vulkan",
+      "max_workgroup_invocations": 64,
+      "max_resource_dimension_px": 2048,
+      "parameter_buffer_alignment_bytes": 16,
+      "requires_subgroup_ops": false,
+      "requires_device_address": false,
+      "requires_runtime_descriptor_arrays": false,
+      "requires_fp16_storage": false
+    },
+    "compute_passes": [
+      {
+        "pass_id": "stimulus.compute_pass.noise_cache",
+        "kind": "NoiseCache",
+        "workgroup_size": {
+          "x": 8,
+          "y": 8,
+          "z": 1
+        },
+        "output_width_px": 512,
+        "output_height_px": 512,
+        "output_format": "R16Float",
+        "reads_layer_parameters": true,
+        "reads_noise_texture": false,
+        "reads_history_buffer": false,
+        "writes_history_buffer": false,
+        "bounded_readback_samples": 0
+      },
+      {
+        "pass_id": "stimulus.compute_pass.interference_field",
+        "kind": "FieldTexture",
+        "workgroup_size": {
+          "x": 8,
+          "y": 8,
+          "z": 1
+        },
+        "output_width_px": 1024,
+        "output_height_px": 1024,
+        "output_format": "Rgba16Float",
+        "reads_layer_parameters": true,
+        "reads_noise_texture": true,
+        "reads_history_buffer": false,
+        "writes_history_buffer": false,
+        "bounded_readback_samples": 0
+      },
+      {
+        "pass_id": "stimulus.compute_pass.history_feedback",
+        "kind": "HistoryFeedback",
+        "workgroup_size": {
+          "x": 8,
+          "y": 8,
+          "z": 1
+        },
+        "output_width_px": 1024,
+        "output_height_px": 1024,
+        "output_format": "Rgba16Float",
+        "reads_layer_parameters": true,
+        "reads_noise_texture": false,
+        "reads_history_buffer": true,
+        "writes_history_buffer": true,
+        "bounded_readback_samples": 0
+      },
+      {
+        "pass_id": "stimulus.compute_pass.readback_probe",
+        "kind": "BoundedReadbackProbe",
+        "workgroup_size": {
+          "x": 64,
+          "y": 1,
+          "z": 1
+        },
+        "output_width_px": 1,
+        "output_height_px": 1,
+        "output_format": "R32Float",
+        "reads_layer_parameters": true,
+        "reads_noise_texture": false,
+        "reads_history_buffer": false,
+        "writes_history_buffer": false,
+        "bounded_readback_samples": 512
+      }
+    ]
+  }
+}

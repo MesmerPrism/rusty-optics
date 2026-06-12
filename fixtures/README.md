@@ -10,6 +10,20 @@ Regenerate and check fixtures with:
 cargo run -p rusty-optics-fixtures -- export --check
 ```
 
+## Procedural Stimulus Profiles
+
+`fixtures/stimulus/interference_preview_profile.json` is a clean-room
+procedural stimulus profile with layered stripes, ripple/interference fields,
+rays, Perlin-style fBm noise, layer-local oscillators, temporal,
+full-screen stereo-eye presentation, safety/research-use notice,
+mobile-GPU-portable compute-capable kernel ABI, and run-plan-ready fields. It
+is a contract fixture only: renderer adapters may translate it into shader
+parameters, geometry-stack compositing choices, field textures, history
+buffers, full-eye stereo presentation, and bounded readback probes, but shader
+source, GPU passes, Vulkan/WebGPU
+resources, study defaults, and headset runtime behavior remain outside Optics
+core.
+
 ## Hand Mesh Browser Debug Frame
 
 `fixtures/hand_mesh/hand_mesh_browser_debug_frame.json` is a renderer-neutral
@@ -102,3 +116,8 @@ surface-color caches. Loading-stage and split timing counters are likewise
 runtime browser-adapter observability, not committed fixture fields. The browser
 edit-event timeline is a runtime view over the Optics feedback-frame shape, not
 a committed timeline fixture.
+
+Planarian 3D GIF/APNG/WebM/MP4 exports are local validation artifacts, not
+fixtures. The browser export path consumes Matter Wasm runtime state and writes
+downloads under `local-artifacts` during smoke checks; committed fixtures remain
+small renderer-neutral payloads only.

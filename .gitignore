@@ -10,4 +10,5 @@
 *.tmp
 .hand-mesh-browser-preview.pid
 .surface-field-preview.pid
+.stimulus-preview.pid
 /local-artifacts/

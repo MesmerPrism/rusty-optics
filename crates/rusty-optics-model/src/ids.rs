@@ -64,10 +64,24 @@ pub const TARGET_SCREEN_FOOTPRINT_SCHEMA_ID: &str = "rusty.optics.target_screen_
 pub const SOURCE_SAMPLING_MODE_SCHEMA_ID: &str = "rusty.optics.source_sampling_mode.v1";
 /// Video projection geometry schema.
 pub const VIDEO_PROJECTION_GEOMETRY_SCHEMA_ID: &str = "rusty.optics.video_projection_geometry.v1";
+/// Procedural stimulus profile schema.
+pub const STIMULUS_PROFILE_SCHEMA_ID: &str = "rusty.optics.stimulus.profile.v1";
+/// Procedural stimulus layer graph schema.
+pub const STIMULUS_LAYER_GRAPH_SCHEMA_ID: &str = "rusty.optics.stimulus.layer_graph.v1";
+/// Procedural stimulus temporal profile schema.
+pub const STIMULUS_TEMPORAL_PROFILE_SCHEMA_ID: &str = "rusty.optics.stimulus.temporal_profile.v1";
+/// Procedural stimulus safety profile schema.
+pub const STIMULUS_SAFETY_PROFILE_SCHEMA_ID: &str = "rusty.optics.stimulus.safety_profile.v1";
+/// Procedural stimulus presentation target schema.
+pub const STIMULUS_PRESENTATION_SCHEMA_ID: &str = "rusty.optics.stimulus.presentation.v1";
+/// Procedural stimulus kernel ABI schema.
+pub const STIMULUS_KERNEL_ABI_SCHEMA_ID: &str = "rusty.optics.stimulus.kernel_abi.v1";
+/// Procedural stimulus run plan schema.
+pub const STIMULUS_RUN_PLAN_SCHEMA_ID: &str = "rusty.optics.stimulus.run_plan.v1";
 
 /// Returns the schema IDs currently emitted by Rusty Optics.
 #[must_use]
-pub const fn optics_schema_ids() -> [&'static str; 27] {
+pub const fn optics_schema_ids() -> [&'static str; 34] {
     [
         COLOR_RGBA_SCHEMA_ID,
         PARTICLE_VISUAL_SAMPLE_SCHEMA_ID,
@@ -96,5 +110,12 @@ pub const fn optics_schema_ids() -> [&'static str; 27] {
         TARGET_SCREEN_FOOTPRINT_SCHEMA_ID,
         SOURCE_SAMPLING_MODE_SCHEMA_ID,
         VIDEO_PROJECTION_GEOMETRY_SCHEMA_ID,
+        STIMULUS_PROFILE_SCHEMA_ID,
+        STIMULUS_LAYER_GRAPH_SCHEMA_ID,
+        STIMULUS_TEMPORAL_PROFILE_SCHEMA_ID,
+        STIMULUS_SAFETY_PROFILE_SCHEMA_ID,
+        STIMULUS_PRESENTATION_SCHEMA_ID,
+        STIMULUS_KERNEL_ABI_SCHEMA_ID,
+        STIMULUS_RUN_PLAN_SCHEMA_ID,
     ]
 }

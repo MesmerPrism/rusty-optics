@@ -1,0 +1,239 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #080a0d;
+  color: #edf1f5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #080a0d;
+}
+
+.stimulus-shell {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+#stimulus-canvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  touch-action: none;
+  background: #000;
+}
+
+.toolbar {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 24px);
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid rgba(73, 84, 99, 0.86);
+  border-radius: 8px;
+  background: rgba(12, 15, 19, 0.88);
+  color: #e3e9ef;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.toolbar input {
+  width: 15px;
+  height: 15px;
+  accent-color: #9bbcff;
+}
+
+select,
+button {
+  min-height: 30px;
+  border: 1px solid #404b58;
+  border-radius: 6px;
+  background: #1a2028;
+  color: #f2f5f8;
+  font: inherit;
+}
+
+select {
+  min-width: 126px;
+  padding: 0 8px;
+}
+
+button {
+  min-width: 74px;
+  padding: 0 10px;
+}
+
+button:hover,
+button:focus,
+select:focus {
+  border-color: #9bbcff;
+  outline: none;
+}
+
+output {
+  color: #bdc8d3;
+  white-space: nowrap;
+}
+
+#backend-status {
+  margin-left: auto;
+}
+
+body.chrome-hidden .toolbar {
+  display: none;
+}
+
+.tuning-panel {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  width: min(560px, calc(100vw - 24px));
+  max-height: min(54vh, calc(100vh - 88px));
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid rgba(73, 84, 99, 0.86);
+  border-radius: 8px;
+  background: rgba(12, 15, 19, 0.88);
+  color: #e3e9ef;
+  font-size: 12px;
+  scrollbar-color: #586575 #11161c;
+}
+
+.tuning-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tuning-form fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid #333e49;
+  border-radius: 6px;
+  display: grid;
+  gap: 7px;
+}
+
+.tuning-form legend {
+  padding: 0 4px;
+  color: #f2f5f8;
+  font-size: 12px;
+}
+
+.range-control,
+.color-control,
+.select-control {
+  min-width: 0;
+  display: grid;
+  align-items: center;
+  gap: 6px;
+}
+
+.range-control {
+  grid-template-columns: 64px minmax(0, 1fr) 44px;
+}
+
+.color-control {
+  grid-template-columns: 64px 44px;
+}
+
+.select-control {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.range-control span,
+.color-control span,
+.select-control span {
+  min-width: 0;
+  overflow: hidden;
+  color: #bdc8d3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tuning-panel input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  accent-color: #9bbcff;
+}
+
+.tuning-panel input[type="color"] {
+  width: 38px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #404b58;
+  border-radius: 4px;
+  background: #11161c;
+}
+
+.tuning-panel select {
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  font-size: 12px;
+}
+
+.tuning-panel output {
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+}
+
+body.chrome-hidden .tuning-panel {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .toolbar {
+    left: 8px;
+    right: 8px;
+    top: 8px;
+    gap: 8px;
+    max-width: calc(100vw - 16px);
+  }
+
+  select {
+    min-width: 104px;
+  }
+
+  #backend-status {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+
+  .tuning-panel {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    max-height: 44vh;
+  }
+
+  .tuning-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

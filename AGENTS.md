@@ -43,7 +43,9 @@ runtime sockets, media stacks, or downstream app crates.
   frames, coordinate-map visuals, collider visuals, SDF slice visuals, and
   surface-field visual frames/sequences over Matter-owned field payloads,
   including planarian AP bioelectric visual sequences and renderer-neutral
-  planarian 3D pick/edit-intent contracts.
+  planarian 3D pick/edit-intent contracts. Optics also owns procedural stimulus
+  descriptors, safety/timing/run-plan contracts, kernel ABI descriptors, and
+  CPU reference samples; renderer adapters own shader source and GPU execution.
 - Renderer adapters own GPU buffers, shaders, draw calls, texture uploads,
   swapchains, platform frame lifecycle, and backend imports.
 - Lattice owns runtime-situated relation snapshots: reference spaces,
@@ -95,6 +97,19 @@ Current crate-root maps:
   and edit-feedback frame contracts for Planarian 3D renderer adapters.
 - `rusty-optics-particles/src/lib.rs`: facade over `animation`, `appearance`,
   `billboard`, `mask`, `projection`, `tests`, and `visual_frame`.
+- `rusty-optics-stimulus/src/lib.rs`: facade over `layers`, `noise`,
+  `oscillator`, `presentation`, `temporal`, `safety`, `kernel_abi`,
+  `run_plan`, `profile`, `cpu_reference`, and tests.
+- `web/stimulus-preview/app.js`: browser-development adapter that lowers a
+  `StimulusProfile` fixture to a full-screen WebGPU compute preview with a CPU
+  canvas fallback and bounded probe readouts. Keep Quest/OpenXR/Vulkan runtime
+  allocation and submission in future adapters, not this browser surface.
+- `web/stimulus-preview/tuning.js`: browser-development tuning translator for
+  compact hash presets, randomization, live control-panel edits, eccentricity
+  controls, flat-to-geometry transition state, global geometry-stack blend
+  controls, and per-layer oscillator banks. It may translate external preset
+  vocabulary into the Optics profile shape, but must not become core stimulus
+  authority or a Quest runtime dependency.
 - `rusty-optics-fixtures/src/main.rs`: dispatch-only binary over `cli`,
   `adf`, `error`, `fields`, `hand_mesh`, and `summary`.
 - `rusty-optics-schema/src/main.rs`: dispatch-only binary over `catalog`, `cli`,

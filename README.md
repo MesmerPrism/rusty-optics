@@ -32,13 +32,23 @@ The first source slices focus on visual particles and mesh diagnostics:
   Matter-owned recent edit events and affected targets;
 - coordinate-map, dynamic-collider, SDF-slice, and ADF debug visuals over
   Matter mesh/field payloads;
+- procedural stimulus profiles, layer graphs, oscillator bindings,
+  Perlin-style noise controls, ripple/interference controls, temporal gates,
+  research-use notice policies, full-screen stereo-eye presentation targets,
+  mobile-GPU-portable compute-capable kernel ABI descriptors, run-plan
+  quantization, and CPU reference samples for browser-development and
+  renderer-adapter handoff;
 - a browser preview that renders generated mesh debug JSON and, for animated
   hand-mesh sequences, drives realtime SDF/particle queries through the Matter
-  WebAssembly runtime without renderer backend imports.
+  WebAssembly runtime without renderer backend imports;
+- a browser-development stimulus preview that loads the same renderer-neutral
+  `StimulusProfile` fixture and lowers it to a full-screen WebGPU compute
+  field texture, with a bounded CPU canvas fallback when WebGPU is unavailable.
 
 Optics does not own particle simulation, mesh/SDF truth, tracked-space runtime
 state, downstream visual-driver bindings, shader source, GPU uploads,
-OpenXR/Vulkan/WebGL/Makepad integrations, or downstream product profiles.
+OpenXR/Vulkan/WebGL/Makepad integrations, procedural shader source, GPU field
+passes, or downstream product profiles.
 
 ## Hand Mesh Browser Preview
 
@@ -57,6 +67,38 @@ http://127.0.0.1:8791/web/hand-mesh-browser-preview/
 
 The preview consumes `fixtures/hand_mesh/hand_mesh_browser_debug_frame.json`.
 That JSON is renderer-neutral and can also feed a later renderer adapter.
+
+## Stimulus Browser Preview
+
+Start the full-screen procedural stimulus browser adapter:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Start-StimulusPreview.ps1
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8793/web/stimulus-preview/
+```
+
+The preview consumes `fixtures/stimulus/interference_preview_profile.json`.
+When WebGPU is available it generates the stimulus in a compute pass before
+drawing the field to a full-viewport canvas. The CPU fallback exists for
+browser capability gaps and contract validation only.
+The browser adapter also exposes a compact tuning panel for development:
+colors, oscillator gating, geometry transforms, eccentricity, noise/vignette
+controls, layer strength/frequency/speed, per-layer oscillator banks,
+flat-color-to-geometry transitions, geometry-stack blend modes, randomize/reset,
+and copyable hash links. It can translate compatible strobe-style preset hashes
+into local tuning state, then rebuild the normalized `StimulusProfile` used by
+the WebGPU and CPU preview paths.
+Use `Save` to keep browser-local presets during development. Use
+`Export Quest` to download a `rusty.optics.stimulus.quest_handoff.v1` JSON
+that contains the tuned renderer-neutral profile, browser tuning sidecar, and
+Quest Makepad effective-settings report. Downstream Quest tooling expands that
+single browser export into an app-private settings bundle with the Optics
+profile staged beside settings rather than embedded inside settings JSON.
 
 ## Surface Field Browser Preview
 
@@ -125,6 +167,12 @@ Matter triangle mesh as the visible source body, with the sampled node/edge
 graph overlaid as simulation state. Body, Nodes, and Edges are separate view
 controls in Planarian 3D mode; first-tier Edges default on so coupling and
 realtime activity are legible while tier-2 edges remain off by default.
+
+Planarian 3D export semantics are documented in
+`docs/PLANARIAN_3D_EXPORT.md`. The default showcase export is an Optics-owned
+visual loop over Matter-stepped synthetic educational dynamics, with stable
+portrait framing, opaque neon RGB rendering, exact output dimensions, and
+GIF/APNG encoding policy kept out of Matter.
 
 For animated hand-mesh sequence previews, build the Matter Wasm runtime into
 Optics local artifacts before launching:

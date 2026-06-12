@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rusty Optics Stimulus Preview</title>
+    <link rel="stylesheet" href="styles.css?v=tuning-5">
+  </head>
+  <body>
+    <main class="stimulus-shell">
+      <canvas id="stimulus-canvas" aria-label="Procedural stimulus preview"></canvas>
+      <form id="toolbar" class="toolbar" autocomplete="off">
+        <label>
+          Profile
+          <select id="profile-select">
+            <option value="/fixtures/stimulus/interference_preview_profile.json" selected>Interference</option>
+          </select>
+        </label>
+        <label><input id="temporal-gate" type="checkbox"> Gate</label>
+        <label>
+          Rate
+          <select id="time-scale">
+            <option value="0.25">0.25x</option>
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+          </select>
+        </label>
+        <button id="toggle-run" type="button">Pause</button>
+        <button id="randomize-tuning" type="button">Randomize</button>
+        <button id="reset-tuning" type="button">Reset</button>
+        <label>
+          Saved
+          <select id="saved-preset-select">
+            <option value="" selected>None</option>
+          </select>
+        </label>
+        <button id="save-preset" type="button">Save</button>
+        <button id="load-preset" type="button">Load</button>
+        <button id="export-quest" type="button">Export Quest</button>
+        <button id="copy-link" type="button">Copy Link</button>
+        <button id="toggle-chrome" type="button">Hide UI</button>
+        <button id="enter-fullscreen" type="button">Fullscreen</button>
+        <output id="backend-status">loading</output>
+        <output id="probe-status">probe pending</output>
+      </form>
+      <aside id="tuning-panel" class="tuning-panel" aria-label="Stimulus tuning controls">
+        <div id="tuning-controls"></div>
+      </aside>
+    </main>
+    <script type="module" src="app.js?v=tuning-5"></script>
+  </body>
+</html>

@@ -9,6 +9,10 @@ const NODE_SURFACE_OFFSET_SCALE = 0.16;
 const NODE_POINT_SIZE_SCALE = 0.78;
 const SURFACE_COLOR_INFLUENCE_COUNT = 5;
 const SURFACE_COLOR_DISTANCE_EPSILON = 1.0e-5;
+const SURFACE_COLOR_CELL_SIZE_SCALE = 1.25;
+const DEFAULT_CAMERA_YAW = -2.05;
+const DEFAULT_CAMERA_PITCH = 0.82;
+const DEFAULT_CAMERA_DISTANCE_SCALE = 1.55;
 
 export async function createPlanarianBioelectric3DView(options) {
   setPlanarian3DAdapterStage(options.container, "import-three");
@@ -36,6 +40,11 @@ class PlanarianBioelectric3DView {
     this.getViewRevision = options.getViewRevision || (() => null);
     this.onSelectNode = options.onSelectNode || (() => {});
     this.onSelectEdge = options.onSelectEdge || (() => {});
+    this.colorPalette = options.colorPalette || "neon-rgb";
+    this.container.dataset.planarian3dColorPalette = this.colorPalette;
+    this.bodyMaterialMode = "opaque";
+    this.container.dataset.planarian3dBodyMaterialMode = this.bodyMaterialMode;
+    this.captureOverride = null;
     this.nodes = [];
     this.edges = [];
     this.edgeGroups = [];
@@ -48,8 +57,8 @@ class PlanarianBioelectric3DView {
     this.showEdges = true;
     this.showNodes = true;
     this.pointer = null;
-    this.yaw = -0.42;
-    this.pitch = 0.42;
+    this.yaw = DEFAULT_CAMERA_YAW;
+    this.pitch = DEFAULT_CAMERA_PITCH;
     this.distance = 1;
     this.target = new this.THREE.Vector3();
     this.mouse = new this.THREE.Vector2();
@@ -168,7 +177,7 @@ class PlanarianBioelectric3DView {
 
     this.bounds = computeBounds(this.THREE, bodyVertices, this.nodes);
     this.target.copy(this.bounds.center);
-    this.distance = Math.max(0.001, this.bounds.radius * 1.55);
+    this.distance = Math.max(0.001, this.bounds.radius * DEFAULT_CAMERA_DISTANCE_SCALE);
     this.nodeRadius = Math.max(0.006, this.bounds.radius * 0.018);
     this.nodeSurfaceOffsetDistance = this.nodeRadius * NODE_SURFACE_OFFSET_SCALE;
     for (const node of this.nodes) {
@@ -185,6 +194,7 @@ class PlanarianBioelectric3DView {
 
   precomputeSurfaceColorInfluences() {
     setPlanarian3DAdapterStage(this.container, "precompute-surface-colors");
+    const startedAt = performance.now();
     this.surfaceColorInfluenceCount = Math.max(
       1,
       Math.min(SURFACE_COLOR_INFLUENCE_COUNT, this.nodes.length),
@@ -195,6 +205,16 @@ class PlanarianBioelectric3DView {
     const weights = new Float32Array(this.bodyVertexCount * k);
     const bestIndices = new IndexArray(k);
     const bestDistances = new Float32Array(k);
+    const spatialIndex = buildSurfaceNodeSpatialIndex(
+      this.nodes,
+      this.bounds,
+      surfaceColorCellSize(this.bounds, this.nodes.length),
+    );
+    const spatialStats = {
+      candidateTests: 0,
+      fallbackCount: 0,
+      maxSearchRing: 0,
+    };
 
     for (let vertexIndex = 0; vertexIndex < this.bodyVertexCount; vertexIndex += 1) {
       bestDistances.fill(Number.POSITIVE_INFINITY);
@@ -202,18 +222,15 @@ class PlanarianBioelectric3DView {
       const vx = this.bodyVertices[vertexOffset];
       const vy = this.bodyVertices[vertexOffset + 1];
       const vz = this.bodyVertices[vertexOffset + 2];
-      for (const node of this.nodes) {
-        const dx = vx - node.position.x;
-        const dy = vy - node.position.y;
-        const dz = vz - node.position.z;
-        const distanceSquared = dx * dx + dy * dy + dz * dz;
-        insertNearestSurfaceNode(
-          bestIndices,
-          bestDistances,
-          node.nodeIndex,
-          distanceSquared,
-        );
-      }
+      insertNearestSurfaceNodesFromSpatialIndex(
+        spatialIndex,
+        bestIndices,
+        bestDistances,
+        vx,
+        vy,
+        vz,
+        spatialStats,
+      );
 
       const influenceOffset = vertexIndex * k;
       const exactSlot = firstExactDistanceSlot(bestDistances);
@@ -242,6 +259,12 @@ class PlanarianBioelectric3DView {
     this.surfaceColorNodeWeights = weights;
     this.container.dataset.surfaceFieldProjection = "nearest_node_weights";
     this.container.dataset.surfaceFieldInfluenceCount = String(k);
+    this.container.dataset.surfaceFieldProjectionAcceleration = "spatial_hash";
+    this.container.dataset.surfaceFieldProjectionCellSize = String(spatialIndex.cellSize);
+    this.container.dataset.surfaceFieldProjectionCandidateTests = String(spatialStats.candidateTests);
+    this.container.dataset.surfaceFieldProjectionFallbacks = String(spatialStats.fallbackCount);
+    this.container.dataset.surfaceFieldProjectionMaxRing = String(spatialStats.maxSearchRing);
+    this.container.dataset.surfaceFieldProjectionMs = String(Math.round(performance.now() - startedAt));
   }
 
   createScene() {
@@ -249,7 +272,7 @@ class PlanarianBioelectric3DView {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0c0f14);
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.001, this.bounds.radius * 18);
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setClearColor(0x0c0f14, 1);
     this.container.innerHTML = "";
@@ -286,8 +309,8 @@ class PlanarianBioelectric3DView {
       vertexColors: true,
       roughness: 0.68,
       metalness: 0.02,
-      transparent: true,
-      opacity: 0.88,
+      transparent: false,
+      opacity: 1.0,
       side: THREE.DoubleSide,
     });
     this.bodyMesh = new THREE.Mesh(geometry, material);
@@ -493,6 +516,8 @@ class PlanarianBioelectric3DView {
 
   updateSnapshot(snapshot, conductanceValues, layer, activityValues = null) {
     this.snapshot = snapshot;
+    this.conductanceValues = conductanceValues;
+    this.currentLayer = layer;
     this.activityValues = activityValues;
     this.updateActivityDataset(activityValues);
     this.updateBodySurfaceColors(layer);
@@ -527,7 +552,7 @@ class PlanarianBioelectric3DView {
     }
     for (let nodeIndex = 0; nodeIndex < this.nodes.length; nodeIndex += 1) {
       const value = snapshotValue(this.snapshot, this.activityValues, nodeIndex, layer);
-      colorForLayer(this.THREE, this.nodeColor, layer, value);
+      colorForLayer(this.THREE, this.nodeColor, layer, value, this.colorPalette);
       const offset = nodeIndex * 3;
       this.nodeColors[offset] = this.nodeColor.r;
       this.nodeColors[offset + 1] = this.nodeColor.g;
@@ -553,7 +578,7 @@ class PlanarianBioelectric3DView {
         const weight = this.surfaceColorNodeWeights[influenceOffset + slot];
         value += nodeValues[nodeIndex] * weight;
       }
-      colorForLayer(this.THREE, this.bodyColor, layer, value);
+      colorForLayer(this.THREE, this.bodyColor, layer, value, this.colorPalette);
       const colorOffset = vertexIndex * 3;
       this.bodyColorArray[colorOffset] = this.bodyColor.r;
       this.bodyColorArray[colorOffset + 1] = this.bodyColor.g;
@@ -591,7 +616,7 @@ class PlanarianBioelectric3DView {
         const edgeIndex = group.edgeIndices[localIndex];
         const conductance = values[edgeIndex * CONDUCTANCE_STRIDE + 1];
         const normalized = clamp(conductance / maxConductance, 0, 1);
-        const color = conductanceColor(this.THREE, normalized, group.tier);
+        const color = conductanceColor(this.THREE, normalized, group.tier, this.colorPalette);
         const colorOffset = localIndex * 6;
         group.colorArray[colorOffset] = color.r;
         group.colorArray[colorOffset + 1] = color.g;
@@ -622,7 +647,7 @@ class PlanarianBioelectric3DView {
       ];
     return samples.map((sample) => {
       const color = new this.THREE.Color();
-      colorForLayer(this.THREE, color, layer, sample.value);
+      colorForLayer(this.THREE, color, layer, sample.value, this.colorPalette);
       return {
         ...sample,
         color: `#${color.getHexString()}`,
@@ -632,7 +657,7 @@ class PlanarianBioelectric3DView {
 
   conductanceLegendSamples(tier = 1) {
     return [0, 0.25, 0.5, 0.75, 1].map((value) => {
-      const color = conductanceColor(this.THREE, value, tier);
+      const color = conductanceColor(this.THREE, value, tier, this.colorPalette);
       return {
         value,
         label: value === 0 ? "0" : value.toFixed(2),
@@ -663,6 +688,148 @@ class PlanarianBioelectric3DView {
     this.container.dataset.nodesVisible = String(this.showNodes);
     this.container.dataset.edgesVisible = String(this.showEdges);
     this.container.dataset.tier2Visible = String(this.showEdges && Boolean(showTier2));
+  }
+
+  setColorPalette(palette) {
+    const nextPalette = palette === "neon-rgb" ? "neon-rgb" : "teaching";
+    if (this.colorPalette === nextPalette) {
+      return;
+    }
+    this.colorPalette = nextPalette;
+    if (this.snapshot) {
+      const layer = this.currentLayer || "circuit.voltage";
+      this.updateBodySurfaceColors(layer);
+      this.updateNodeColors(layer);
+    }
+    if (this.conductanceValues) {
+      this.updateConductanceColors(this.conductanceValues);
+    }
+    this.container.dataset.planarian3dColorPalette = this.colorPalette;
+  }
+
+  setBodyMaterialMode(mode) {
+    const nextMode = mode === "boosted" ? "boosted" : "opaque";
+    if (this.bodyMaterialMode === nextMode) {
+      return;
+    }
+    this.bodyMaterialMode = nextMode;
+    if (this.bodyMesh?.material) {
+      const material = this.bodyMesh.material;
+      material.transparent = false;
+      material.opacity = 1.0;
+      material.depthWrite = true;
+      material.emissive?.setHex(nextMode === "boosted" ? 0x181a2a : 0x000000);
+      if ("emissiveIntensity" in material) {
+        material.emissiveIntensity = nextMode === "boosted" ? 0.16 : 0.0;
+      }
+      material.needsUpdate = true;
+    }
+    this.container.dataset.planarian3dBodyMaterialMode = this.bodyMaterialMode;
+    this.render();
+  }
+
+  getCameraPose() {
+    return {
+      yaw: this.yaw,
+      pitch: this.pitch,
+      distance: this.distance,
+      distance_scale: this.distance / Math.max(0.001, this.bounds.radius),
+    };
+  }
+
+  getDefaultCameraPose() {
+    return {
+      yaw: DEFAULT_CAMERA_YAW,
+      pitch: DEFAULT_CAMERA_PITCH,
+      distance_scale: DEFAULT_CAMERA_DISTANCE_SCALE,
+    };
+  }
+
+  setDefaultCameraPose() {
+    this.setCameraPose(this.getDefaultCameraPose());
+  }
+
+  setCameraPose(pose = {}) {
+    if (Number.isFinite(pose.yaw)) {
+      this.yaw = pose.yaw;
+    }
+    if (Number.isFinite(pose.pitch)) {
+      this.pitch = clamp(pose.pitch, -1.12, 1.12);
+    }
+    if (Number.isFinite(pose.distance)) {
+      this.distance = clamp(pose.distance, this.bounds.radius * 0.85, this.bounds.radius * 8);
+    } else if (Number.isFinite(pose.distance_scale)) {
+      this.distance = clamp(
+        this.bounds.radius * pose.distance_scale,
+        this.bounds.radius * 0.85,
+        this.bounds.radius * 8,
+      );
+    }
+    this.render();
+  }
+
+  beginFrameCapture(options = {}) {
+    if (!this.renderer || !this.camera) {
+      return null;
+    }
+    const width = Math.max(1, Math.trunc(options.width || this.renderer.domElement.width));
+    const height = Math.max(1, Math.trunc(options.height || this.renderer.domElement.height));
+    const maxTextureSize = Math.trunc(this.renderer.capabilities?.maxTextureSize || 0);
+    if (maxTextureSize > 0 && (width > maxTextureSize || height > maxTextureSize)) {
+      throw new Error(`Planarian 3D export size ${width}x${height} exceeds WebGL max texture size ${maxTextureSize}`);
+    }
+    const size = this.renderer.getSize(new this.THREE.Vector2());
+    const state = {
+      pixelRatio: this.renderer.getPixelRatio(),
+      width: size.x,
+      height: size.y,
+      aspect: this.camera.aspect,
+      captureOverride: this.captureOverride,
+    };
+    this.captureOverride = { width, height };
+    this.renderer.setPixelRatio(1);
+    this.renderer.setSize(width, height, false);
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+    return state;
+  }
+
+  endFrameCapture(state) {
+    if (!state || !this.renderer || !this.camera) {
+      return;
+    }
+    this.captureOverride = state.captureOverride || null;
+    this.renderer.setPixelRatio(state.pixelRatio);
+    this.renderer.setSize(state.width, state.height, false);
+    this.camera.aspect = state.aspect;
+    this.camera.updateProjectionMatrix();
+    this.render();
+  }
+
+  captureFrame(options = {}) {
+    let captureState = null;
+    if (!this.captureOverride && (options.width || options.height)) {
+      captureState = this.beginFrameCapture(options);
+    }
+    try {
+      this.render();
+      const source = this.renderer.domElement;
+      const width = Math.max(1, Math.trunc(options.width || source.width));
+      const height = Math.max(1, Math.trunc(options.height || source.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) {
+        throw new Error("Planarian 3D export could not create a 2D capture context");
+      }
+      context.drawImage(source, 0, 0, width, height);
+      return context.getImageData(0, 0, width, height);
+    } finally {
+      if (captureState) {
+        this.endFrameCapture(captureState);
+      }
+    }
   }
 
   updateEditHighlights(targets) {
@@ -897,9 +1064,44 @@ class PlanarianBioelectric3DView {
     if (!this.renderer) {
       return;
     }
-    this.resize();
+    if (this.captureOverride) {
+      const { width, height } = this.captureOverride;
+      if (this.renderer.domElement.width !== width || this.renderer.domElement.height !== height) {
+        this.renderer.setSize(width, height, false);
+      }
+      if (this.camera.aspect !== width / height) {
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
+      }
+    } else {
+      this.resize();
+    }
     this.updateCamera();
+    this.updateCameraDataset();
     this.renderer.render(this.scene, this.camera);
+  }
+
+  dispose() {
+    if (this.scene) {
+      this.scene.traverse((object) => {
+        object.geometry?.dispose?.();
+        const materials = Array.isArray(object.material)
+          ? object.material
+          : [object.material].filter(Boolean);
+        for (const material of materials) {
+          for (const value of Object.values(material)) {
+            if (value?.isTexture) {
+              value.dispose();
+            }
+          }
+          material.dispose?.();
+        }
+      });
+    }
+    this.renderer?.dispose?.();
+    this.container.replaceChildren();
+    this.renderer = null;
+    this.scene = null;
   }
 
   resize() {
@@ -922,6 +1124,15 @@ class PlanarianBioelectric3DView {
       this.target.z + Math.cos(this.yaw) * cosPitch * this.distance,
     );
     this.camera.lookAt(this.target);
+  }
+
+  updateCameraDataset() {
+    this.container.dataset.planarian3dCameraYaw = String(this.yaw);
+    this.container.dataset.planarian3dCameraPitch = String(this.pitch);
+    this.container.dataset.planarian3dCameraDistance = String(this.distance);
+    this.container.dataset.planarian3dCameraDistanceScale = String(
+      this.distance / Math.max(0.001, this.bounds.radius),
+    );
   }
 }
 
@@ -949,6 +1160,166 @@ function computeBounds(THREE, vertices, nodes) {
     center,
     radius: Math.max(size.x, size.y, size.z, 0.001),
   };
+}
+
+function surfaceColorCellSize(bounds, nodeCount) {
+  const densityScale = Math.cbrt(Math.max(1, nodeCount));
+  return Math.max(
+    0.001,
+    (bounds.radius / densityScale) * SURFACE_COLOR_CELL_SIZE_SCALE,
+  );
+}
+
+function buildSurfaceNodeSpatialIndex(nodes, bounds, cellSize) {
+  const buckets = new Map();
+  const invCellSize = 1 / cellSize;
+  let minCellX = Number.POSITIVE_INFINITY;
+  let minCellY = Number.POSITIVE_INFINITY;
+  let minCellZ = Number.POSITIVE_INFINITY;
+  let maxCellX = Number.NEGATIVE_INFINITY;
+  let maxCellY = Number.NEGATIVE_INFINITY;
+  let maxCellZ = Number.NEGATIVE_INFINITY;
+
+  for (const node of nodes) {
+    const cellX = surfaceNodeCellCoordinate(node.position.x, bounds.min.x, invCellSize);
+    const cellY = surfaceNodeCellCoordinate(node.position.y, bounds.min.y, invCellSize);
+    const cellZ = surfaceNodeCellCoordinate(node.position.z, bounds.min.z, invCellSize);
+    const key = surfaceNodeCellKey(cellX, cellY, cellZ);
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = [];
+      buckets.set(key, bucket);
+    }
+    bucket.push(node);
+    minCellX = Math.min(minCellX, cellX);
+    minCellY = Math.min(minCellY, cellY);
+    minCellZ = Math.min(minCellZ, cellZ);
+    maxCellX = Math.max(maxCellX, cellX);
+    maxCellY = Math.max(maxCellY, cellY);
+    maxCellZ = Math.max(maxCellZ, cellZ);
+  }
+
+  return {
+    nodes,
+    buckets,
+    origin: bounds.min,
+    cellSize,
+    invCellSize,
+    minCellX,
+    minCellY,
+    minCellZ,
+    maxCellX,
+    maxCellY,
+    maxCellZ,
+  };
+}
+
+function insertNearestSurfaceNodesFromSpatialIndex(
+  spatialIndex,
+  bestIndices,
+  bestDistances,
+  vx,
+  vy,
+  vz,
+  stats,
+) {
+  const cellX = surfaceNodeCellCoordinate(vx, spatialIndex.origin.x, spatialIndex.invCellSize);
+  const cellY = surfaceNodeCellCoordinate(vy, spatialIndex.origin.y, spatialIndex.invCellSize);
+  const cellZ = surfaceNodeCellCoordinate(vz, spatialIndex.origin.z, spatialIndex.invCellSize);
+  const maxSearchRing = Math.max(
+    Math.abs(cellX - spatialIndex.minCellX),
+    Math.abs(cellX - spatialIndex.maxCellX),
+    Math.abs(cellY - spatialIndex.minCellY),
+    Math.abs(cellY - spatialIndex.maxCellY),
+    Math.abs(cellZ - spatialIndex.minCellZ),
+    Math.abs(cellZ - spatialIndex.maxCellZ),
+    0,
+  );
+  const k = bestDistances.length;
+  let ring = 0;
+
+  for (; ring <= maxSearchRing; ring += 1) {
+    const minX = cellX - ring;
+    const maxX = cellX + ring;
+    const minY = cellY - ring;
+    const maxY = cellY + ring;
+    const minZ = cellZ - ring;
+    const maxZ = cellZ + ring;
+    for (let queryX = minX; queryX <= maxX; queryX += 1) {
+      for (let queryY = minY; queryY <= maxY; queryY += 1) {
+        for (let queryZ = minZ; queryZ <= maxZ; queryZ += 1) {
+          if (
+            queryX !== minX && queryX !== maxX
+            && queryY !== minY && queryY !== maxY
+            && queryZ !== minZ && queryZ !== maxZ
+          ) {
+            continue;
+          }
+          const bucket = spatialIndex.buckets.get(surfaceNodeCellKey(queryX, queryY, queryZ));
+          if (!bucket) {
+            continue;
+          }
+          for (const node of bucket) {
+            const dx = vx - node.position.x;
+            const dy = vy - node.position.y;
+            const dz = vz - node.position.z;
+            const distanceSquared = dx * dx + dy * dy + dz * dz;
+            stats.candidateTests += 1;
+            insertNearestSurfaceNode(
+              bestIndices,
+              bestDistances,
+              node.nodeIndex,
+              distanceSquared,
+            );
+          }
+        }
+      }
+    }
+
+    if (
+      Number.isFinite(bestDistances[k - 1])
+      && searchedCellExteriorDistanceSquared(spatialIndex, cellX, cellY, cellZ, ring, vx, vy, vz) >= bestDistances[k - 1]
+    ) {
+      break;
+    }
+  }
+
+  stats.maxSearchRing = Math.max(stats.maxSearchRing, ring);
+  if (Number.isFinite(bestDistances[k - 1])) {
+    return;
+  }
+
+  stats.fallbackCount += 1;
+  bestDistances.fill(Number.POSITIVE_INFINITY);
+  for (const node of spatialIndex.nodes) {
+    const dx = vx - node.position.x;
+    const dy = vy - node.position.y;
+    const dz = vz - node.position.z;
+    const distanceSquared = dx * dx + dy * dy + dz * dz;
+    stats.candidateTests += 1;
+    insertNearestSurfaceNode(bestIndices, bestDistances, node.nodeIndex, distanceSquared);
+  }
+}
+
+function searchedCellExteriorDistanceSquared(spatialIndex, cellX, cellY, cellZ, ring, vx, vy, vz) {
+  const minX = spatialIndex.origin.x + (cellX - ring) * spatialIndex.cellSize;
+  const maxX = spatialIndex.origin.x + (cellX + ring + 1) * spatialIndex.cellSize;
+  const minY = spatialIndex.origin.y + (cellY - ring) * spatialIndex.cellSize;
+  const maxY = spatialIndex.origin.y + (cellY + ring + 1) * spatialIndex.cellSize;
+  const minZ = spatialIndex.origin.z + (cellZ - ring) * spatialIndex.cellSize;
+  const maxZ = spatialIndex.origin.z + (cellZ + ring + 1) * spatialIndex.cellSize;
+  const dx = Math.min(Math.abs(vx - minX), Math.abs(maxX - vx));
+  const dy = Math.min(Math.abs(vy - minY), Math.abs(maxY - vy));
+  const dz = Math.min(Math.abs(vz - minZ), Math.abs(maxZ - vz));
+  return Math.min(dx * dx, dy * dy, dz * dz);
+}
+
+function surfaceNodeCellCoordinate(value, origin, invCellSize) {
+  return Math.floor((value - origin) * invCellSize);
+}
+
+function surfaceNodeCellKey(cellX, cellY, cellZ) {
+  return `${cellX},${cellY},${cellZ}`;
 }
 
 function insertNearestSurfaceNode(bestIndices, bestDistances, nodeIndex, distanceSquared) {
@@ -1007,31 +1378,38 @@ function snapshotValue(snapshot, activityValues, nodeIndex, layer) {
   return snapshot[offset];
 }
 
-function colorForLayer(THREE, color, layer, value) {
+function colorForLayer(THREE, color, layer, value, palette = "neon-rgb") {
   if (layer === "circuit.activity") {
-    return vividTeachingRampColor(color, value);
+    return rampColor(color, value, palette);
   }
   if (layer === "circuit.memory") {
-    return vividTeachingRampColor(color, value);
+    return rampColor(color, value, palette);
   }
   if (layer.includes("head_identity")) {
-    return vividTeachingRampColor(color, value);
+    return rampColor(color, value, palette);
   }
   if (layer.includes("tail_identity")) {
-    return vividTeachingRampColor(color, value);
+    return rampColor(color, value, palette);
   }
-  return vividTeachingRampColor(color, (value + 1) * 0.5);
+  return rampColor(color, (value + 1) * 0.5, palette);
 }
 
-function conductanceColor(THREE, normalized, tier) {
+function conductanceColor(THREE, normalized, tier, palette = "neon-rgb") {
   const color = new THREE.Color();
-  vividTeachingRampColor(color, normalized);
+  rampColor(color, normalized, palette);
   if (tier === 1) {
     color.multiplyScalar(0.88);
   } else {
     color.multiplyScalar(0.48);
   }
   return color;
+}
+
+function rampColor(color, value, palette) {
+  if (palette === "neon-rgb") {
+    return neonRgbRampColor(color, value);
+  }
+  return vividTeachingRampColor(color, value);
 }
 
 function vividTeachingRampColor(color, value) {
@@ -1042,6 +1420,34 @@ function vividTeachingRampColor(color, value) {
     { t: 0.68, r: 1.00, g: 0.80, b: 0.27 },
     { t: 0.83, r: 1.00, g: 0.56, b: 0.34 },
     { t: 1.0, r: 0.94, g: 0.24, b: 0.58 },
+  ];
+  const t = clamp(value, 0, 1);
+  for (let index = 0; index < stops.length - 1; index += 1) {
+    const start = stops[index];
+    const end = stops[index + 1];
+    if (t <= end.t) {
+      const u = (t - start.t) / Math.max(1.0e-6, end.t - start.t);
+      color.setRGB(
+        start.r + (end.r - start.r) * u,
+        start.g + (end.g - start.g) * u,
+        start.b + (end.b - start.b) * u,
+      );
+      return color;
+    }
+  }
+  const last = stops[stops.length - 1];
+  color.setRGB(last.r, last.g, last.b);
+  return color;
+}
+
+function neonRgbRampColor(color, value) {
+  const stops = [
+    { t: 0.00, r: 0.00, g: 0.02, b: 1.00 },
+    { t: 0.22, r: 0.00, g: 0.52, b: 1.00 },
+    { t: 0.42, r: 0.00, g: 1.00, b: 0.08 },
+    { t: 0.58, r: 0.16, g: 1.00, b: 0.00 },
+    { t: 0.72, r: 1.00, g: 0.06, b: 0.00 },
+    { t: 1.00, r: 1.00, g: 0.00, b: 0.16 },
   ];
   const t = clamp(value, 0, 1);
   for (let index = 0; index < stops.length - 1; index += 1) {

@@ -5,6 +5,7 @@ members = [
     "crates/rusty-optics-model",
     "crates/rusty-optics-particles",
     "crates/rusty-optics-schema",
+    "crates/rusty-optics-stimulus",
 ]
 resolver = "2"
 
