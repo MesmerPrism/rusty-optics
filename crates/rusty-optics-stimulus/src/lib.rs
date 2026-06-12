@@ -12,6 +12,9 @@ mod safety;
 mod temporal;
 #[cfg(test)]
 mod tests;
+mod volume;
+mod volume_cpu_reference;
+mod volume_probe;
 
 pub use cpu_reference::*;
 pub use kernel_abi::*;
@@ -23,3 +26,6 @@ pub use profile::*;
 pub use run_plan::*;
 pub use safety::*;
 pub use temporal::*;
+pub use volume::*;
+pub use volume_cpu_reference::*;
+pub use volume_probe::*;

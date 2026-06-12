@@ -24,6 +24,13 @@ source, GPU passes, Vulkan/WebGPU
 resources, study defaults, and headset runtime behavior remain outside Optics
 core.
 
+`fixtures/stimulus/volume_interference_preview_profile.json` is the first
+generated volume-field proof fixture. It reuses the clean-room layer graph and
+adds a bounded procedural 3D volume descriptor, storage-buffer hint, 32^3
+nominal grid, 32-step CPU reference policy, volume readback probe pass, and
+low-resolution stereo volume-field pass. It is not Matter SDF/ADF truth and
+does not claim Quest GPU readiness.
+
 ## Hand Mesh Browser Debug Frame
 
 `fixtures/hand_mesh/hand_mesh_browser_debug_frame.json` is a renderer-neutral

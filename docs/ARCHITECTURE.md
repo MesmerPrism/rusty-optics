@@ -32,8 +32,9 @@ Optics owns:
 - procedural stimulus profiles, layer graphs, layer-local oscillator bindings,
   Perlin-style noise controls, ripple/interference source controls, temporal
   gating profiles, research-use notice policies, full-screen stereo-eye
-  presentation targets, mobile-GPU-portable compute-capable kernel ABI
-  descriptors, display-cadence run plans, and CPU reference samples;
+  presentation targets, bounded stimulus volume descriptors,
+  mobile-GPU-portable compute-capable kernel ABI descriptors, display-cadence
+  run plans, and CPU reference samples;
 - renderer-neutral diagnostics for visual payloads.
 
 Optics does not own:
@@ -138,6 +139,13 @@ or mandatory fp16 storage. A Quest adapter may prefer fp16 formats when
 available but must provide an adapter-level fallback or rejection receipt when
 a requested texture format is unsupported.
 
+Stimulus volume descriptors are renderer-neutral proof contracts. Optics can
+describe a procedural 3D layer-stack density, dense scalar grid, dense SDF
+grid, or indexed ADF grid plus storage hints and bounded step/readback policy.
+Matter still owns semantic SDF/ADF/particle-force truth when the volume comes
+from simulation or geometry. Quest/Makepad adapters own Vulkan storage buffers,
+3D images, descriptors, barriers, queue submission, and headset evidence.
+
 The primary XR presentation target for procedural stimuli is a full-screen
 `StereoEyeField`: the adapter generates the requested field texture and submits
 it to both eye views, preferably through an XR composition layer when the
@@ -195,8 +203,9 @@ feedback-frame shape, live stats, and the Matter-exported GLB-derived
   deterministic pattern controls, Perlin-style fBm noise, ripple/interference
   fields, layer-local oscillators, temporal gates, externally governed
   research-protocol metadata, full-screen stereo-eye presentation targets,
-  mobile-GPU-portable compute-pass ABI requirements, display-cadence run plans,
-  and small CPU reference samples;
+  bounded volume descriptors and CPU volume probes, mobile-GPU-portable
+  compute-pass ABI requirements, display-cadence run plans, and small CPU
+  reference samples;
 - browser-development stimulus adapter that loads the same profile fixture,
   validates the `StereoEyeField` presentation contract, lowers layer/noise/
   interference descriptors into a WebGPU compute field texture when available,
@@ -290,8 +299,14 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
   notice policies and temporal cross-checks.
 - `rusty-optics-stimulus/src/kernel_abi.rs`: renderer-neutral procedural
   stimulus kernel capability descriptors, including compute pass, field
-  texture, history, noise-cache, bounded-readback, and mobile GPU portability
-  metadata.
+  texture, history, noise-cache, bounded-readback, volume-readback,
+  volume-stereo-field, and mobile GPU portability metadata.
+- `rusty-optics-stimulus/src/volume.rs`: bounded renderer-neutral stimulus
+  volume descriptors, storage hints, grid bounds, step policy, and validation.
+- `rusty-optics-stimulus/src/volume_probe.rs`: vec4-aligned deterministic
+  volume probe ray and readback output records.
+- `rusty-optics-stimulus/src/volume_cpu_reference.rs`: CPU reference sampler
+  for bounded volume probe rays over the procedural layer stack.
 - `rusty-optics-stimulus/src/run_plan.rs`: display-refresh frame quantization
   for stimulus timing.
 - `rusty-optics-stimulus/src/profile.rs`: complete procedural stimulus profile
@@ -299,6 +314,8 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
 - `rusty-optics-stimulus/src/cpu_reference.rs`: small deterministic CPU
   sampler for fixtures and scorecards.
 - `rusty-optics-fixtures/src/main.rs`: dispatch-only fixture CLI.
+- `rusty-optics-fixtures/src/stimulus.rs`: generated procedural stimulus
+  volume preview profile fixture.
 - `rusty-optics-fixtures/src/hand_mesh.rs`: deterministic hand-validation mesh
   debug fixture using Matter mesh, coordinate, collider, and SDF APIs.
 - `web/hand-mesh-browser-preview/realtime-sdf.js`: browser preview adapter for

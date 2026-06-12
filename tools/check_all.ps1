@@ -24,6 +24,7 @@ try {
     Invoke-Checked "ADF debug fixture check" "cargo" @("run", "-p", "rusty-optics-fixtures", "--", "export-adf-debug", "--check")
     Invoke-Checked "hand mesh browser fixture check" "cargo" @("run", "-p", "rusty-optics-fixtures", "--", "export-hand-mesh-browser", "--check")
     Invoke-Checked "surface field preview fixture check" "cargo" @("run", "-p", "rusty-optics-fixtures", "--", "export-surface-field-preview", "--check")
+    Invoke-Checked "stimulus volume preview fixture check" "cargo" @("run", "-p", "rusty-optics-fixtures", "--", "export-stimulus-volume-preview", "--check")
     Invoke-Checked "schema export check" "cargo" @("run", "-p", "rusty-optics-schema", "--", "export", "--check")
     Invoke-Checked "Optics boundary scan" "python" @("tools\check_optics_boundaries.py")
 } finally {

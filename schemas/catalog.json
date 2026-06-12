@@ -167,6 +167,11 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.optics.stimulus.volume.v1",
+      "owner": "rusty-optics",
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.optics.stimulus.run_plan.v1",
       "owner": "rusty-optics",
       "status": "foundation"

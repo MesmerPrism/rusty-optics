@@ -5,6 +5,7 @@ mod cli;
 mod error;
 mod fields;
 mod hand_mesh;
+mod stimulus;
 mod summary;
 
 use std::process::ExitCode;

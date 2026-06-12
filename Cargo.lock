@@ -102,6 +102,7 @@ dependencies = [
  "rusty-optics-mesh",
  "rusty-optics-model",
  "rusty-optics-particles",
+ "rusty-optics-stimulus",
  "serde",
  "serde_json",
 ]

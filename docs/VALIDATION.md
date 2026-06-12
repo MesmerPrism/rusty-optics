@@ -16,8 +16,8 @@ The check runs:
 - projection geometry and source-valid footprint unit tests
 - procedural stimulus profile, research-protocol notice policy, full-screen
   stereo-eye presentation, run-plan, oscillator, Perlin-style noise,
-  compute-pass ABI, mobile portability, seeded sampler, and CPU reference unit
-  tests
+  compute-pass ABI, bounded volume descriptors, deterministic volume probes,
+  mobile portability, seeded sampler, and CPU reference unit tests
 - schema catalog validation
 - Optics boundary scan
 
@@ -59,6 +59,18 @@ or the live Planarian 3D view for Matter-Wasm-backed scenario switching,
 node/edge picking, GLB triangle-anchor readout, Matter-exported node activity
 coloring, and edit-intent requests.
 
+The stimulus volume preview fixture is regenerated with:
+
+```powershell
+cargo run -p rusty-optics-fixtures -- export-stimulus-volume-preview
+```
+
+That command writes
+`fixtures/stimulus/volume_interference_preview_profile.json`, a generated
+Optics profile carrying a bounded procedural volume descriptor and volume
+compute-pass ABI. It is a CPU/WebGPU/Quest-adapter proof fixture, not Matter
+field truth and not a production GPU-readiness claim.
+
 The procedural stimulus browser preview is launched with:
 
 ```powershell
@@ -70,6 +82,13 @@ checking that the page reports a loaded backend, and confirming the bounded
 probe range is non-flat. WebGPU-capable browsers should report `webgpu
 compute`; other browsers may report `cpu canvas` while still proving fixture
 loading and full-screen presentation wiring.
+When opened with
+`/fixtures/stimulus/volume_interference_preview_profile.json`, the same status
+line should include `vol hits/samples alpha-min-alpha-max` and, on WebGPU
+browsers, `vgpu hits/samples e<maxAbsError>`. That browser summary validates
+profile adoption plus CPU/WebGPU bounded volume-probe parity. It does not claim
+Quest Vulkan volume parity until the Makepad/Hostess adapter emits the same
+bounded readback evidence on headset.
 For tuning work, also verify that the control panel appears when chrome is
 visible, `Randomize` changes the probe/hashable tuning state, `Reset` restores
 the default profile-derived tuning, `Copy Link` places a hash URL in the

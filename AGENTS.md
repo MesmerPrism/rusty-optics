@@ -99,7 +99,8 @@ Current crate-root maps:
   `billboard`, `mask`, `projection`, `tests`, and `visual_frame`.
 - `rusty-optics-stimulus/src/lib.rs`: facade over `layers`, `noise`,
   `oscillator`, `presentation`, `temporal`, `safety`, `kernel_abi`,
-  `run_plan`, `profile`, `cpu_reference`, and tests.
+  `run_plan`, `profile`, `cpu_reference`, `volume`, `volume_probe`,
+  `volume_cpu_reference`, and tests.
 - `web/stimulus-preview/app.js`: browser-development adapter that lowers a
   `StimulusProfile` fixture to a full-screen WebGPU compute preview with a CPU
   canvas fallback and bounded probe readouts. Keep Quest/OpenXR/Vulkan runtime
@@ -111,7 +112,7 @@ Current crate-root maps:
   vocabulary into the Optics profile shape, but must not become core stimulus
   authority or a Quest runtime dependency.
 - `rusty-optics-fixtures/src/main.rs`: dispatch-only binary over `cli`,
-  `adf`, `error`, `fields`, `hand_mesh`, and `summary`.
+  `adf`, `error`, `fields`, `hand_mesh`, `stimulus`, and `summary`.
 - `rusty-optics-schema/src/main.rs`: dispatch-only binary over `catalog`, `cli`,
   and `error`.
 

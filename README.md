@@ -35,9 +35,9 @@ The first source slices focus on visual particles and mesh diagnostics:
 - procedural stimulus profiles, layer graphs, oscillator bindings,
   Perlin-style noise controls, ripple/interference controls, temporal gates,
   research-use notice policies, full-screen stereo-eye presentation targets,
-  mobile-GPU-portable compute-capable kernel ABI descriptors, run-plan
-  quantization, and CPU reference samples for browser-development and
-  renderer-adapter handoff;
+  bounded stimulus volume descriptors, mobile-GPU-portable compute-capable
+  kernel ABI descriptors, run-plan quantization, and CPU reference samples for
+  browser-development and renderer-adapter handoff;
 - a browser preview that renders generated mesh debug JSON and, for animated
   hand-mesh sequences, drives realtime SDF/particle queries through the Matter
   WebAssembly runtime without renderer backend imports;
@@ -86,6 +86,16 @@ The preview consumes `fixtures/stimulus/interference_preview_profile.json`.
 When WebGPU is available it generates the stimulus in a compute pass before
 drawing the field to a full-viewport canvas. The CPU fallback exists for
 browser capability gaps and contract validation only.
+The first volume-field proof fixture is
+`fixtures/stimulus/volume_interference_preview_profile.json`. It adds a
+renderer-neutral bounded volume descriptor and volume compute-pass ABI while
+remaining a CPU/WebGPU/Quest-adapter proof target rather than Matter field or
+particle-force authority.
+When that profile is selected, the browser probe status includes bounded CPU
+and WebGPU volume-probe summaries over the declared volume readback sample
+count. The WebGPU path is a storage-buffer readback proof, not a full volume
+image renderer; the visual canvas still uses the existing 2D field preview
+until the separate WebGPU/Vulkan volume raymarch passes land.
 The browser adapter also exposes a compact tuning panel for development:
 colors, oscillator gating, geometry transforms, eccentricity, noise/vignette
 controls, layer strength/frequency/speed, per-layer oscillator banks,

@@ -1,11 +1,13 @@
 use rusty_optics_model::{OpticsError, Vec2};
 
 use crate::{
-    sample_profile, BasePatternKind, ComputePassKind, ComputeWorkgroupSize, KernelExecutionModel,
-    LayerOscillatorTarget, NoiseControls, ParkMillerRng, PresentationReferenceSpace,
-    RunPlanFeasibility, StimulusCoverageMode, StimulusKernelAbi, StimulusLayer, StimulusOscillator,
+    deterministic_volume_probe_rays, sample_profile, sample_volume_probe_set, BasePatternKind,
+    ComputePassKind, ComputeWorkgroupSize, KernelExecutionModel, LayerOscillatorTarget,
+    NoiseControls, ParkMillerRng, PresentationReferenceSpace, RunPlanFeasibility,
+    StimulusCoverageMode, StimulusKernelAbi, StimulusLayer, StimulusOscillator,
     StimulusPresentationDescriptor, StimulusPresentationMode, StimulusProfile, StimulusRunPlan,
-    StimulusSafetyProfile, StimulusTemporalProfile,
+    StimulusSafetyProfile, StimulusTemporalProfile, StimulusVolumeDescriptor,
+    StimulusVolumeFieldKind, StimulusVolumeProbeStatus, StimulusVolumeStorageHint,
 };
 
 #[test]
@@ -243,6 +245,95 @@ fn compute_interference_abi_describes_history_and_readback_passes() {
 }
 
 #[test]
+fn volume_descriptor_validates_mobile_storage_shape() {
+    let volume =
+        StimulusVolumeDescriptor::procedural_layer_stack_3d("stimulus.volume.interference_probe");
+
+    volume
+        .validate()
+        .expect("volume descriptor should validate");
+
+    assert_eq!(
+        volume.field_kind,
+        StimulusVolumeFieldKind::ProceduralLayerStack3d
+    );
+    assert_eq!(
+        volume.storage_hint,
+        StimulusVolumeStorageHint::StorageBuffer
+    );
+    assert_eq!(volume.grid_dimensions, [32, 32, 32]);
+    assert_eq!(volume.voxel_count(), 32 * 32 * 32);
+    assert_eq!(volume.step_count, 32);
+    assert!(!volume.empty_space_skip_hint);
+}
+
+#[test]
+fn volume_descriptor_rejects_invalid_bounds_and_steps() {
+    let mut volume = StimulusVolumeDescriptor::procedural_layer_stack_3d("stimulus.volume.bad");
+    volume.bounds_max[2] = volume.bounds_min[2];
+
+    assert!(matches!(
+        volume.validate(),
+        Err(OpticsError::InvalidValue("volume.bounds"))
+    ));
+
+    volume = StimulusVolumeDescriptor::procedural_layer_stack_3d("stimulus.volume.too_many_steps");
+    volume.step_count = 512;
+
+    assert!(matches!(
+        volume.validate(),
+        Err(OpticsError::InvalidCount("volume.step_count"))
+    ));
+}
+
+#[test]
+fn volume_compute_abi_describes_probe_and_stereo_passes() {
+    let abi = StimulusKernelAbi::volume_compute_v1("stimulus.kernel.volume_compute_v1");
+    abi.validate().expect("volume ABI should validate");
+
+    assert!(abi.supports_compute);
+    assert_eq!(abi.bounded_readback_samples, 512);
+    assert!(abi.compute_passes.iter().any(|pass| pass.kind
+        == ComputePassKind::VolumeReadbackProbe
+        && pass.workgroup_size == ComputeWorkgroupSize::new(64, 1, 1)
+        && pass.reads_volume_field
+        && pass.bounded_readback_samples == 512));
+    assert!(abi.compute_passes.iter().any(|pass| pass.kind
+        == ComputePassKind::VolumeRaymarchStereoField
+        && pass.workgroup_size == ComputeWorkgroupSize::new(8, 8, 1)
+        && pass.output_layers == 2
+        && pass.reads_volume_field
+        && pass.writes_stereo_field));
+}
+
+#[test]
+fn volume_profile_cpu_probe_is_deterministic_and_vec4_aligned() {
+    let profile =
+        StimulusProfile::volume_interference_preview("stimulus.profile.volume_interference");
+    profile.validate().expect("volume profile should validate");
+    let volume = profile
+        .volume
+        .as_ref()
+        .expect("volume profile should carry descriptor");
+    let rays = deterministic_volume_probe_rays(volume, 16, 1.2)
+        .expect("probe rays should be deterministic");
+    let a = sample_volume_probe_set(&profile, volume, &rays).expect("probe should sample");
+    let b = sample_volume_probe_set(&profile, volume, &rays).expect("probe should repeat");
+
+    assert_eq!(a, b);
+    assert_eq!(a.len(), 16);
+    assert!(a.iter().any(|sample| {
+        sample.density_depth_status[2] == StimulusVolumeProbeStatus::Hit.as_f32()
+            && sample.rgba[3] > 0.0
+    }));
+    for output in a {
+        assert_eq!(output.rgba.len(), 4);
+        assert_eq!(output.density_depth_status.len(), 4);
+        assert_eq!(output.density_depth_status[3], volume.step_count as f32);
+    }
+}
+
+#[test]
 fn portability_profile_rejects_non_mobile_workgroups() {
     let mut abi = StimulusKernelAbi::compute_interference_v1("stimulus.kernel.compute");
     abi.compute_passes[0].workgroup_size = ComputeWorkgroupSize::new(16, 16, 1);
@@ -274,6 +365,32 @@ fn interference_fixture_deserializes_and_validates() {
     assert_eq!(noise_layer.pattern, BasePatternKind::PerlinNoise);
     assert_eq!(profile.kernel_abi.portability.max_workgroup_invocations, 64);
     assert!(!profile.kernel_abi.portability.requires_subgroup_ops);
+}
+
+#[cfg(feature = "serde")]
+#[test]
+fn volume_interference_fixture_deserializes_and_validates() {
+    let json = include_str!("../../../fixtures/stimulus/volume_interference_preview_profile.json");
+    let profile: StimulusProfile =
+        serde_json::from_str(json).expect("volume stimulus fixture should deserialize");
+
+    profile
+        .validate()
+        .expect("volume stimulus fixture should validate");
+
+    let volume = profile
+        .volume
+        .as_ref()
+        .expect("volume fixture should carry a volume descriptor");
+    assert_eq!(
+        volume.field_kind,
+        StimulusVolumeFieldKind::ProceduralLayerStack3d
+    );
+    assert!(profile
+        .kernel_abi
+        .compute_passes
+        .iter()
+        .any(|pass| pass.kind == ComputePassKind::VolumeReadbackProbe));
 }
 
 #[test]

@@ -76,12 +76,14 @@ pub const STIMULUS_SAFETY_PROFILE_SCHEMA_ID: &str = "rusty.optics.stimulus.safet
 pub const STIMULUS_PRESENTATION_SCHEMA_ID: &str = "rusty.optics.stimulus.presentation.v1";
 /// Procedural stimulus kernel ABI schema.
 pub const STIMULUS_KERNEL_ABI_SCHEMA_ID: &str = "rusty.optics.stimulus.kernel_abi.v1";
+/// Procedural stimulus volume descriptor schema.
+pub const STIMULUS_VOLUME_SCHEMA_ID: &str = "rusty.optics.stimulus.volume.v1";
 /// Procedural stimulus run plan schema.
 pub const STIMULUS_RUN_PLAN_SCHEMA_ID: &str = "rusty.optics.stimulus.run_plan.v1";
 
 /// Returns the schema IDs currently emitted by Rusty Optics.
 #[must_use]
-pub const fn optics_schema_ids() -> [&'static str; 34] {
+pub const fn optics_schema_ids() -> [&'static str; 35] {
     [
         COLOR_RGBA_SCHEMA_ID,
         PARTICLE_VISUAL_SAMPLE_SCHEMA_ID,
@@ -116,6 +118,7 @@ pub const fn optics_schema_ids() -> [&'static str; 34] {
         STIMULUS_SAFETY_PROFILE_SCHEMA_ID,
         STIMULUS_PRESENTATION_SCHEMA_ID,
         STIMULUS_KERNEL_ABI_SCHEMA_ID,
+        STIMULUS_VOLUME_SCHEMA_ID,
         STIMULUS_RUN_PLAN_SCHEMA_ID,
     ]
 }

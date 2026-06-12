@@ -9,6 +9,7 @@ use crate::{
         surface_field_visual_sequence_json,
     },
     hand_mesh::{hand_mesh_browser_frame_json, hand_mesh_browser_frame_json_from_surface},
+    stimulus::volume_interference_preview_profile_json,
     summary::summary_json,
 };
 
@@ -22,9 +23,39 @@ pub fn run(args: impl IntoIterator<Item = String>) -> Result<(), FixtureError> {
         "export-hand-mesh-browser-from-surface" => export_hand_mesh_browser_from_surface(args),
         "export-surface-field-preview" => export_surface_field_preview(args),
         "export-adf-debug" => export_adf_debug(args),
+        "export-stimulus-volume-preview" => export_stimulus_volume_preview(args),
         "validate" => validate(),
         _ => Err(FixtureError::InvalidArgument(command)),
     }
+}
+
+fn export_stimulus_volume_preview(
+    args: impl IntoIterator<Item = String>,
+) -> Result<(), FixtureError> {
+    let mut check = false;
+    let mut output = PathBuf::from("fixtures/stimulus/volume_interference_preview_profile.json");
+    let mut args = args.into_iter();
+    while let Some(argument) = args.next() {
+        match argument.as_str() {
+            "--check" => check = true,
+            "--output" => {
+                let Some(path) = args.next() else {
+                    return Err(FixtureError::InvalidArgument(
+                        "--output requires a path".to_owned(),
+                    ));
+                };
+                output = PathBuf::from(path);
+            }
+            _ => return Err(FixtureError::InvalidArgument(argument)),
+        }
+    }
+
+    write_or_check_json(
+        output,
+        volume_interference_preview_profile_json()?,
+        check,
+        "stimulus volume preview profile",
+    )
 }
 
 fn export_adf_debug(args: impl IntoIterator<Item = String>) -> Result<(), FixtureError> {
@@ -283,7 +314,8 @@ fn validate() -> Result<(), FixtureError> {
     export(["--check".to_owned()])?;
     export_adf_debug(["--check".to_owned()])?;
     export_hand_mesh_browser(["--check".to_owned()])?;
-    export_surface_field_preview(["--check".to_owned()])
+    export_surface_field_preview(["--check".to_owned()])?;
+    export_stimulus_volume_preview(["--check".to_owned()])
 }
 
 fn parse_usize(label: &str, value: &str) -> Result<usize, FixtureError> {

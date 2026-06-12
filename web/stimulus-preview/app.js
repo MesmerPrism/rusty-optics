@@ -380,6 +380,8 @@ function normalizeProfile(source) {
   return {
     profileId: source.profile_id ?? "stimulus.profile.unknown",
     presentation: source.presentation ?? {},
+    volume: normalizeVolume(source.volume),
+    kernelAbi: source.kernel_abi ?? {},
     temporal: {
       targetCycleHz: finiteOr(temporal.target_cycle_hz, 1),
       dutyCycle: finiteOr(temporal.duty_cycle, 0.5),
@@ -401,6 +403,42 @@ function normalizeProfile(source) {
     layers,
     layerData: packLayers(layers),
   };
+}
+
+function normalizeVolume(volume) {
+  if (!volume) {
+    return null;
+  }
+  const normalized = {
+    schemaId: volume.schema_id ?? "rusty.optics.stimulus.volume.v1",
+    volumeId: volume.volume_id ?? "stimulus.volume.unknown",
+    fieldKind: volume.field_kind ?? "ProceduralLayerStack3d",
+    storageHint: volume.storage_hint ?? "StorageBuffer",
+    boundsMin: normalizeVec3Array(volume.bounds_min, [-1, -1, -1]),
+    boundsMax: normalizeVec3Array(volume.bounds_max, [1, 1, 1]),
+    gridDimensions: normalizeU32Vec3(volume.grid_dimensions, [32, 32, 32]),
+    densityScale: finiteOr(volume.density_scale, 1),
+    opacityScale: finiteOr(volume.opacity_scale, 0.35),
+    stepCount: Math.max(1, Math.min(256, Math.floor(finiteOr(volume.step_count, 32)))),
+    stepJitter: clamp01(finiteOr(volume.step_jitter, 0)),
+    emptySpaceSkipHint: Boolean(volume.empty_space_skip_hint),
+  };
+  for (let axis = 0; axis < 3; axis += 1) {
+    if (normalized.boundsMax[axis] <= normalized.boundsMin[axis]) {
+      throw new Error(`volume bounds axis ${axis}`);
+    }
+  }
+  return normalized;
+}
+
+function normalizeVec3Array(value, fallback) {
+  const source = Array.isArray(value) ? value : fallback;
+  return [0, 1, 2].map((index) => finiteOr(source[index], fallback[index]));
+}
+
+function normalizeU32Vec3(value, fallback) {
+  const source = Array.isArray(value) ? value : fallback;
+  return [0, 1, 2].map((index) => Math.max(1, Math.floor(finiteOr(source[index], fallback[index]))));
 }
 
 function validatePresentation(presentation) {
@@ -513,7 +551,7 @@ class WebGpuStimulusRenderer {
     this.context = context;
     this.canvasFormat = navigator.gpu.getPreferredCanvasFormat();
     this.globalBuffer = device.createBuffer({
-      size: 80,
+      size: 128,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     this.layerBuffer = device.createBuffer({
@@ -530,6 +568,13 @@ class WebGpuStimulusRenderer {
       compute: {
         module: computeModule,
         entryPoint: "main",
+      },
+    });
+    this.volumeProbePipeline = device.createComputePipeline({
+      layout: "auto",
+      compute: {
+        module: computeModule,
+        entryPoint: "volume_probe_main",
       },
     });
     this.renderPipeline = device.createRenderPipeline({
@@ -551,7 +596,9 @@ class WebGpuStimulusRenderer {
     this.width = 0;
     this.height = 0;
     this.readbackPending = false;
+    this.volumeReadbackPending = false;
     this.lastReadbackFrame = 0;
+    this.lastVolumeReadbackFrame = 0;
   }
 
   destroy() {
@@ -597,10 +644,22 @@ class WebGpuStimulusRenderer {
       readback = this.encodeReadback(encoder);
       this.lastReadbackFrame = frameCount;
     }
+    let volumeReadback = null;
+    if (
+      this.profile.volume
+      && !this.volumeReadbackPending
+      && frameCount - this.lastVolumeReadbackFrame > TARGET_FPS
+    ) {
+      volumeReadback = this.encodeVolumeProbeReadback(encoder, elapsedSeconds, useTemporalGate);
+      this.lastVolumeReadbackFrame = frameCount;
+    }
 
     this.device.queue.submit([encoder.finish()]);
     if (readback) {
       this.resolveReadback(readback);
+    }
+    if (volumeReadback) {
+      this.resolveVolumeProbeReadback(volumeReadback);
     }
   }
 
@@ -649,7 +708,7 @@ class WebGpuStimulusRenderer {
   writeGlobals(elapsedSeconds, useTemporalGate) {
     const temporal = this.profile.temporal;
     const post = this.profile.post;
-    const values = new Float32Array(20);
+    const values = new Float32Array(32);
     values[0] = this.width;
     values[1] = this.height;
     values[2] = elapsedSeconds;
@@ -670,6 +729,21 @@ class WebGpuStimulusRenderer {
     values[17] = post.layerBlendAmount;
     values[18] = post.layerBlendTarget;
     values[19] = 0;
+    if (this.profile.volume) {
+      const volume = this.profile.volume;
+      values[20] = volume.boundsMin[0];
+      values[21] = volume.boundsMin[1];
+      values[22] = volume.boundsMin[2];
+      values[23] = volume.stepCount;
+      values[24] = volume.boundsMax[0];
+      values[25] = volume.boundsMax[1];
+      values[26] = volume.boundsMax[2];
+      values[27] = volume.stepJitter;
+      values[28] = volume.densityScale;
+      values[29] = volume.opacityScale;
+      values[30] = Math.min(512, Math.max(1, boundedVolumeReadbackSamples(this.profile.kernelAbi)));
+      values[31] = 0;
+    }
     this.device.queue.writeBuffer(this.globalBuffer, 0, values);
   }
 
@@ -723,6 +797,93 @@ class WebGpuStimulusRenderer {
     }).catch(() => {
       buffer.destroy();
       this.readbackPending = false;
+    });
+  }
+
+  encodeVolumeProbeReadback(encoder, elapsedSeconds, useTemporalGate) {
+    const sampleCount = Math.min(512, Math.max(1, boundedVolumeReadbackSamples(this.profile.kernelAbi)));
+    const byteSize = sampleCount * 8 * 4;
+    const outputBuffer = this.device.createBuffer({
+      size: byteSize,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+    });
+    const readbackBuffer = this.device.createBuffer({
+      size: byteSize,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+    const bindGroup = this.device.createBindGroup({
+      layout: this.volumeProbePipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 1, resource: { buffer: this.globalBuffer } },
+        { binding: 2, resource: { buffer: this.layerBuffer } },
+        { binding: 3, resource: { buffer: outputBuffer } },
+      ],
+    });
+    const computePass = encoder.beginComputePass();
+    computePass.setPipeline(this.volumeProbePipeline);
+    computePass.setBindGroup(0, bindGroup);
+    computePass.dispatchWorkgroups(Math.ceil(sampleCount / 64));
+    computePass.end();
+    encoder.copyBufferToBuffer(outputBuffer, 0, readbackBuffer, 0, byteSize);
+    this.volumeReadbackPending = true;
+    return {
+      outputBuffer,
+      readbackBuffer,
+      sampleCount,
+      elapsedSeconds,
+      useTemporalGate,
+    };
+  }
+
+  resolveVolumeProbeReadback(readback) {
+    const { outputBuffer, readbackBuffer, sampleCount, elapsedSeconds, useTemporalGate } = readback;
+    readbackBuffer.mapAsync(GPUMapMode.READ).then(() => {
+      const data = new Float32Array(readbackBuffer.getMappedRange());
+      const cpuRays = deterministicVolumeProbeRays(this.profile.volume, sampleCount, elapsedSeconds);
+      let alphaMin = 1;
+      let alphaMax = 0;
+      let hitCount = 0;
+      let maxAbsError = 0;
+      let mismatchedSamples = 0;
+      let hash = 2166136261;
+      for (let sample = 0; sample < sampleCount; sample += 1) {
+        const base = sample * 8;
+        const alpha = data[base + 3];
+        alphaMin = Math.min(alphaMin, alpha);
+        alphaMax = Math.max(alphaMax, alpha);
+        if (data[base + 6] > 0.5) {
+          hitCount += 1;
+        }
+        const cpu = sampleVolumeProbe(this.profile, this.profile.volume, cpuRays[sample], useTemporalGate);
+        let sampleError = 0;
+        for (let component = 0; component < 4; component += 1) {
+          sampleError = Math.max(sampleError, Math.abs(data[base + component] - cpu.rgba[component]));
+          hash ^= Math.floor(clamp01(data[base + component]) * 65535);
+          hash = Math.imul(hash, 16777619) >>> 0;
+        }
+        maxAbsError = Math.max(maxAbsError, sampleError);
+        if (sampleError > 0.02) {
+          mismatchedSamples += 1;
+        }
+      }
+      window.__rustyOpticsStimulus = window.__rustyOpticsStimulus ?? {};
+      window.__rustyOpticsStimulus.gpuVolumeProbe = {
+        sampleCount,
+        hitCount,
+        alphaMin,
+        alphaMax,
+        maxAbsError,
+        mismatchedSamples,
+        hash: hash.toString(16).padStart(8, "0"),
+      };
+      readbackBuffer.unmap();
+      readbackBuffer.destroy();
+      outputBuffer.destroy();
+      this.volumeReadbackPending = false;
+    }).catch(() => {
+      readbackBuffer.destroy();
+      outputBuffer.destroy();
+      this.volumeReadbackPending = false;
     });
   }
 }
@@ -784,22 +945,194 @@ function updateProbe(elapsedSeconds) {
     return;
   }
   const probe = cpuProbe(adapterProfile, elapsedSeconds, temporalGate.checked);
+  const volumeProbe = cpuVolumeProbe(adapterProfile, elapsedSeconds, temporalGate.checked);
   lastCpuProbe = probe;
   const gpuProbe = window.__rustyOpticsStimulus?.gpuProbe;
+  const gpuVolumeProbe = window.__rustyOpticsStimulus?.gpuVolumeProbe;
   const gpuText = gpuProbe ? ` gpu ${gpuProbe.min}-${gpuProbe.max}` : "";
-  probeStatus.value = `cpu ${probe.min.toFixed(3)}-${probe.max.toFixed(3)}${gpuText}`;
+  const volumeText = volumeProbe
+    ? ` vol ${volumeProbe.hitCount}/${volumeProbe.sampleCount} a${volumeProbe.alphaMin.toFixed(3)}-${volumeProbe.alphaMax.toFixed(3)}`
+    : "";
+  const gpuVolumeText = gpuVolumeProbe
+    ? ` vgpu ${gpuVolumeProbe.hitCount}/${gpuVolumeProbe.sampleCount} e${gpuVolumeProbe.maxAbsError.toFixed(3)}`
+    : "";
+  probeStatus.value = `cpu ${probe.min.toFixed(3)}-${probe.max.toFixed(3)}${gpuText}${volumeText}${gpuVolumeText}`;
   window.__rustyOpticsStimulus = {
     backend: backendStatus.value,
     profileId: adapterProfile.profileId,
     presentation: adapterProfile.presentation,
+    volume: adapterProfile.volume,
     cpuProbe: probe,
+    volumeProbe,
     gpuProbe,
+    gpuVolumeProbe,
     post: adapterProfile.post,
     tuning,
     presetCount: storedPresets.length,
     ready: true,
     frameCount,
   };
+}
+
+function cpuVolumeProbe(currentProfile, elapsedSeconds, useTemporalGate) {
+  const volume = currentProfile.volume;
+  if (!volume) {
+    return null;
+  }
+  const sampleCount = Math.min(512, Math.max(1, boundedVolumeReadbackSamples(currentProfile.kernelAbi)));
+  const rays = deterministicVolumeProbeRays(volume, sampleCount, elapsedSeconds);
+  let alphaMin = 1;
+  let alphaMax = 0;
+  let alphaSum = 0;
+  let hitCount = 0;
+  let hash = 2166136261;
+  for (const ray of rays) {
+    const output = sampleVolumeProbe(currentProfile, volume, ray, useTemporalGate);
+    const alpha = output.rgba[3];
+    alphaMin = Math.min(alphaMin, alpha);
+    alphaMax = Math.max(alphaMax, alpha);
+    alphaSum += alpha;
+    if (output.status === "Hit") {
+      hitCount += 1;
+    }
+    for (const value of output.rgba) {
+      hash ^= Math.floor(clamp01(value) * 65535);
+      hash = Math.imul(hash, 16777619) >>> 0;
+    }
+  }
+  return {
+    volumeId: volume.volumeId,
+    fieldKind: volume.fieldKind,
+    storageHint: volume.storageHint,
+    sampleCount,
+    stepCount: volume.stepCount,
+    hitCount,
+    alphaMin,
+    alphaMax,
+    alphaMean: alphaSum / sampleCount,
+    hash: hash.toString(16).padStart(8, "0"),
+  };
+}
+
+function boundedVolumeReadbackSamples(kernelAbi) {
+  const passes = Array.isArray(kernelAbi?.compute_passes) ? kernelAbi.compute_passes : [];
+  const pass = passes.find((candidate) => candidate?.kind === "VolumeReadbackProbe");
+  return Math.floor(finiteOr(pass?.bounded_readback_samples, 128));
+}
+
+function deterministicVolumeProbeRays(volume, sampleCount, elapsedSeconds) {
+  const columns = Math.ceil(Math.sqrt(sampleCount));
+  const rows = Math.ceil(sampleCount / columns);
+  const span = [0, 1, 2].map((axis) => volume.boundsMax[axis] - volume.boundsMin[axis]);
+  const rays = [];
+  for (let index = 0; index < sampleCount; index += 1) {
+    const x = index % columns;
+    const y = Math.floor(index / columns);
+    const u = (x + 0.5) / columns;
+    const v = (y + 0.5) / rows;
+    rays.push({
+      uvEyeTime: [u, v, index % 2, elapsedSeconds],
+      origin: [
+        volume.boundsMin[0] + u * span[0],
+        volume.boundsMin[1] + v * span[1],
+        volume.boundsMax[2] + span[2] * 0.5,
+      ],
+      direction: [0, 0, -1],
+    });
+  }
+  return rays;
+}
+
+function sampleVolumeProbe(currentProfile, volume, ray, useTemporalGate) {
+  const intersection = intersectVolumeBounds(volume, ray);
+  if (!intersection) {
+    return {
+      rgba: [0, 0, 0, 0],
+      densityDepthStatus: [0, 0, 0, volume.stepCount],
+      status: "Missed",
+    };
+  }
+  const [enter, exit] = intersection;
+  const segment = Math.max(exit - enter, 0.000001);
+  const stepCount = volume.stepCount;
+  const jitter = deterministicVolumeJitter(ray) * volume.stepJitter;
+  const stepOffset = clamp01(0.5 + jitter - volume.stepJitter * 0.5);
+  const rgb = [0, 0, 0];
+  let alpha = 0;
+  let firstDepth = 0;
+  let status = "Missed";
+  for (let step = 0; step < stepCount; step += 1) {
+    const t = enter + ((step + stepOffset) / stepCount) * segment;
+    const point = [
+      ray.origin[0] + ray.direction[0] * t,
+      ray.origin[1] + ray.direction[1] * t,
+      ray.origin[2] + ray.direction[2] * t,
+    ];
+    const normalized = normalizeVolumePoint(volume, point);
+    const color = sampleProfile(currentProfile, normalized[0], normalized[1], ray.uvEyeTime[3] + normalized[2] * 0.03125, useTemporalGate);
+    const luma = (color[0] + color[1] + color[2]) / 3;
+    const zEnvelope = Math.max(0, 1 - Math.abs(normalized[2] * 2 - 1) * 0.35);
+    const density = clamp01(luma * volume.densityScale * zEnvelope);
+    const stepAlpha = clamp01(density * volume.opacityScale / stepCount);
+    if (stepAlpha > 0 && status !== "Hit") {
+      status = "Hit";
+      firstDepth = clamp01((t - enter) / segment);
+    }
+    const contribution = (1 - alpha) * stepAlpha;
+    rgb[0] += color[0] * contribution;
+    rgb[1] += color[1] * contribution;
+    rgb[2] += color[2] * contribution;
+    alpha = clamp01(alpha + contribution);
+  }
+  return {
+    rgba: [clamp01(rgb[0]), clamp01(rgb[1]), clamp01(rgb[2]), alpha],
+    densityDepthStatus: [alpha, firstDepth, status === "Hit" ? 1 : 0, stepCount],
+    status,
+  };
+}
+
+function intersectVolumeBounds(volume, ray) {
+  let enter = -Infinity;
+  let exit = Infinity;
+  for (let axis = 0; axis < 3; axis += 1) {
+    const origin = ray.origin[axis];
+    const direction = ray.direction[axis];
+    if (Math.abs(direction) <= Number.EPSILON) {
+      if (origin < volume.boundsMin[axis] || origin > volume.boundsMax[axis]) {
+        return null;
+      }
+      continue;
+    }
+    const invDirection = 1 / direction;
+    let t0 = (volume.boundsMin[axis] - origin) * invDirection;
+    let t1 = (volume.boundsMax[axis] - origin) * invDirection;
+    if (t0 > t1) {
+      [t0, t1] = [t1, t0];
+    }
+    enter = Math.max(enter, t0);
+    exit = Math.min(exit, t1);
+    if (exit < enter) {
+      return null;
+    }
+  }
+  if (exit < 0) {
+    return null;
+  }
+  return [Math.max(enter, 0), exit];
+}
+
+function normalizeVolumePoint(volume, point) {
+  return [0, 1, 2].map((axis) => clamp01(
+    (point[axis] - volume.boundsMin[axis]) / (volume.boundsMax[axis] - volume.boundsMin[axis]),
+  ));
+}
+
+function deterministicVolumeJitter(ray) {
+  const seed = ray.uvEyeTime[0] * 12.9898
+    + ray.uvEyeTime[1] * 78.233
+    + ray.uvEyeTime[2] * 15.127
+    + ray.uvEyeTime[3] * 37.719;
+  return fract(Math.abs(Math.sin(seed) * 43758.547));
 }
 
 function cpuProbe(currentProfile, elapsedSeconds, useTemporalGate) {
@@ -1137,15 +1470,23 @@ struct Globals {
   data2: vec4f,
   data3: vec4f,
   data4: vec4f,
+  data5: vec4f,
+  data6: vec4f,
+  data7: vec4f,
 };
 
 struct LayerData {
   values: array<f32>,
 };
 
+struct VolumeProbeOutputData {
+  values: array<vec4f>,
+};
+
 @group(0) @binding(0) var output_texture: texture_storage_2d<rgba8unorm, write>;
 @group(0) @binding(1) var<uniform> globals: Globals;
 @group(0) @binding(2) var<storage, read> layers: LayerData;
+@group(0) @binding(3) var<storage, read_write> volume_outputs: VolumeProbeOutputData;
 
 const TAU: f32 = 6.28318530718;
 const STRIDE: u32 = 48u;
@@ -1369,15 +1710,7 @@ fn temporal_gate(elapsed: f32) -> f32 {
   return select(0.0, 1.0, phase < globals.data1.y);
 }
 
-@compute @workgroup_size(8, 8, 1)
-fn main(@builtin(global_invocation_id) gid: vec3u) {
-  let width = u32(globals.data0.x);
-  let height = u32(globals.data0.y);
-  if (gid.x >= width || gid.y >= height) {
-    return;
-  }
-  let uv = (vec2f(f32(gid.x), f32(gid.y)) + vec2f(0.5, 0.5)) / vec2f(globals.data0.xy);
-  let elapsed = globals.data0.z;
+fn sample_profile_color(uv: vec2f, elapsed: f32) -> vec3f {
   let layer_count = min(u32(globals.data0.w), 16u);
   let blend_mode = globals.data4.x;
   let blend_amount = clamp(globals.data4.y, 0.0, 1.0);
@@ -1401,7 +1734,101 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   if (globals.data2.x >= 0.0) {
     color = color * temporal_gate(elapsed);
   }
-  textureStore(output_texture, vec2i(gid.xy), vec4f(clamp(color, vec3f(0.0), vec3f(1.0)), 1.0));
+  return clamp(color, vec3f(0.0), vec3f(1.0));
+}
+
+fn normalize_volume_point(point: vec3f) -> vec3f {
+  return clamp((point - globals.data5.xyz) / (globals.data6.xyz - globals.data5.xyz), vec3f(0.0), vec3f(1.0));
+}
+
+fn volume_jitter(uv_eye_time: vec4f) -> f32 {
+  let seed = uv_eye_time.x * 12.9898 + uv_eye_time.y * 78.233 + uv_eye_time.z * 15.127 + uv_eye_time.w * 37.719;
+  return fract(abs(sin(seed) * 43758.547));
+}
+
+fn volume_ray_for_index(index: u32, sample_count: u32) -> vec4f {
+  let columns = u32(ceil(sqrt(f32(sample_count))));
+  let rows = u32(ceil(f32(sample_count) / f32(columns)));
+  let x = index % columns;
+  let y = index / columns;
+  let u = (f32(x) + 0.5) / f32(columns);
+  let v = (f32(y) + 0.5) / f32(rows);
+  return vec4f(u, v, f32(index % 2u), globals.data0.z);
+}
+
+fn volume_origin_for_uv(uv_eye_time: vec4f) -> vec3f {
+  let span = globals.data6.xyz - globals.data5.xyz;
+  return vec3f(
+    globals.data5.x + uv_eye_time.x * span.x,
+    globals.data5.y + uv_eye_time.y * span.y,
+    globals.data6.z + span.z * 0.5
+  );
+}
+
+fn sample_volume_probe(index: u32, sample_count: u32) -> array<vec4f, 2> {
+  let uv_eye_time = volume_ray_for_index(index, sample_count);
+  let origin = volume_origin_for_uv(uv_eye_time);
+  let direction = vec3f(0.0, 0.0, -1.0);
+  let bounds_min = globals.data5.xyz;
+  let bounds_max = globals.data6.xyz;
+  let enter = max(0.0, origin.z - bounds_max.z);
+  let exit = origin.z - bounds_min.z;
+  let segment = max(exit - enter, 0.000001);
+  let step_count = max(u32(globals.data5.w), 1u);
+  let step_jitter = clamp(globals.data6.w, 0.0, 1.0);
+  let step_offset = clamp(0.5 + volume_jitter(uv_eye_time) * step_jitter - step_jitter * 0.5, 0.0, 1.0);
+  var rgb = vec3f(0.0);
+  var alpha = 0.0;
+  var first_depth = 0.0;
+  var status = 0.0;
+  var step = 0u;
+  loop {
+    if (step >= step_count) { break; }
+    let t = enter + ((f32(step) + step_offset) / f32(step_count)) * segment;
+    let point = origin + direction * t;
+    let normalized = normalize_volume_point(point);
+    let color = sample_profile_color(normalized.xy, uv_eye_time.w + normalized.z * 0.03125);
+    let luma = dot(color, vec3f(0.33333334));
+    let z_envelope = max(0.0, 1.0 - abs(normalized.z * 2.0 - 1.0) * 0.35);
+    let density = clamp01(luma * globals.data7.x * z_envelope);
+    let step_alpha = clamp01(density * globals.data7.y / f32(step_count));
+    if (step_alpha > 0.0 && status < 0.5) {
+      status = 1.0;
+      first_depth = clamp((t - enter) / segment, 0.0, 1.0);
+    }
+    let contribution = (1.0 - alpha) * step_alpha;
+    rgb = rgb + color * contribution;
+    alpha = clamp01(alpha + contribution);
+    step = step + 1u;
+  }
+  var output: array<vec4f, 2>;
+  output[0] = vec4f(clamp(rgb, vec3f(0.0), vec3f(1.0)), alpha);
+  output[1] = vec4f(alpha, first_depth, status, f32(step_count));
+  return output;
+}
+
+@compute @workgroup_size(8, 8, 1)
+fn main(@builtin(global_invocation_id) gid: vec3u) {
+  let width = u32(globals.data0.x);
+  let height = u32(globals.data0.y);
+  if (gid.x >= width || gid.y >= height) {
+    return;
+  }
+  let uv = (vec2f(f32(gid.x), f32(gid.y)) + vec2f(0.5, 0.5)) / vec2f(globals.data0.xy);
+  let elapsed = globals.data0.z;
+  let color = sample_profile_color(uv, elapsed);
+  textureStore(output_texture, vec2i(gid.xy), vec4f(color, 1.0));
+}
+
+@compute @workgroup_size(64, 1, 1)
+fn volume_probe_main(@builtin(global_invocation_id) gid: vec3u) {
+  let sample_count = u32(globals.data7.z);
+  if (gid.x >= sample_count) {
+    return;
+  }
+  let output = sample_volume_probe(gid.x, sample_count);
+  volume_outputs.values[gid.x * 2u] = output[0];
+  volume_outputs.values[gid.x * 2u + 1u] = output[1];
 }
 `;
 

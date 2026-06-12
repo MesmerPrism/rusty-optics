@@ -24,6 +24,14 @@ pub enum ComputePassKind {
     HistoryFeedback,
     /// Read back a small bounded sample set for validation.
     BoundedReadbackProbe,
+    /// Generate or cache a bounded volume density resource.
+    VolumeDensityCache,
+    /// Raymarch a volume into a low-resolution stereo eye field.
+    VolumeRaymarchStereoField,
+    /// Reproject prior-frame volume history.
+    VolumeHistoryReproject,
+    /// Read back bounded volume probe samples for CPU-oracle validation.
+    VolumeReadbackProbe,
 }
 
 /// Renderer-neutral texture/sample format requested by a compute pass.
@@ -148,6 +156,9 @@ pub struct StimulusComputePassDescriptor {
     pub output_width_px: u32,
     /// Nominal output height in pixels.
     pub output_height_px: u32,
+    /// Output layer count for array-like stereo resources.
+    #[cfg_attr(feature = "serde", serde(default = "default_output_layers"))]
+    pub output_layers: u32,
     /// Output/sample format.
     pub output_format: ComputeTextureFormat,
     /// Whether this pass consumes layer parameter buffers.
@@ -158,6 +169,15 @@ pub struct StimulusComputePassDescriptor {
     pub reads_history_buffer: bool,
     /// Whether this pass writes prior-frame history for later frames.
     pub writes_history_buffer: bool,
+    /// Whether this pass consumes a volume-field resource.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub reads_volume_field: bool,
+    /// Whether this pass writes a volume-field resource.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub writes_volume_field: bool,
+    /// Whether this pass writes a stereo eye-field resource.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub writes_stereo_field: bool,
     /// Bounded readback samples requested by this pass.
     pub bounded_readback_samples: usize,
 }
@@ -172,11 +192,15 @@ impl StimulusComputePassDescriptor {
             workgroup_size: ComputeWorkgroupSize::new(8, 8, 1),
             output_width_px: width_px,
             output_height_px: height_px,
+            output_layers: 1,
             output_format: ComputeTextureFormat::Rgba16Float,
             reads_layer_parameters: true,
             reads_noise_texture: true,
             reads_history_buffer: false,
             writes_history_buffer: false,
+            reads_volume_field: false,
+            writes_volume_field: false,
+            writes_stereo_field: false,
             bounded_readback_samples: 0,
         }
     }
@@ -190,11 +214,15 @@ impl StimulusComputePassDescriptor {
             workgroup_size: ComputeWorkgroupSize::new(8, 8, 1),
             output_width_px: width_px,
             output_height_px: height_px,
+            output_layers: 1,
             output_format: ComputeTextureFormat::R16Float,
             reads_layer_parameters: true,
             reads_noise_texture: false,
             reads_history_buffer: false,
             writes_history_buffer: false,
+            reads_volume_field: false,
+            writes_volume_field: false,
+            writes_stereo_field: false,
             bounded_readback_samples: 0,
         }
     }
@@ -208,11 +236,15 @@ impl StimulusComputePassDescriptor {
             workgroup_size: ComputeWorkgroupSize::new(8, 8, 1),
             output_width_px: width_px,
             output_height_px: height_px,
+            output_layers: 1,
             output_format: ComputeTextureFormat::Rgba16Float,
             reads_layer_parameters: true,
             reads_noise_texture: false,
             reads_history_buffer: true,
             writes_history_buffer: true,
+            reads_volume_field: false,
+            writes_volume_field: false,
+            writes_stereo_field: false,
             bounded_readback_samples: 0,
         }
     }
@@ -226,11 +258,81 @@ impl StimulusComputePassDescriptor {
             workgroup_size: ComputeWorkgroupSize::new(64, 1, 1),
             output_width_px: 1,
             output_height_px: 1,
+            output_layers: 1,
             output_format: ComputeTextureFormat::R32Float,
             reads_layer_parameters: true,
             reads_noise_texture: false,
             reads_history_buffer: false,
             writes_history_buffer: false,
+            reads_volume_field: false,
+            writes_volume_field: false,
+            writes_stereo_field: false,
+            bounded_readback_samples: samples,
+        }
+    }
+
+    /// Creates a volume density cache pass descriptor.
+    #[must_use]
+    pub fn volume_density_cache(pass_id: impl Into<String>, width_px: u32, height_px: u32) -> Self {
+        Self {
+            pass_id: pass_id.into(),
+            kind: ComputePassKind::VolumeDensityCache,
+            workgroup_size: ComputeWorkgroupSize::new(8, 8, 1),
+            output_width_px: width_px,
+            output_height_px: height_px,
+            output_layers: 1,
+            output_format: ComputeTextureFormat::R32Float,
+            reads_layer_parameters: true,
+            reads_noise_texture: true,
+            reads_history_buffer: false,
+            writes_history_buffer: false,
+            reads_volume_field: false,
+            writes_volume_field: true,
+            writes_stereo_field: false,
+            bounded_readback_samples: 0,
+        }
+    }
+
+    /// Creates a low-resolution stereo volume raymarch pass descriptor.
+    #[must_use]
+    pub fn volume_stereo_field(pass_id: impl Into<String>, width_px: u32, height_px: u32) -> Self {
+        Self {
+            pass_id: pass_id.into(),
+            kind: ComputePassKind::VolumeRaymarchStereoField,
+            workgroup_size: ComputeWorkgroupSize::new(8, 8, 1),
+            output_width_px: width_px,
+            output_height_px: height_px,
+            output_layers: 2,
+            output_format: ComputeTextureFormat::Rgba16Float,
+            reads_layer_parameters: true,
+            reads_noise_texture: true,
+            reads_history_buffer: false,
+            writes_history_buffer: false,
+            reads_volume_field: true,
+            writes_volume_field: false,
+            writes_stereo_field: true,
+            bounded_readback_samples: 0,
+        }
+    }
+
+    /// Creates a bounded volume readback probe pass descriptor.
+    #[must_use]
+    pub fn volume_readback_probe(pass_id: impl Into<String>, samples: usize) -> Self {
+        Self {
+            pass_id: pass_id.into(),
+            kind: ComputePassKind::VolumeReadbackProbe,
+            workgroup_size: ComputeWorkgroupSize::new(64, 1, 1),
+            output_width_px: 1,
+            output_height_px: 1,
+            output_layers: 1,
+            output_format: ComputeTextureFormat::Rgba32Float,
+            reads_layer_parameters: true,
+            reads_noise_texture: false,
+            reads_history_buffer: false,
+            writes_history_buffer: false,
+            reads_volume_field: true,
+            writes_volume_field: false,
+            writes_stereo_field: false,
             bounded_readback_samples: samples,
         }
     }
@@ -252,10 +354,10 @@ impl StimulusComputePassDescriptor {
                 "compute_pass.workgroup_invocations",
             ));
         }
-        if self.output_width_px == 0 || self.output_height_px == 0 {
+        if self.output_width_px == 0 || self.output_height_px == 0 || self.output_layers == 0 {
             return Err(OpticsError::InvalidValue("compute_pass.output_extent"));
         }
-        if self.output_width_px > 8192 || self.output_height_px > 8192 {
+        if self.output_width_px > 8192 || self.output_height_px > 8192 || self.output_layers > 16 {
             return Err(OpticsError::InvalidValue("compute_pass.output_extent"));
         }
         if self.bounded_readback_samples > 4096 {
@@ -263,14 +365,35 @@ impl StimulusComputePassDescriptor {
                 "compute_pass.bounded_readback_samples",
             ));
         }
-        if self.kind != ComputePassKind::BoundedReadbackProbe && self.bounded_readback_samples != 0
+        if !matches!(
+            self.kind,
+            ComputePassKind::BoundedReadbackProbe | ComputePassKind::VolumeReadbackProbe
+        ) && self.bounded_readback_samples != 0
         {
             return Err(OpticsError::InvalidValue(
                 "compute_pass.bounded_readback_samples",
             ));
         }
+        if self.kind == ComputePassKind::VolumeRaymarchStereoField
+            && (self.output_layers != 2 || !self.reads_volume_field || !self.writes_stereo_field)
+        {
+            return Err(OpticsError::InvalidValue(
+                "compute_pass.volume_stereo_field",
+            ));
+        }
+        if self.kind == ComputePassKind::VolumeReadbackProbe
+            && (self.bounded_readback_samples == 0 || !self.reads_volume_field)
+        {
+            return Err(OpticsError::InvalidValue(
+                "compute_pass.volume_readback_probe",
+            ));
+        }
         Ok(())
     }
+}
+
+const fn default_output_layers() -> u32 {
+    1
 }
 
 /// Renderer-neutral kernel ABI descriptor for procedural stimuli.
@@ -370,6 +493,42 @@ impl StimulusKernelAbi {
                 ),
                 StimulusComputePassDescriptor::readback_probe(
                     "stimulus.compute_pass.readback_probe",
+                    512,
+                ),
+            ],
+        }
+    }
+
+    /// Creates a compute ABI for the first bounded stimulus volume proof.
+    #[must_use]
+    pub fn volume_compute_v1(abi_id: impl Into<String>) -> Self {
+        Self {
+            schema_id: STIMULUS_KERNEL_ABI_SCHEMA_ID.to_owned(),
+            abi_id: abi_id.into(),
+            parameter_layout_version: 2,
+            preferred_execution_model: KernelExecutionModel::ComputeFieldTexture,
+            supports_fragment: true,
+            supports_compute: true,
+            requires_history_buffer: false,
+            requires_noise_texture: true,
+            max_layers: 16,
+            bounded_readback_samples: 512,
+            portability: ComputePortabilityProfile::mobile_vulkan_portable(
+                "stimulus.portability.mobile_vulkan",
+            ),
+            compute_passes: vec![
+                StimulusComputePassDescriptor::volume_density_cache(
+                    "stimulus.compute_pass.volume_density_cache",
+                    32,
+                    32,
+                ),
+                StimulusComputePassDescriptor::volume_readback_probe(
+                    "stimulus.compute_pass.volume_probe",
+                    512,
+                ),
+                StimulusComputePassDescriptor::volume_stereo_field(
+                    "stimulus.compute_pass.volume_stereo_field",
+                    512,
                     512,
                 ),
             ],

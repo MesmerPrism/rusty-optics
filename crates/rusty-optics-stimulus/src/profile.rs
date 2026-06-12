@@ -2,7 +2,7 @@ use rusty_optics_model::{OpticsError, STIMULUS_PROFILE_SCHEMA_ID};
 
 use crate::{
     StimulusKernelAbi, StimulusLayerGraph, StimulusPresentationDescriptor, StimulusRunPlan,
-    StimulusSafetyProfile, StimulusTemporalProfile,
+    StimulusSafetyProfile, StimulusTemporalProfile, StimulusVolumeDescriptor,
 };
 
 /// Complete renderer-neutral procedural stimulus profile.
@@ -21,6 +21,9 @@ pub struct StimulusProfile {
     pub safety: StimulusSafetyProfile,
     /// XR/browser presentation target.
     pub presentation: StimulusPresentationDescriptor,
+    /// Optional volume-field descriptor for volume-capable adapters.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub volume: Option<StimulusVolumeDescriptor>,
     /// Kernel ABI request.
     pub kernel_abi: StimulusKernelAbi,
 }
@@ -40,10 +43,23 @@ impl StimulusProfile {
             presentation: StimulusPresentationDescriptor::stereo_eye_field(
                 "stimulus.presentation.stereo_eye_fullscreen",
             ),
+            volume: None,
             kernel_abi: StimulusKernelAbi::compute_interference_v1(
                 "stimulus.kernel.compute_interference_v1",
             ),
         }
+    }
+
+    /// Creates a deterministic low-resolution volume interference proof profile.
+    #[must_use]
+    pub fn volume_interference_preview(profile_id: impl Into<String>) -> Self {
+        let mut profile = Self::interference_preview(profile_id);
+        profile.volume = Some(StimulusVolumeDescriptor::procedural_layer_stack_3d(
+            "stimulus.volume.interference_probe",
+        ));
+        profile.kernel_abi =
+            StimulusKernelAbi::volume_compute_v1("stimulus.kernel.volume_compute_v1");
+        profile
     }
 
     /// Builds a display run plan for this profile.
@@ -79,6 +95,9 @@ impl StimulusProfile {
         self.temporal.validate()?;
         self.safety.validate_temporal(&self.temporal)?;
         self.presentation.validate()?;
+        if let Some(volume) = &self.volume {
+            volume.validate()?;
+        }
         self.kernel_abi.validate()?;
         if self.layer_graph.layers.len() > self.kernel_abi.max_layers {
             return Err(OpticsError::InvalidCount("layer_graph.layers"));
