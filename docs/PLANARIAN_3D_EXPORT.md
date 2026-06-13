@@ -34,9 +34,9 @@ normalized educational planarian anterior/posterior bioelectric model with:
 The current source-target anchors connect this visual teaching model to public
 source IDs for early transient-memory behavior, head-versus-tail voltage
 context, gap/conductance perturbations, Matter-owned normalized size/readout
-metrics, rights-safe head-label taxonomy, and tiny PlanformDB-derived review
-fixtures. They do not claim calibrated millivolt values, source-fit thresholds,
-or PlanformDB-derived prediction.
+metrics, rights-safe head-label taxonomy, and the small curated
+PlanformDB-derived review fixture. They do not claim calibrated millivolt
+values, source-fit thresholds, or PlanformDB-derived prediction.
 
 The outcome panel summarizes the active Matter trace relationship, such as
 `memory vs no-memory control`, from Matter-exported trace values and scenario
