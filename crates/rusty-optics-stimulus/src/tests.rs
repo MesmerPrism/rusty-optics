@@ -1,13 +1,22 @@
 use rusty_optics_model::{OpticsError, Vec2};
 
 use crate::{
-    deterministic_volume_probe_rays, sample_profile, sample_volume_probe_set, BasePatternKind,
-    ComputePassKind, ComputeWorkgroupSize, KernelExecutionModel, LayerOscillatorTarget,
-    NoiseControls, ParkMillerRng, PresentationReferenceSpace, RunPlanFeasibility,
-    StimulusCoverageMode, StimulusKernelAbi, StimulusLayer, StimulusOscillator,
-    StimulusPresentationDescriptor, StimulusPresentationMode, StimulusProfile, StimulusRunPlan,
-    StimulusSafetyProfile, StimulusTemporalProfile, StimulusVolumeDescriptor,
-    StimulusVolumeFieldKind, StimulusVolumeProbeStatus, StimulusVolumeStorageHint,
+    deterministic_bounded_stimulus_volume_image_preview_pixel,
+    deterministic_bounded_stimulus_volume_probe_sample,
+    deterministic_bounded_stimulus_volume_raymarch_preview_pixel, deterministic_volume_probe_rays,
+    expected_bounded_stimulus_volume_image_preview_output,
+    expected_bounded_stimulus_volume_probe_output,
+    expected_bounded_stimulus_volume_raymarch_preview_output, sample_profile,
+    sample_volume_probe_set, BasePatternKind, ComputePassKind, ComputeWorkgroupSize,
+    KernelExecutionModel, LayerOscillatorTarget, NoiseControls, ParkMillerRng,
+    PresentationReferenceSpace, RunPlanFeasibility, StimulusCoverageMode, StimulusKernelAbi,
+    StimulusLayer, StimulusOscillator, StimulusPresentationDescriptor, StimulusPresentationMode,
+    StimulusProfile, StimulusRunPlan, StimulusSafetyProfile, StimulusTemporalProfile,
+    StimulusVolumeDescriptor, StimulusVolumeFieldKind, StimulusVolumeProbeStatus,
+    StimulusVolumeProfileSummary, StimulusVolumeStorageHint,
+    BOUNDED_STIMULUS_VOLUME_IMAGE_PREVIEW_EYE_TILE_HEIGHT,
+    BOUNDED_STIMULUS_VOLUME_IMAGE_PREVIEW_EYE_TILE_WIDTH,
+    BOUNDED_STIMULUS_VOLUME_RAYMARCH_PREVIEW_PIXELS,
 };
 
 #[test]
@@ -331,6 +340,72 @@ fn volume_profile_cpu_probe_is_deterministic_and_vec4_aligned() {
         assert_eq!(output.density_depth_status.len(), 4);
         assert_eq!(output.density_depth_status[3], volume.step_count as f32);
     }
+}
+
+#[test]
+fn volume_profile_summary_extracts_compute_shape() {
+    let profile =
+        StimulusProfile::volume_interference_preview("stimulus.profile.volume_interference");
+    let summary = StimulusVolumeProfileSummary::from_profile(&profile)
+        .expect("volume summary should extract");
+
+    assert!(summary.volume_present);
+    assert_eq!(
+        summary.volume_schema.as_deref(),
+        Some("rusty.optics.stimulus.volume.v1")
+    );
+    assert_eq!(
+        summary.field_kind.as_deref(),
+        Some("ProceduralLayerStack3d")
+    );
+    assert_eq!(summary.storage_hint.as_deref(), Some("StorageBuffer"));
+    assert_eq!(summary.grid_dimensions, Some([32, 32, 32]));
+    assert_eq!(summary.step_count, Some(32));
+    assert_eq!(summary.volume_readback_probe_samples, Some(512));
+    assert_eq!(summary.stereo_field_output_layers, Some(2));
+    summary
+        .validate_bounded_stereo_preview(512)
+        .expect("summary should match bounded mobile preview");
+}
+
+#[test]
+fn bounded_volume_preview_oracles_are_deterministic() {
+    let sample_a = deterministic_bounded_stimulus_volume_probe_sample(3, [32, 32, 32], 32);
+    let sample_b = deterministic_bounded_stimulus_volume_probe_sample(3, [32, 32, 32], 32);
+    assert_eq!(sample_a, sample_b);
+    assert_eq!(
+        sample_a.expected_density_depth_status,
+        expected_bounded_stimulus_volume_probe_output(sample_a).density_depth_status
+    );
+
+    let pixel_a = deterministic_bounded_stimulus_volume_raymarch_preview_pixel(
+        BOUNDED_STIMULUS_VOLUME_RAYMARCH_PREVIEW_PIXELS - 1,
+        [32, 32, 32],
+        32,
+    );
+    let pixel_b = deterministic_bounded_stimulus_volume_raymarch_preview_pixel(
+        BOUNDED_STIMULUS_VOLUME_RAYMARCH_PREVIEW_PIXELS - 1,
+        [32, 32, 32],
+        32,
+    );
+    assert_eq!(pixel_a, pixel_b);
+    assert_eq!(
+        pixel_a.expected_density_depth_status,
+        expected_bounded_stimulus_volume_raymarch_preview_output(pixel_a).density_depth_status
+    );
+
+    let image_pixel = deterministic_bounded_stimulus_volume_image_preview_pixel(
+        0,
+        [32, 32, 32],
+        32,
+        BOUNDED_STIMULUS_VOLUME_IMAGE_PREVIEW_EYE_TILE_WIDTH,
+        BOUNDED_STIMULUS_VOLUME_IMAGE_PREVIEW_EYE_TILE_HEIGHT,
+    );
+    assert_eq!(image_pixel.uv_eye_time[0], 8.5 / 64.0);
+    assert_eq!(
+        image_pixel.expected_rgba,
+        expected_bounded_stimulus_volume_image_preview_output(image_pixel).rgba
+    );
 }
 
 #[test]

@@ -305,6 +305,11 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
   volume descriptors, storage hints, grid bounds, step policy, and validation.
 - `rusty-optics-stimulus/src/volume_probe.rs`: vec4-aligned deterministic
   volume probe ray and readback output records.
+- `rusty-optics-stimulus/src/volume_profile.rs`: compact adapter-facing
+  volume profile summaries and bounded stereo preview validation.
+- `rusty-optics-stimulus/src/volume_preview.rs`: stable bounded volume probe,
+  raymarch-preview, and scalable-image CPU oracles used by browser and
+  Vulkan/Quest adapters.
 - `rusty-optics-stimulus/src/volume_cpu_reference.rs`: CPU reference sampler
   for bounded volume probe rays over the procedural layer stack.
 - `rusty-optics-stimulus/src/run_plan.rs`: display-refresh frame quantization

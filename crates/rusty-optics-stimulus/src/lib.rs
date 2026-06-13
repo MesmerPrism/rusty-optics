@@ -14,7 +14,9 @@ mod temporal;
 mod tests;
 mod volume;
 mod volume_cpu_reference;
+mod volume_preview;
 mod volume_probe;
+mod volume_profile;
 
 pub use cpu_reference::*;
 pub use kernel_abi::*;
@@ -28,4 +30,6 @@ pub use safety::*;
 pub use temporal::*;
 pub use volume::*;
 pub use volume_cpu_reference::*;
+pub use volume_preview::*;
 pub use volume_probe::*;
+pub use volume_profile::*;

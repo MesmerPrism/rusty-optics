@@ -14,6 +14,19 @@ pub enum StimulusVolumeFieldKind {
     IndexedAdfGrid,
 }
 
+impl StimulusVolumeFieldKind {
+    /// Stable schema token for this volume field kind.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::ProceduralLayerStack3d => "ProceduralLayerStack3d",
+            Self::DenseScalarGrid => "DenseScalarGrid",
+            Self::DenseSdfGrid => "DenseSdfGrid",
+            Self::IndexedAdfGrid => "IndexedAdfGrid",
+        }
+    }
+}
+
 /// Adapter storage preference for a stimulus volume.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -26,6 +39,19 @@ pub enum StimulusVolumeStorageHint {
     StorageTexture3d,
     /// Sparse or bricked storage-buffer records.
     BrickedStorageBuffers,
+}
+
+impl StimulusVolumeStorageHint {
+    /// Stable schema token for this volume storage hint.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::StorageBuffer => "StorageBuffer",
+            Self::SampledTexture3d => "SampledTexture3d",
+            Self::StorageTexture3d => "StorageTexture3d",
+            Self::BrickedStorageBuffers => "BrickedStorageBuffers",
+        }
+    }
 }
 
 /// Renderer-neutral volume-field descriptor for procedural stimuli.

@@ -100,7 +100,7 @@ Current crate-root maps:
 - `rusty-optics-stimulus/src/lib.rs`: facade over `layers`, `noise`,
   `oscillator`, `presentation`, `temporal`, `safety`, `kernel_abi`,
   `run_plan`, `profile`, `cpu_reference`, `volume`, `volume_probe`,
-  `volume_cpu_reference`, and tests.
+  `volume_profile`, `volume_preview`, `volume_cpu_reference`, and tests.
 - `web/stimulus-preview/app.js`: browser-development adapter that lowers a
   `StimulusProfile` fixture to a full-screen WebGPU compute preview with a CPU
   canvas fallback and bounded probe readouts. Keep Quest/OpenXR/Vulkan runtime
