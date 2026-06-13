@@ -192,6 +192,9 @@ function validateExportMetadata(metadata, options, view) {
   if (!String(metadata.evidence_type || "").includes("synthetic")) {
     errors.push("metadata evidence_type must identify a synthetic educational source");
   }
+  if (!String(metadata.dynamics || "").includes("not a PlanformDB-derived predictor")) {
+    errors.push("metadata dynamics must state that the export is not a PlanformDB-derived predictor");
+  }
   if (!String(metadata.expected_outcome || "").trim()) {
     errors.push("metadata expected_outcome must be populated");
   }
@@ -202,6 +205,24 @@ function validateExportMetadata(metadata, options, view) {
   if (!anchors.some((anchor) => String(anchor).includes("target:ap_transient_memory"))) {
     errors.push("metadata literature_anchors must include ap_transient_memory for the default memory showcase");
   }
+  const sourceTargets = Array.isArray(metadata.source_targets) ? metadata.source_targets : [];
+  const sourceTargetIds = new Set(sourceTargets.map((target) => String(target.target_id || "")));
+  if (!sourceTargetIds.has("head_vs_tail_voltage")) {
+    errors.push("metadata source_targets must include head_vs_tail_voltage");
+  }
+  if (!sourceTargetIds.has("ap_transient_memory")) {
+    errors.push("metadata source_targets must include ap_transient_memory");
+  }
+  if (!sourceTargets.some((target) => Array.isArray(target.source_ids) && target.source_ids.length > 0)) {
+    errors.push("metadata source_targets must include parsed source_ids");
+  }
+  const sourceTargetPolicy = String(metadata.source_target_policy || "");
+  if (!sourceTargetPolicy.includes("not calibrated physiology")) {
+    errors.push("metadata source_target_policy must preserve the non-calibrated physiology boundary");
+  }
+  if (!sourceTargetPolicy.includes("PlanformDB-derived records")) {
+    errors.push("metadata source_target_policy must mention PlanformDB-derived records as provenance/review metadata");
+  }
   if (errors.length) {
     throw new Error(`Export metadata validation failed: ${errors.join("; ")}`);
   }
@@ -209,6 +230,8 @@ function validateExportMetadata(metadata, options, view) {
     voltage_unit: metadata.voltage_unit,
     evidence_type: metadata.evidence_type,
     literature_anchor_count: anchors.length,
+    source_target_count: sourceTargets.length,
+    source_target_policy: sourceTargetPolicy,
   };
 }
 

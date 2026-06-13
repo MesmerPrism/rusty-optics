@@ -16,7 +16,9 @@ Matter also owns the compact source/target anchors and voltage-unit policy that
 explain the synthetic scenario. The browser preview reads those fields from the
 Matter Wasm runtime and displays them in the dynamics panel; export metadata
 records the same `evidence_type`, `expected_outcome`, `voltage_unit_policy`,
-and `literature_anchors` values.
+and `literature_anchors` values. It also serializes parsed `source_targets`
+and a `source_target_policy` that preserves the non-calibrated physiology and
+PlanformDB-provenance boundary for export validators.
 
 ## Showcase Behavior
 
@@ -100,11 +102,12 @@ powershell -NoProfile -ExecutionPolicy Bypass `
 The smoke opens the local preview with Playwright, exports both views through
 the UI, saves them under `local-artifacts\planarian3d-export-smoke`, and
 validates frame count and dimensions with Pillow. It also checks the export
-metadata for the normalized voltage policy, synthetic evidence label, and
-Matter source-target anchors, and verifies that the default outcome panel
-reports the memory-versus-no-memory teaching relation. For APNG it checks the
-PNG animation chunks (`acTL` and `fcTL`) so a static PNG cannot pass as a
-high-fidelity animation export.
+metadata for the normalized voltage policy, synthetic evidence label, parsed
+Matter source targets, non-calibrated source-target policy, and
+non-predictive PlanformDB boundary, then verifies that the default outcome
+panel reports the memory-versus-no-memory teaching relation. For APNG it
+checks the PNG animation chunks (`acTL` and `fcTL`) so a static PNG cannot pass
+as a high-fidelity animation export.
 
 PlanformDB-derived and morphology-label fixtures remain Matter-owned review
 metadata. The export smoke should continue treating them as provenance and

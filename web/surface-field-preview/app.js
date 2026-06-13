@@ -119,7 +119,8 @@ const PLANARIAN_TARGET_LABELS = new Map([
   ["head_vs_tail_voltage", "head/tail voltage context"],
   ["head_size_scaling", "future size metric"],
   ["species_like_head_labels", "future head labels"],
-  ["planformdb_curated_subset", "future curated records"],
+  ["planformdb_curated_subset", "curated PlanformDB records"],
+  ["persistent_axis_recut_history", "future persistent-axis history"],
 ]);
 const PLANARIAN_EXPORT_DEFAULTS = {
   format: "apng",
@@ -2211,15 +2212,20 @@ function planarian3DAnchorSummary(anchors) {
   const labels = (anchors || [])
     .map(parsePlanarianSourceTargetAnchor)
     .filter(Boolean)
-    .map((anchor) => {
-      const source = PLANARIAN_SOURCE_LABELS.get(anchor.source_id) || anchor.source_id;
-      const target = PLANARIAN_TARGET_LABELS.get(anchor.target_id) || anchor.target_id;
-      return `${source}: ${target}`;
-    });
+    .map(formatPlanarianSourceTargetAnchor);
   if (labels.length === 0) {
     return "source targets pending";
   }
   return `anchors ${labels.join("; ")}`;
+}
+
+function formatPlanarianSourceTargetAnchor(anchor) {
+  const sources = (anchor.source_ids || [anchor.source_id])
+    .filter(Boolean)
+    .map((sourceId) => PLANARIAN_SOURCE_LABELS.get(sourceId) || sourceId)
+    .join(" + ");
+  const target = PLANARIAN_TARGET_LABELS.get(anchor.target_id) || anchor.target_id;
+  return `${sources}: ${target}`;
 }
 
 function parsePlanarianSourceTargetAnchor(anchor) {
@@ -2227,18 +2233,48 @@ function parsePlanarianSourceTargetAnchor(anchor) {
     return null;
   }
   const parts = anchor.split("::");
-  const source = parts.find((part) => part.startsWith("source:"));
+  const sourcePart = parts.find((part) => part.startsWith("source:"));
   const target = parts.find((part) => part.startsWith("target:"));
-  const sourceId = source ? source.slice("source:".length) : "";
+  const sourceIds = sourcePart
+    ? sourcePart
+      .split(";")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => part.startsWith("source:") ? part.slice("source:".length) : part)
+      .filter(Boolean)
+    : [];
   const targetId = target ? target.slice("target:".length) : "";
-  if (!sourceId || !targetId) {
+  if (sourceIds.length === 0 || !targetId) {
     return null;
   }
   return {
-    source_id: sourceId,
+    source_id: sourceIds[0],
+    source_ids: sourceIds,
     target_id: targetId,
+    status: parts
+      .filter((part) => !part.startsWith("source:") && !part.startsWith("target:"))
+      .join("::"),
     flags: parts.filter((part) => part.startsWith("future_")),
   };
+}
+
+function planarianSourceTargetsFromAnchors(anchors) {
+  return (anchors || [])
+    .map(parsePlanarianSourceTargetAnchor)
+    .filter(Boolean);
+}
+
+function planarianSourceTargetPolicy(sourceTargets) {
+  const mentionsPlanformDb = sourceTargets.some((target) =>
+    target.source_ids?.includes("planformdb_250") || target.target_id.includes("planformdb"));
+  return [
+    "source targets are metadata over Matter-owned synthetic educational dynamics",
+    "not calibrated physiology",
+    "not source-fit thresholds or stochastic prediction",
+    mentionsPlanformDb
+      ? "PlanformDB-derived records are provenance and review metadata only"
+      : "PlanformDB-derived records remain provenance and review metadata only",
+  ].join("; ");
 }
 
 function drawPlanarianLegendRow(legendCtx, samples, label, x, y, width, height, dpr) {
@@ -3165,6 +3201,8 @@ function setPlanarianGifStatus(message) {
 function writePlanarianExportMetadata({ settings, frameCount, captureLayer, extension, filename, bytes }) {
   const scenario = scenarioInfo(planarian3dStats?.scenario_code);
   const density = planarianGraphDensityInfo(planarian3dStats?.graph_density_code);
+  const literatureAnchors = planarian3dStats?.literature_anchors || [];
+  const sourceTargets = planarianSourceTargetsFromAnchors(literatureAnchors);
   const metadata = {
     format: settings.format,
     extension,
@@ -3191,7 +3229,10 @@ function writePlanarianExportMetadata({ settings, frameCount, captureLayer, exte
     expected_outcome: planarian3dStats?.expected_outcome || scenario.outcome,
     voltage_unit: planarian3dStats?.voltage_unit_label || "normalized",
     voltage_unit_policy: planarian3dStats?.voltage_unit_policy || "",
-    literature_anchors: planarian3dStats?.literature_anchors || [],
+    literature_anchors: literatureAnchors,
+    source_targets: sourceTargets,
+    source_target_summary: sourceTargets.map(formatPlanarianSourceTargetAnchor).join("; "),
+    source_target_policy: planarianSourceTargetPolicy(sourceTargets),
   };
   viewport3d.dataset.planarian3dExportMetadata = JSON.stringify(metadata);
   viewport3d.dataset.planarian3dExportFormat = metadata.format;
@@ -3202,6 +3243,7 @@ function writePlanarianExportMetadata({ settings, frameCount, captureLayer, exte
   viewport3d.dataset.planarian3dExportFps = String(metadata.fps);
   viewport3d.dataset.planarian3dExportLoop = metadata.loop;
   viewport3d.dataset.planarian3dExportDynamics = metadata.dynamics;
+  viewport3d.dataset.planarian3dExportSourceTargetPolicy = metadata.source_target_policy;
   viewport3d.dataset.planarian3dExportFilename = metadata.filename;
 }
 
@@ -3211,11 +3253,13 @@ function planarianExportDynamicsDescription(loop) {
       "Matter-owned synthetic planarian memory scenario frames",
       "Optics-selected active segment resampled and mirrored for a seamless visual loop",
       "no added or recalibrated physiology dynamics",
+      "not a PlanformDB-derived predictor",
     ].join("; ");
   }
   return [
     "Matter-owned synthetic planarian circuit stepped forward at fixed display cadence",
     "Optics applies color, camera, material, and export encoding only",
+    "not a PlanformDB-derived predictor",
   ].join("; ");
 }
 
