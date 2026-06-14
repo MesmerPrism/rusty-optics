@@ -72,6 +72,12 @@ renderer adapter can consume; for animated realtime hand-mesh previews it calls
 the Matter Wasm surface-distance runtime instead of owning triangle-distance
 math in browser code.
 
+The surface-field preview keeps pure browser adapter helpers in
+`web/surface-field-preview/surface-field-utils.js`: bounds calculation, color
+mapping, scalar formatting, clamping, and small vector utilities. Stateful
+playback, canvas drawing, live Matter Wasm calls, Planarian 3D interaction, and
+export orchestration stay in `web/surface-field-preview/app.js`.
+
 Historical browser-only brute-force SDF/particle previews are useful only as
 prototype evidence for controls, metrics, and smoke-test shape. They must not
 be revived as the default implementation path now that Matter owns the Rust

@@ -111,6 +111,12 @@ Current crate-root maps:
   controls, and per-layer oscillator banks. It may translate external preset
   vocabulary into the Optics profile shape, but must not become core stimulus
   authority or a Quest runtime dependency.
+- `web/surface-field-preview/app.js`: browser-development surface-field and
+  Planarian preview adapter for playback, controls, drawing, live Matter Wasm
+  calls, and Planarian 3D interaction wiring.
+- `web/surface-field-preview/surface-field-utils.js`: pure browser helper
+  module for bounds, color mapping, formatting, clamping, and small vector
+  utilities shared by the surface-field preview adapter.
 - `rusty-optics-fixtures/src/main.rs`: dispatch-only binary over `cli`,
   `adf`, `error`, `fields`, `hand_mesh`, `stimulus`, and `summary`.
 - `rusty-optics-schema/src/main.rs`: dispatch-only binary over `catalog`, `cli`,
