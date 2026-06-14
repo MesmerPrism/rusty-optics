@@ -131,9 +131,11 @@ present, it runs the Matter-owned realtime surface-field Wasm runtime and uses
 the sequence only as fallback/evidence. Optics owns playback, colors, edge
 styling, perturbation highlights, and polarity arrows only.
 Implementation is split between `web/surface-field-preview/app.js` for
-stateful playback, drawing, live Matter Wasm calls, Planarian 3D interaction,
-and export orchestration, and `web/surface-field-preview/surface-field-utils.js`
-for pure bounds, color, formatting, clamp, and small vector helpers.
+stateful playback, drawing, live Matter Wasm calls, and Planarian 3D
+interaction; `web/surface-field-preview/planarian-3d-export.js` for Planarian
+3D export capture, frame shaping, encoder dispatch, downloads, and metadata;
+and `web/surface-field-preview/surface-field-utils.js` for pure bounds, color,
+formatting, clamp, and small vector helpers.
 
 The same preview also has a `Circuit` view over
 `fixtures/fields/bioelectric_circuit_visual_frame.json`. That view shows the

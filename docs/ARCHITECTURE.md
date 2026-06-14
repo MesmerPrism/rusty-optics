@@ -76,7 +76,9 @@ The surface-field preview keeps pure browser adapter helpers in
 `web/surface-field-preview/surface-field-utils.js`: bounds calculation, color
 mapping, scalar formatting, clamping, and small vector utilities. Stateful
 playback, canvas drawing, live Matter Wasm calls, Planarian 3D interaction, and
-export orchestration stay in `web/surface-field-preview/app.js`.
+control wiring stay in `web/surface-field-preview/app.js`. Planarian 3D export
+capture, frame shaping, encoder dispatch, downloads, and metadata live in
+`web/surface-field-preview/planarian-3d-export.js`.
 
 Historical browser-only brute-force SDF/particle previews are useful only as
 prototype evidence for controls, metrics, and smoke-test shape. They must not
@@ -263,6 +265,11 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
   affected-target rows; owns playback, drawing, converted-GLB mesh styling,
   body/node/edge visibility toggles, feedback-frame timeline marks, and
   edit-intent construction only.
+- `web/surface-field-preview/planarian-3d-export.js`: browser helper for
+  Planarian 3D export defaults, capture-loop orchestration, showcase frame
+  shaping, GIF/APNG/WebM/MP4 encoder dispatch, download handoff, and export
+  metadata dataset fields. It controls Optics presentation and export evidence
+  only, not Matter scenario dynamics.
 - `web/stimulus-preview/app.js`: browser-development adapter for procedural
   stimulus profiles. It owns WebGPU/CPU browser lowering, canvas resize,
   full-screen preview controls, and bounded probe readouts; it is not core

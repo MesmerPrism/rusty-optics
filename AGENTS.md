@@ -114,6 +114,10 @@ Current crate-root maps:
 - `web/surface-field-preview/app.js`: browser-development surface-field and
   Planarian preview adapter for playback, controls, drawing, live Matter Wasm
   calls, and Planarian 3D interaction wiring.
+- `web/surface-field-preview/planarian-3d-export.js`: browser helper for
+  Planarian 3D export defaults, capture-frame shaping, encoder dispatch,
+  downloads, and export metadata. It may drive Optics export presentation only;
+  Matter remains the scenario and dynamics authority.
 - `web/surface-field-preview/surface-field-utils.js`: pure browser helper
   module for bounds, color mapping, formatting, clamping, and small vector
   utilities shared by the surface-field preview adapter.
