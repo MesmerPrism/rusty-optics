@@ -76,7 +76,9 @@ The surface-field preview keeps pure browser adapter helpers in
 `web/surface-field-preview/surface-field-utils.js`: bounds calculation, color
 mapping, scalar formatting, clamping, and small vector utilities. Stateful
 playback, canvas drawing, live Matter Wasm calls, Planarian 3D interaction, and
-control wiring stay in `web/surface-field-preview/app.js`. Planarian 3D export
+control wiring stay in `web/surface-field-preview/app.js`. Planarian 3D
+scenario/source-target/edit vocabulary and pure readout formatting live in
+`web/surface-field-preview/planarian-3d-readouts.js`. Planarian 3D export
 capture, frame shaping, encoder dispatch, downloads, and metadata live in
 `web/surface-field-preview/planarian-3d-export.js`.
 
@@ -265,6 +267,11 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
   affected-target rows; owns playback, drawing, converted-GLB mesh styling,
   body/node/edge visibility toggles, feedback-frame timeline marks, and
   edit-intent construction only.
+- `web/surface-field-preview/planarian-3d-readouts.js`: browser helper for
+  Planarian scenario labels, graph-density labels, source-target provenance
+  labels, region labels, outcome metrics, edit operation labels, and pure
+  readout formatting. It controls Optics presentation text only, not Matter
+  scenario dynamics.
 - `web/surface-field-preview/planarian-3d-export.js`: browser helper for
   Planarian 3D export defaults, capture-loop orchestration, showcase frame
   shaping, GIF/APNG/WebM/MP4 encoder dispatch, download handoff, and export

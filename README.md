@@ -132,9 +132,11 @@ the sequence only as fallback/evidence. Optics owns playback, colors, edge
 styling, perturbation highlights, and polarity arrows only.
 Implementation is split between `web/surface-field-preview/app.js` for
 stateful playback, drawing, live Matter Wasm calls, and Planarian 3D
-interaction; `web/surface-field-preview/planarian-3d-export.js` for Planarian
-3D export capture, frame shaping, encoder dispatch, downloads, and metadata;
-and `web/surface-field-preview/surface-field-utils.js` for pure bounds, color,
+interaction; `web/surface-field-preview/planarian-3d-readouts.js` for
+Planarian scenario/source-target/edit vocabulary and pure readout formatting;
+`web/surface-field-preview/planarian-3d-export.js` for Planarian 3D export
+capture, frame shaping, encoder dispatch, downloads, and metadata; and
+`web/surface-field-preview/surface-field-utils.js` for pure bounds, color,
 formatting, clamp, and small vector helpers.
 
 The same preview also has a `Circuit` view over
