@@ -468,6 +468,44 @@ fn volume_interference_fixture_deserializes_and_validates() {
         .any(|pass| pass.kind == ComputePassKind::VolumeReadbackProbe));
 }
 
+#[cfg(feature = "serde")]
+#[test]
+fn volume_only_bright_fixture_deserializes_and_validates() {
+    let json =
+        include_str!("../../../fixtures/stimulus/volume_only_bright_interference_profile.json");
+    let profile: StimulusProfile =
+        serde_json::from_str(json).expect("bright volume stimulus fixture should deserialize");
+
+    profile
+        .validate()
+        .expect("bright volume stimulus fixture should validate");
+
+    assert!((profile.temporal.target_cycle_hz - 12.0).abs() < f32::EPSILON);
+    assert!((profile.safety.max_cycle_hz - 15.0).abs() < f32::EPSILON);
+    let layer = profile
+        .layer_graph
+        .layers
+        .first()
+        .expect("bright volume fixture should include an interference layer");
+    assert_eq!(layer.pattern, BasePatternKind::Interference);
+    assert!((8.0..=15.0).contains(&layer.temporal.speed_hz));
+    assert!(layer
+        .oscillators
+        .iter()
+        .all(|oscillator| (8.0..=15.0).contains(&oscillator.frequency_hz)));
+    assert!(profile.volume.is_some());
+
+    let raw: serde_json::Value =
+        serde_json::from_str(json).expect("bright volume fixture should parse as raw json");
+    let fragment_hints = &raw["adapter_hints"]["makepad_fragment_volume"];
+    assert_eq!(fragment_hints["color_mode"], "DepthRamp");
+    assert_eq!(fragment_hints["depth_color_mix"], 1.0);
+    assert_eq!(fragment_hints["depth_contrast"], 0.9);
+    assert_eq!(fragment_hints["depth_color_near"]["r"], 1.0);
+    assert_eq!(fragment_hints["depth_color_mid"]["g"], 1.0);
+    assert_eq!(fragment_hints["depth_color_far"]["b"], 1.0);
+}
+
 #[test]
 fn park_miller_sequence_is_repeatable() {
     let mut a = ParkMillerRng::new(123);

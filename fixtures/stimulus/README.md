@@ -22,3 +22,12 @@ It adds the first bounded `rusty.optics.stimulus.volume.v1` descriptor and
 volume compute-pass ABI over the same clean-room interference layer graph. The
 fixture exists for CPU/WebGPU/Vulkan bounded probe parity and later Quest
 evidence; it does not make Optics the owner of Matter field truth.
+
+`volume_only_bright_interference_profile.json` is a hand-authored Quest
+adapter fixture over the same clean-room volume contract. It keeps the
+renderer-neutral volume descriptor and compute ABI valid, while carrying
+`adapter_hints.makepad_fragment_volume` so Hostess can render the profile as a
+pure bright fragment-volume field with no 2D base layer, no validation texture
+mix, bright color emission, black-threshold contrast, continuous depth-ramp
+color by density-weighted raymarch depth, and right-controller randomization in
+the 8-15 Hz range.
