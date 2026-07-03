@@ -38,9 +38,10 @@ The first source slices focus on visual particles and mesh diagnostics:
   bounded stimulus volume descriptors, mobile-GPU-portable compute-capable
   kernel ABI descriptors, run-plan quantization, and CPU reference samples for
   browser-development and renderer-adapter handoff;
-- a browser preview that renders generated mesh debug JSON and, for animated
-  hand-mesh sequences, drives realtime SDF/particle queries through the Matter
-  WebAssembly runtime without renderer backend imports;
+- a hand mesh visual profile plus browser preview that render generated mesh
+  debug JSON and, for animated hand-mesh sequences, drive realtime SDF/particle
+  queries through the Matter WebAssembly runtime without renderer backend
+  imports;
 - a browser-development stimulus preview that loads the same renderer-neutral
   `StimulusProfile` fixture and lowers it to a full-screen WebGPU compute
   field texture, with a bounded CPU canvas fallback when WebGPU is unavailable.
@@ -65,8 +66,10 @@ Then open:
 http://127.0.0.1:8791/web/hand-mesh-browser-preview/
 ```
 
-The preview consumes `fixtures/hand_mesh/hand_mesh_browser_debug_frame.json`.
-That JSON is renderer-neutral and can also feed a later renderer adapter.
+The preview consumes `fixtures/hand_mesh/hand_mesh_browser_debug_frame.json`
+and the renderer-neutral profile
+`fixtures/hand_mesh/hand_mesh_visual_profile.json`. Those JSON fixtures can
+also feed a later renderer adapter.
 
 ## Stimulus Browser Preview
 

@@ -12,7 +12,9 @@ use rusty_matter_sdf::{build_sdf_from_mesh, MeshSdfSignMode, MeshToSdfConfig};
 use rusty_optics_mesh::{
     MeshBrowserDebugFrame, MeshColliderVisual, MeshCoordinateVisual, MeshDebugFrame, SdfSliceVisual,
 };
-use rusty_optics_model::{ColorRgba, PARTICLE_SDF_BROWSER_OVERLAY_SCHEMA_ID};
+use rusty_optics_model::{
+    ColorRgba, HandMeshVisualProfile, PARTICLE_SDF_BROWSER_OVERLAY_SCHEMA_ID,
+};
 use rusty_optics_particles::{to_half_open_frame01, ParticleVisualFrame};
 use serde::Serialize;
 
@@ -21,6 +23,17 @@ use crate::error::FixtureError;
 /// Serializes the deterministic hand-mesh browser debug frame.
 pub fn hand_mesh_browser_frame_json() -> Result<String, FixtureError> {
     serialize_frame(&build_hand_mesh_browser_frame()?)
+}
+
+/// Serializes the deterministic hand-mesh visual profile.
+pub fn hand_mesh_visual_profile_json() -> Result<String, FixtureError> {
+    let profile = HandMeshVisualProfile::browser_debug("profile.hand_mesh.browser_debug");
+    profile
+        .validate()
+        .map_err(|error| FixtureError::Optics(error.to_string()))?;
+    let mut json = serde_json::to_string_pretty(&profile)?;
+    json.push('\n');
+    Ok(json)
 }
 
 /// Serializes a browser debug frame from an external Matter mesh surface.

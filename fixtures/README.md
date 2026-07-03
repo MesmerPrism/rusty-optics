@@ -39,10 +39,16 @@ same underlying `TriangleMeshSurface` feeds the mesh wireframe, coordinate map,
 dynamic collider, and SDF grid before Optics converts them into browser-ready
 debug visuals.
 
+`fixtures/hand_mesh/hand_mesh_visual_profile.json` is the matching
+renderer-neutral visual profile for that debug payload. It carries colors,
+opacity, and scale hints only; renderer adapters still own shaders, draw calls,
+buffers, and platform frame lifecycle.
+
 Regenerate and check the hand-mesh fixture with:
 
 ```powershell
 cargo run -p rusty-optics-fixtures -- export-hand-mesh-browser --check
+cargo run -p rusty-optics-fixtures -- export-hand-mesh-visual-profile --check
 ```
 
 ## ADF Debug Visual

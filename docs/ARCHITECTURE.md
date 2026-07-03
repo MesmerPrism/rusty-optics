@@ -225,8 +225,9 @@ feedback-frame shape, live stats, and the Matter-exported GLB-derived
   post-layer geometry compositor for stack, weighted-mean, and selected-layer
   crossfade exploration, local browser preset storage, and a Quest handoff
   export that stages tuned Optics profiles beside low-rate Makepad settings;
-- browser preview for generated mesh debug JSON and Matter-Wasm-backed animated
-  hand-mesh SDF/particle smoke;
+- renderer-neutral hand mesh visual profile and browser preview for generated
+  mesh debug JSON plus Matter-Wasm-backed animated hand-mesh SDF/particle
+  smoke;
 - fixture and schema catalog checks;
 - dependency and namespace boundary scans.
 
@@ -237,6 +238,8 @@ Crate roots stay as facades so Optics does not rebuild monolithic `main.rs` and
 
 - `rusty-optics-model/src/color.rs`: RGBA colors.
 - `rusty-optics-model/src/error.rs`: shared validation errors.
+- `rusty-optics-model/src/hand_profile.rs`: renderer-neutral hand mesh visual
+  profile over mesh browser debug frames.
 - `rusty-optics-model/src/ids.rs`: Optics schema IDs.
 - `rusty-optics-model/src/vec2.rs`: two-dimensional projection points.
 - `rusty-optics-mesh/src/browser_frame.rs`: combined mesh debug frame for

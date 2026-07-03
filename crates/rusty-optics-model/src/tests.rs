@@ -1,8 +1,8 @@
 use crate::{
     homography_unit_square_bounding_rect, optics_schema_ids, source_valid_screen_uv_footprint,
-    ColorRgba, ProjectionGeometryReport, Rect2, SourceSamplingMode, TargetScreenFootprint, Vec2,
-    VideoProjectionMapping, COLOR_RGBA_SCHEMA_ID, IDENTITY_HOMOGRAPHY,
-    VIDEO_PROJECTION_GEOMETRY_SCHEMA_ID,
+    ColorRgba, HandMeshVisualProfile, ProjectionGeometryReport, Rect2, SourceSamplingMode,
+    TargetScreenFootprint, Vec2, VideoProjectionMapping, COLOR_RGBA_SCHEMA_ID,
+    HAND_MESH_VISUAL_PROFILE_SCHEMA_ID, IDENTITY_HOMOGRAPHY, VIDEO_PROJECTION_GEOMETRY_SCHEMA_ID,
 };
 
 #[test]
@@ -21,9 +21,21 @@ fn vec2_reports_finite_state() {
 #[test]
 fn schema_ids_use_optics_namespace() {
     assert_eq!(COLOR_RGBA_SCHEMA_ID, "rusty.optics.color.rgba.v1");
+    assert_eq!(
+        HAND_MESH_VISUAL_PROFILE_SCHEMA_ID,
+        "rusty.optics.hand_mesh.visual_profile.v1"
+    );
     assert!(optics_schema_ids()
         .iter()
         .all(|schema_id| schema_id.starts_with("rusty.optics.")));
+}
+
+#[test]
+fn hand_mesh_visual_profile_validates_renderer_neutral_policy() {
+    let profile = HandMeshVisualProfile::browser_debug("profile.hand_mesh.browser_debug");
+
+    profile.validate().unwrap();
+    assert_eq!(profile.schema_id, HAND_MESH_VISUAL_PROFILE_SCHEMA_ID);
 }
 
 #[test]

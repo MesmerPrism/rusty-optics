@@ -13,6 +13,7 @@ The check runs:
 - fixture summary validation
 - ADF debug visual fixture validation
 - hand-mesh browser debug fixture validation
+- hand-mesh visual profile fixture validation
 - projection geometry and source-valid footprint unit tests
 - procedural stimulus profile, research-protocol notice policy, full-screen
   stereo-eye presentation, run-plan, oscillator, Perlin-style noise,
@@ -28,6 +29,7 @@ The hand-mesh browser fixture is regenerated with:
 
 ```powershell
 cargo run -p rusty-optics-fixtures -- export-hand-mesh-browser
+cargo run -p rusty-optics-fixtures -- export-hand-mesh-visual-profile
 ```
 
 The ADF debug visual fixture is regenerated with:
