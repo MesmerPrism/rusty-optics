@@ -1,0 +1,61 @@
+{
+  "schema_id": "rusty.optics.particles.visual.frame.v1",
+  "frame_id": "particle.visual.frame.conformance",
+  "source_payload_id": "particle.payload.optics.conformance",
+  "source_schema_id": "rusty.matter.particle.render_payload.v1",
+  "time_seconds": 0.25,
+  "samples": [
+    {
+      "schema_id": "rusty.optics.particles.visual.sample.v1",
+      "source_particle_id": "particle.optics.0",
+      "position": {
+        "x": -0.05,
+        "y": 0.01,
+        "z": -0.2
+      },
+      "radius": 0.015,
+      "color": {
+        "r": 0.25,
+        "g": 0.8,
+        "b": 1.0,
+        "a": 0.7
+      },
+      "normal": {
+        "x": 0.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "rotation_radians": 0.0,
+      "frame01": 0.0,
+      "aux0": 1.0,
+      "aux1": 0.0,
+      "flags": 0
+    },
+    {
+      "schema_id": "rusty.optics.particles.visual.sample.v1",
+      "source_particle_id": "particle.optics.1",
+      "position": {
+        "x": 0.05,
+        "y": 0.02,
+        "z": -0.2
+      },
+      "radius": 0.02,
+      "color": {
+        "r": 0.25,
+        "g": 0.8,
+        "b": 1.0,
+        "a": 0.7
+      },
+      "normal": {
+        "x": 0.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "rotation_radians": 0.0,
+      "frame01": 0.0,
+      "aux0": 1.0,
+      "aux1": 0.0,
+      "flags": 0
+    }
+  ]
+}

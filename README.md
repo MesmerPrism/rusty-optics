@@ -7,6 +7,8 @@ projected, animated, inspected, and handed to renderer adapters.
 The first source slices focus on visual particles and mesh diagnostics:
 
 - visual particle frames derived from Matter particle payloads;
+- a deterministic Matter-to-Optics particle conformance frame that preserves
+  source payload and particle identity without backend resources;
 - appearance profiles for billboard draw mode, blend/depth policy, animated
   mask descriptors, facing response, frame scaling, and trail appearance;
 - visual animation profiles that resolve color ramps, size envelopes,
@@ -50,6 +52,11 @@ Optics does not own particle simulation, mesh/SDF truth, tracked-space runtime
 state, downstream visual-driver bindings, shader source, GPU uploads,
 OpenXR/Vulkan/WebGL/Makepad integrations, procedural shader source, GPU field
 passes, or downstream product profiles.
+
+`fixtures/particles/matter-visual-conformance.json` is the neutral particle
+appearance handoff. Its damaged companion proves that app scenes, platform
+handles, renderer resources, private drivers, and high-rate control settings
+are rejected rather than absorbed into the visual frame contract.
 
 ## Hand Mesh Browser Preview
 

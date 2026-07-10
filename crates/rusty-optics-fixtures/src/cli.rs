@@ -12,6 +12,9 @@ use crate::{
         hand_mesh_browser_frame_json, hand_mesh_browser_frame_json_from_surface,
         hand_mesh_visual_profile_json,
     },
+    particle_contract::{
+        particle_visual_boundary_rejection_json, particle_visual_conformance_json,
+    },
     stimulus::volume_interference_preview_profile_json,
     summary::summary_json,
 };
@@ -25,12 +28,35 @@ pub fn run(args: impl IntoIterator<Item = String>) -> Result<(), FixtureError> {
         "export-hand-mesh-browser" => export_hand_mesh_browser(args),
         "export-hand-mesh-visual-profile" => export_hand_mesh_visual_profile(args),
         "export-hand-mesh-browser-from-surface" => export_hand_mesh_browser_from_surface(args),
+        "export-particle-conformance" => export_particle_conformance(args),
         "export-surface-field-preview" => export_surface_field_preview(args),
         "export-adf-debug" => export_adf_debug(args),
         "export-stimulus-volume-preview" => export_stimulus_volume_preview(args),
         "validate" => validate(),
         _ => Err(FixtureError::InvalidArgument(command)),
     }
+}
+
+fn export_particle_conformance(args: impl IntoIterator<Item = String>) -> Result<(), FixtureError> {
+    let mut check = false;
+    for argument in args {
+        match argument.as_str() {
+            "--check" => check = true,
+            _ => return Err(FixtureError::InvalidArgument(argument)),
+        }
+    }
+    write_or_check_json(
+        PathBuf::from("fixtures/particles/matter-visual-conformance.json"),
+        particle_visual_conformance_json()?,
+        check,
+        "Matter particle visual conformance",
+    )?;
+    write_or_check_json(
+        PathBuf::from("fixtures/damaged/particle-visual-boundary-leak.json"),
+        particle_visual_boundary_rejection_json()?,
+        check,
+        "particle visual boundary rejection",
+    )
 }
 
 fn export_stimulus_volume_preview(
@@ -344,6 +370,7 @@ fn validate() -> Result<(), FixtureError> {
     export_adf_debug(["--check".to_owned()])?;
     export_hand_mesh_browser(["--check".to_owned()])?;
     export_hand_mesh_visual_profile(["--check".to_owned()])?;
+    export_particle_conformance(["--check".to_owned()])?;
     export_surface_field_preview(["--check".to_owned()])?;
     export_stimulus_volume_preview(["--check".to_owned()])
 }

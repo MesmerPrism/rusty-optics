@@ -66,6 +66,10 @@ runtime sockets, media stacks, or downstream app crates.
   appear only in explicitly named compatibility layers outside Optics core.
 - Keep high-rate particle arrays out of command/control JSON routes; use
   artifacts, bounded summaries, or data-plane adapters.
+- Use `fixtures/particles/matter-visual-conformance.json` for the accepted
+  Matter-to-Optics identity handoff. Visual frames must reject app, platform,
+  renderer-resource, private-driver, and high-rate-control fields; those remain
+  adapter or product policy.
 
 ## File Organization Rules
 

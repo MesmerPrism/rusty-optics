@@ -6,6 +6,7 @@ use rusty_optics_model::{
 
 /// One resolved visual particle sample.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParticleVisualSample {
     /// Schema identifier.
@@ -93,6 +94,7 @@ impl ParticleVisualSample {
 
 /// Resolved visual particle frame.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParticleVisualFrame {
     /// Schema identifier.

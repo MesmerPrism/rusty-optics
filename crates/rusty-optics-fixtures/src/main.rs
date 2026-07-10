@@ -5,6 +5,7 @@ mod cli;
 mod error;
 mod fields;
 mod hand_mesh;
+mod particle_contract;
 mod stimulus;
 mod summary;
 

@@ -4,10 +4,17 @@ Optics fixtures are deterministic, low-volume artifacts for validating visual
 payload shape, projection behavior, billboard budgets, and schema wiring. They
 are not GPU captures and do not include downstream app-specific visual mappings.
 
+`fixtures/particles/matter-visual-conformance.json` is the deterministic,
+renderer-neutral visual frame over a Matter render payload. The matching
+`fixtures/damaged/particle-visual-boundary-leak.json` records strict rejection
+of application, platform, renderer-resource, private-driver, and high-rate
+control fields.
+
 Regenerate and check fixtures with:
 
 ```powershell
 cargo run -p rusty-optics-fixtures -- export --check
+cargo run -p rusty-optics-fixtures -- export-particle-conformance --check
 ```
 
 ## Procedural Stimulus Profiles
