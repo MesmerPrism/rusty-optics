@@ -70,6 +70,10 @@ runtime sockets, media stacks, or downstream app crates.
   Matter-to-Optics identity handoff. Visual frames must reject app, platform,
   renderer-resource, private-driver, and high-rate-control fields; those remain
   adapter or product policy.
+- `rusty.optics.hand.visual_profile.v1` preserves provider, Lattice frame,
+  Matter rig, and handedness identity while adding renderer-neutral color,
+  wireframe, and opacity intent only. Shader modules, GPU resources, platform
+  handles, and product policy must fail strict deserialization.
 
 ## File Organization Rules
 

@@ -1,0 +1,14 @@
+{
+  "schema": "rusty.optics.hand.visual_profile.v1",
+  "profile_id": "hand.visual.generic-left.neutral.v1",
+  "provider_id": "generic-tracked-hand-provider",
+  "lattice_frame_id": "generic-left-hand-joint-frame-0001",
+  "matter_rig_id": "hand.rig.generic-left.v1",
+  "hand": "left",
+  "lattice_frame_schema_id": "rusty.lattice.hand_joint_frame.v1",
+  "matter_rig_schema_id": "rusty.matter.hand.rig_capture.v1",
+  "visual_intent": "neutral_tracked_hand_surface",
+  "surface_color": {"r": 0.72, "g": 0.82, "b": 0.78, "a": 1.0},
+  "wireframe": true,
+  "opacity": 0.85
+}

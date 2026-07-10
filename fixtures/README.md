@@ -51,6 +51,11 @@ renderer-neutral visual profile for that debug payload. It carries colors,
 opacity, and scale hints only; renderer adapters still own shaders, draw calls,
 buffers, and platform frame lifecycle.
 
+`fixtures/hand_mesh/hand-substrate-visual-profile.json` is the cross-lane
+profile. It preserves provider, Lattice frame, Matter rig, and handedness
+identity; the damaged backend-leak fixture proves shader/resource fields remain
+outside Optics.
+
 Regenerate and check the hand-mesh fixture with:
 
 ```powershell

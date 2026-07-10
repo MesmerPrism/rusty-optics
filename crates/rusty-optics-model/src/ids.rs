@@ -36,6 +36,8 @@ pub const ADF_DEBUG_VISUAL_SCHEMA_ID: &str = "rusty.optics.adf.debug.visual.v1";
 pub const MESH_BROWSER_DEBUG_FRAME_SCHEMA_ID: &str = "rusty.optics.mesh.browser.debug_frame.v1";
 /// Hand mesh visual profile schema.
 pub const HAND_MESH_VISUAL_PROFILE_SCHEMA_ID: &str = "rusty.optics.hand_mesh.visual_profile.v1";
+/// Provider-bound hand substrate visual profile schema.
+pub const HAND_SUBSTRATE_VISUAL_PROFILE_SCHEMA_ID: &str = "rusty.optics.hand.visual_profile.v1";
 /// Browser SDF particle overlay schema.
 pub const PARTICLE_SDF_BROWSER_OVERLAY_SCHEMA_ID: &str =
     "rusty.optics.particles.sdf.browser_overlay.v1";
@@ -85,7 +87,7 @@ pub const STIMULUS_RUN_PLAN_SCHEMA_ID: &str = "rusty.optics.stimulus.run_plan.v1
 
 /// Returns the schema IDs currently emitted by Rusty Optics.
 #[must_use]
-pub const fn optics_schema_ids() -> [&'static str; 36] {
+pub const fn optics_schema_ids() -> [&'static str; 37] {
     [
         COLOR_RGBA_SCHEMA_ID,
         PARTICLE_VISUAL_SAMPLE_SCHEMA_ID,
@@ -104,6 +106,7 @@ pub const fn optics_schema_ids() -> [&'static str; 36] {
         ADF_DEBUG_VISUAL_SCHEMA_ID,
         MESH_BROWSER_DEBUG_FRAME_SCHEMA_ID,
         HAND_MESH_VISUAL_PROFILE_SCHEMA_ID,
+        HAND_SUBSTRATE_VISUAL_PROFILE_SCHEMA_ID,
         PARTICLE_SDF_BROWSER_OVERLAY_SCHEMA_ID,
         SURFACE_FIELD_VISUAL_FRAME_SCHEMA_ID,
         SURFACE_FIELD_VISUAL_SEQUENCE_SCHEMA_ID,

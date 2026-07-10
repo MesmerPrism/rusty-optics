@@ -44,6 +44,9 @@ The first source slices focus on visual particles and mesh diagnostics:
   debug JSON and, for animated hand-mesh sequences, drive realtime SDF/particle
   queries through the Matter WebAssembly runtime without renderer backend
   imports;
+- a provider-bound `rusty.optics.hand.visual_profile.v1` conformance fixture
+  that preserves Lattice frame, Matter rig, and handedness identity without
+  importing renderer or platform policy;
 - a browser-development stimulus preview that loads the same renderer-neutral
   `StimulusProfile` fixture and lowers it to a full-screen WebGPU compute
   field texture, with a bounded CPU canvas fallback when WebGPU is unavailable.

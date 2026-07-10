@@ -1,0 +1,5 @@
+{
+  "schema": "rusty.optics.hand.visual_profile_damage.v1",
+  "damage_id": "renderer-backend-leak",
+  "forbidden_field": "shader_module"
+}
